@@ -37,7 +37,7 @@ Inspiration, stated openly (KB rule 3): X-COM Apocalypse. The owner, 2026-11-17:
 | Its alien roster and their look | Our own species, designed from D6 |
 | Its story of where the aliens come from and how the game ends | Our own; not written yet |
 | Its interface, building tiles and city map layout | `docs/presentation-concept.md`; our own maps |
-| The Ultraman costume's marks: its silver-and-red pattern, the chest light, the head crest, the eye shape | A moulded suit in our own two-tone scheme with a single visor band; figures are described by measurements and materials only (KB rule 23) |
+| The Ultraman costume's marks: its silver-and-red pattern, the chest light, the head crest, the eye shape | A moulded suit in bright red and black (`PLAN.md` D7) with a single black visor and no silver; figures are described by measurements and materials only (KB rule 23) |
 | Sibling games' looks (project-x "Bodycam feed") | `docs/presentation-concept.md` |
 
 The codename "ex-kom-calamity" sounds like the inspiration's title, so it stays out of the game itself (D10).

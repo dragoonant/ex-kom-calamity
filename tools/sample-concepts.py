@@ -1,10 +1,10 @@
 """Cloud stand-in for the local Flux Studio: renders docs/concept/samples/prompts.json for judging only.
-The proxy supplies the credential; the token below is a dummy. Usage: python3 tools/sample-concepts.py [id ...]"""
+The proxy supplies the credential; the token below is a dummy. Usage: python3 tools/sample-concepts.py <prompts file in docs/concept/samples> [id ...]"""
 import json, pathlib, sys, urllib.request
 
 root = pathlib.Path(__file__).resolve().parent.parent / "docs/concept/samples"
-spec = json.loads((root / "prompts.json").read_text())
-want = set(sys.argv[1:])
+spec = json.loads((root / sys.argv[1]).read_text())
+want = set(sys.argv[2:])
 for it in spec["items"]:
     if want and it["id"] not in want:
         continue

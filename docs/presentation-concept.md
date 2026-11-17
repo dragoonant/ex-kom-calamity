@@ -1,6 +1,6 @@
 # Presentation concept (KB rule 21 worksheet)
 
-From 3d-game-generation `templates/presentation-concept.md`. Status: **proposal, pending the owner's yes** (`PLAN.md` D11, Q1). Everything below is the drafter's proposal built on D5 (retro-future utopia) unless a source is given.
+From 3d-game-generation `templates/presentation-concept.md`. Status: **the owner said yes to the console and the 1950s-future look on 2026-11-17** after seeing `docs/concept/samples/console-mood-s95.jpg` (`PLAN.md` D11). The token table below is still the drafter's detail built on that yes.
 
 ## 1. One-line concept
 **"Civil Defence switchboard of the City of Tomorrow"**: the player sits at the agency's control board, a 1950s-future console of enamel panels, lamp rows, toggle switches and printed message slips.
@@ -16,7 +16,7 @@ From 3d-game-generation `templates/presentation-concept.md`. Status: **proposal,
 ## 3. Tokens, rewritten from nothing
 | Surface | Decision |
 |---|---|
-| Palette (named roles) | Enamel cream (panel), teal (structure), coral (alert), mustard (caution), graphite (text), lamp green (ok) |
+| Palette (named roles) | Enamel cream (panel), teal (structure), coral (alert), mustard (caution), graphite (text), lamp green (ok). The agency's own colours are bright red and black (`PLAN.md` D7), used for agent lamps and markers |
 | Typefaces | Display: a geometric sans in wide caps; body: a humanist sans; numerals: tabular, as on a meter face |
 | Frame shapes | Rounded-rectangle panels with a chrome bead edge, visible screw heads at corners, no cut corners |
 | Title screen and menu | A city skyline poster in flat colour under the console; menu items are labelled toggle switches |
@@ -35,7 +35,7 @@ Layout rules, camera rig and mouse map (KB rule 27), save/Continue flow (KB rule
 ## 5. Checks before the first playable ships
 - [ ] Screenshots of the title, the setup screen and a mid-battle view beside project-x's; none could be mistaken for the other.
 - [ ] A failing check greps the stylesheet for project-x's fonts, palette colours and scanline effects (0 hits).
-- [ ] Owner's yes recorded in `PLAN.md` with the date.
+- [x] Owner's yes recorded in `PLAN.md` with the date (D11, 2026-11-17).
 
 ## Sources
 `PLAN.md` D5, D11; KB `rules.md` rules 16 and 21; KB `projects/project-x.md` section 2.

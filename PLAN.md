@@ -13,11 +13,11 @@ From 3d-game-generation `templates/PLAN.md`. Rewrite, do not append. Owner decis
 | D4 | Combat mode | Real-time with pause first, on a tick-based engine so a turn-based mode runs on the same rules later | owner, 2026-11-17 | question batch 1 |
 | D5 | Setting | Retro-future utopia: a gleaming city of tomorrow with rot underneath | owner, 2026-11-17 | question batch 1 |
 | D6 | Alien threat | Infiltration that escalates: hidden takeover of citizens and organisations first, open attacks with craft later. Our own species and story | owner, 2026-11-17 | question batch 2 |
-| D7 | Armour | Suits evolve by tier: plain security gear, then the sleek moulded suit, then a flying variant | owner, 2026-11-17 | question batch 1 |
+| D7 | Armour | Suits evolve by tier: plain security gear, then the sleek moulded suit, then a flying variant. Look: sample `suit-t3-flight-s32` "looks closest to what I want, just different colors"; colours "bright red and black" | owner, 2026-11-17 | question batch 1; notes on `docs/concept/samples/` round 1 |
 | D8 | Figure style (KB rule 7) | The house figure style of KB rule 7, animated. Owner: it "should work better for animation. Use that" | owner, 2026-11-17 | question batch 2; `docs/figures.md` (to write before the first art run) |
 | D9 | Platform and stack | Vite + React + three + R3F + drei + zustand + TypeScript strict + Vitest; Playwright added with the first playable. Fixed-step sim behind a pure `step` | default, not yet asked | KB `recipe.md` steps 6 and 11 |
 | D10 | Title | "ex-kom-calamity" is a codename only; the game shows a placeholder title until the owner picks an original one | owner, 2026-11-17 | question batch 2; KB rule 29 |
-| D11 | Presentation concept (KB rule 21) | "Civil Defence switchboard of the City of Tomorrow" | pending owner yes | `docs/presentation-concept.md` |
+| D11 | Presentation concept (KB rule 21) | "Civil Defence switchboard of the City of Tomorrow". Owner: "I am good with the console and [futuristic] 50s look" | owner, 2026-11-17 | `docs/presentation-concept.md`; sample `console-mood-s95` |
 | D12 | Hosting (KB rule 28) | Private repo `dragoonant/ex-kom-calamity`; playtests as a private Artifact | default, not yet asked | KB rule 28 |
 | D13 | Save key (KB rule 22) | `ekc-save` | default | KB rule 22 |
 
@@ -26,7 +26,7 @@ Both question batches of KB rule 12 were used on 2026-11-17, so these stay on th
 
 | # | Question | Recommended default (in use) | Asked | Answer |
 |---|---|---|---|---|
-| Q1 | Yes to the presentation concept (D11)? | Build on it; get the yes with the art audition | not yet | |
+| Q1 | Figure proportions on the real art run | Round 1 was off-model (owner: "Proportions are definitely off"); round 2 reworded the measurements. Attach the style reference image on the owner's machine and gate each figure by measured head ratio (KB rules 7, 13) | 2026-11-17, with the samples | open |
 | Q2 | Shipping title | Placeholder "CITY OF TOMORROW (working title)" on the title screen | not yet | |
 | Q3 | Squad size in a battle | 6 agents *(tune)* | not yet | |
 | Q4 | Floors per building in the first map | 2 floors plus a roof; every tile carries a level from the first engine step, because height is hard to retrofit and the flying suit (D7) needs it | not yet | |
