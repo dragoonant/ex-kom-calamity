@@ -1,0 +1,55 @@
+{
+  "_": "Unit templates (UNIT-2, UNIT-5). Placeholder names (PLAN.md D10). host.hp must equal citizen.hp (RULING UNIT-5). All (tune).",
+  "agent-t1": {
+    "name": "Agent",
+    "side": "agency",
+    "hp": 60,
+    "armour": 4,
+    "aim": 10,
+    "moveTicks": 4,
+    "sight": 12,
+    "weapon": "service-pistol",
+    "disguised": false,
+    "defaultStance": "engage",
+    "source": "PLAN.md D7 tier 1: plain security gear"
+  },
+  "host": {
+    "name": "Citizen",
+    "side": "hostile",
+    "hp": 40,
+    "armour": 0,
+    "aim": 0,
+    "moveTicks": 4,
+    "sight": 10,
+    "weapon": "pocket-pistol",
+    "disguised": true,
+    "defaultStance": "engage",
+    "source": "docs/GAME-DESIGN.md 3: hosts look ordinary until close"
+  },
+  "taker": {
+    "name": "Taker",
+    "side": "hostile",
+    "hp": 30,
+    "armour": 2,
+    "aim": 15,
+    "moveTicks": 2,
+    "sight": 8,
+    "weapon": "taker-bite",
+    "disguised": false,
+    "defaultStance": "engage",
+    "source": "docs/GAME-DESIGN.md 3: the organism that takes hosts"
+  },
+  "citizen": {
+    "name": "Citizen",
+    "side": "civilian",
+    "hp": 40,
+    "armour": 0,
+    "aim": 0,
+    "moveTicks": 4,
+    "sight": 6,
+    "weapon": null,
+    "disguised": false,
+    "defaultStance": "hold",
+    "source": "CIV-1"
+  }
+}

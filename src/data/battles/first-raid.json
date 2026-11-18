@@ -1,0 +1,25 @@
+{
+  "id": "first-raid",
+  "name": "Raid on Civic Savings",
+  "_": "The first playable raid (ARCH-1). Squad of 6 (PLAN.md Q3). Agent names are placeholders. Non-agent units get ids by spawn position (UNIT-3).",
+  "map": "civic-savings-branch",
+  "squad": [
+    { "name": "Vance", "template": "agent-t1", "weapon": "patrol-carbine", "at": { "x": 4, "y": 10, "level": 0 } },
+    { "name": "Okoro", "template": "agent-t1", "weapon": "service-pistol", "at": { "x": 5, "y": 10, "level": 0 } },
+    { "name": "Lindqvist", "template": "agent-t1", "weapon": "scatter-gun", "at": { "x": 6, "y": 10, "level": 0 } },
+    { "name": "Marsh", "template": "agent-t1", "weapon": "service-pistol", "at": { "x": 7, "y": 10, "level": 0 } },
+    { "name": "Teodoro", "template": "agent-t1", "weapon": "patrol-carbine", "at": { "x": 8, "y": 10, "level": 0 } },
+    { "name": "Quill", "template": "agent-t1", "weapon": "service-pistol", "at": { "x": 6, "y": 11, "level": 0 } }
+  ],
+  "others": [
+    { "template": "host", "at": { "x": 4, "y": 4, "level": 0 } },
+    { "template": "host", "at": { "x": 10, "y": 7, "level": 0 } },
+    { "template": "host", "at": { "x": 5, "y": 4, "level": 1 } },
+    { "template": "host", "at": { "x": 10, "y": 4, "level": 1 } },
+    { "template": "taker", "at": { "x": 5, "y": 5, "level": 2 } },
+    { "template": "citizen", "at": { "x": 3, "y": 7, "level": 0 } },
+    { "template": "citizen", "at": { "x": 11, "y": 3, "level": 0 } },
+    { "template": "citizen", "at": { "x": 4, "y": 8, "level": 1 } },
+    { "template": "citizen", "at": { "x": 11, "y": 8, "level": 1 } }
+  ]
+}
