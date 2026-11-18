@@ -20,6 +20,9 @@ export interface EkcHook {
   resume(): void;
   isPaused(): boolean;
   select(id: string | null): void;
+  setMode(mode: 'normal' | 'blast'): void;
+  setLevel(level: number): void;
+  level(): number;
   tapTile(p: Pos): TapResult;
   lastTap(): TapResult | null;
   hash(): string | null;

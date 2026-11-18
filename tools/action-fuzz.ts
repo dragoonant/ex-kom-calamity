@@ -27,6 +27,11 @@ const malformed: unknown[] = [
   { type: 'fire', side: 'agency', unit: 'a1' },
   { type: 'stance', side: 'agency', unit: 'a1', stance: 'prone' },
   { type: 'halt', side: 'agency', unit: 'zzz' },
+  { type: 'blast', side: 'agency', unit: 'a1' },
+  { type: 'blast', side: 'agency', unit: 'a1', at: { x: 0, y: 0, level: 5 } },
+  { type: 'blast', side: 'agency', unit: 'a1', at: { x: 0.5, y: 2, level: 0 } },
+  { type: 'blast', side: 'civilian', unit: 'u1', at: { x: 1, y: 1, level: 0 } },
+  { type: 'blast', side: 'agency', unit: 'a1', at: 'here' },
   { type: 'withdraw', side: 'hostile' },
   { type: 'tick', extra: true },
 ];

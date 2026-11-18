@@ -1,5 +1,5 @@
 {
-  "_": "Unit templates (UNIT-2, UNIT-5). Placeholder names (PLAN.md D10). host.hp must equal citizen.hp (RULING UNIT-5). All (tune).",
+  "_": "Unit templates (UNIT-2, UNIT-5). Placeholder names (PLAN.md D10). host.hp must equal citizen.hp (RULING UNIT-5). All (tune). charges per BLAST-1.",
   "agent-t1": {
     "name": "Agent",
     "side": "agency",
@@ -11,6 +11,7 @@
     "weapon": "service-pistol",
     "disguised": false,
     "defaultStance": "engage",
+    "charges": 2,
     "source": "PLAN.md D7 tier 1: plain security gear"
   },
   "host": {
@@ -24,6 +25,7 @@
     "weapon": "pocket-pistol",
     "disguised": true,
     "defaultStance": "engage",
+    "charges": 0,
     "source": "docs/GAME-DESIGN.md 3: hosts look ordinary until close"
   },
   "taker": {
@@ -37,6 +39,7 @@
     "weapon": "taker-bite",
     "disguised": false,
     "defaultStance": "engage",
+    "charges": 0,
     "source": "docs/GAME-DESIGN.md 3: the organism that takes hosts"
   },
   "citizen": {
@@ -50,6 +53,7 @@
     "weapon": null,
     "disguised": false,
     "defaultStance": "hold",
+    "charges": 0,
     "source": "CIV-1"
   }
 }

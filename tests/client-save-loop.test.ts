@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { advance, hashState, query, replay } from '../src/engine';
+import { advance, hashState, query, replay, createGame, step } from '../src/engine';
 import { SAVE_KEY, SAVE_VERSION, clearSave, makeEnvelope, readSave, summarise, validateEnvelope, writeSave, type StorageLike } from '../src/client/save';
 import { feed, makeAccumulator } from '../src/client/loop';
 import { SETUP, game, order, tick } from './helpers';
@@ -31,11 +31,37 @@ describe('15. Save, client side (SAV)', () => {
       expect(r.save.version).toBe(SAVE_VERSION);
       expect(r.save.paused).toBe(true);
       expect(r.save.log).toEqual(s.log);
-      expect(hashState(r.save.snapshot)).toBe(hashState(s));
+      expect(hashState(r.state)).toBe(hashState(s));
+      expect(r.state).toEqual(s);
+      expect(r.save.snapshot.tiles).toEqual([]);
+      expect(r.save.hash).toBe(hashState(s));
       // SAV-1: the log that rides along replays to the snapshot.
       expect(hashState(replay(r.save.setup, r.save.log))).toBe(hashState(s));
       expect(r.save.selected).toBe('a1');
     }
+  });
+
+  it('SAV-3 a city block saves as a tile diff of a few KB and reopens to the same hash, damage included', () => {
+    let s = createGame({ battleId: 'block-raid', seed: 2 });
+    const a1 = s.units.find((u) => u.id === 'a1')!;
+    const r1 = step(s, { type: 'blast', side: 'agency', unit: 'a1', at: { x: a1.x + 3, y: a1.y, level: 0 } });
+    expect(r1.ok).toBe(true);
+    s = advance(r1.state, 1).state; // the charge goes off against the west wall of Civic Savings
+    const env = makeEnvelope({ battleId: 'block-raid', seed: 2 }, s, 'order', { selected: 'a1', level: 0 });
+    expect(env.tileDiff.length).toBeGreaterThan(0);
+    expect(env.tileDiff.length).toBeLessThan(20);
+    const st = memoryStorage();
+    const w = writeSave(st, env);
+    expect(w.ok && w.bytes < 40_000).toBe(true);
+    const back = readSave(st);
+    expect(back.kind).toBe('ok');
+    if (back.kind === 'ok') {
+      expect(back.state.tiles).toHaveLength(60 * 60 * 7);
+      expect(hashState(back.state)).toBe(hashState(s));
+    }
+    // SAV-6: a save whose map no longer matches says so.
+    st.setItem(SAVE_KEY, JSON.stringify({ ...env, hash: 'deadbeef' }));
+    expect(readSave(st)).toMatchObject({ kind: 'unreadable', reason: expect.stringMatching(/map in this build differs/) });
   });
 
   it('SAV-4 the summary names the battle, sim seconds, agents standing and hostiles down from query.*', () => {
@@ -68,7 +94,8 @@ describe('15. Save, client side (SAV)', () => {
     const env = makeEnvelope({ battleId: 'first-raid', seed: 1 }, game(), 'start', { selected: null, level: 0 });
     expect(validateEnvelope({ ...env, version: 99 })).toMatch(/version 99/);
     expect(validateEnvelope({ ...env, setup: { battleId: 'nope', seed: 1 } })).toMatch(/not in this build/);
-    expect(validateEnvelope({ ...env, snapshot: { ...env.snapshot, tiles: [] } })).toMatch(/does not match/);
+    expect(validateEnvelope({ ...env, tileDiff: undefined })).toMatch(/no tile record/);
+    expect(validateEnvelope({ ...env, snapshot: { ...env.snapshot, mapId: 'atlantis' } })).toMatch(/map "atlantis" is not in this build/);
     expect(validateEnvelope(env)).toBeNull();
     const refusing: StorageLike = {
       getItem: () => null,

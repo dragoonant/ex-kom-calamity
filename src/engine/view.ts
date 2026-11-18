@@ -12,6 +12,8 @@ export function redactUnit(viewer: Side, u: Unit): Unit {
     readyTick: 0,
     lastFiredTick: -1,
     stance: 'hold',
+    blast: null,
+    charges: 0,
   };
   if (viewer === 'agency' && u.side === 'hostile' && u.disguised && !u.revealed) {
     const citizen = UNITS.citizen;
@@ -27,7 +29,7 @@ export function redactUnit(viewer: Side, u: Unit): Unit {
 export function view(state: State, side: Side): State {
   const units: Unit[] = [];
   for (const u of state.units) {
-    if (u.side === side) units.push({ ...u, order: u.order ? { ...u.order, path: u.order.path.map((p) => ({ ...p })) } : null });
+    if (u.side === side) units.push({ ...u, order: u.order ? { ...u.order, path: u.order.path.map((p) => ({ ...p })) } : null, blast: u.blast ? { at: { ...u.blast.at }, progress: u.blast.progress } : null });
     else if (side !== 'civilian' && sideSeesTile(state, side, u)) units.push(redactUnit(side, u));
   }
   return { ...state, units, rng: [0, 0, 0, 0], log: [] };

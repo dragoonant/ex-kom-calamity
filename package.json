@@ -13,7 +13,9 @@
     "action-fuzz": "tsx tools/action-fuzz.ts",
     "golden:make": "tsx tools/make-golden.ts",
     "e2e": "playwright test",
-    "check:look": "node tools/check-look.mjs"
+    "check:look": "node tools/check-look.mjs",
+    "shot": "node tools/shot.mjs",
+    "map:make": "tsx tools/make-block.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

@@ -16,20 +16,30 @@ export function tileToWorld(p: Pos, out = new THREE.Vector3()): THREE.Vector3 {
 export const rig: CameraPose = {
   yaw: Math.PI * 0.22,
   pitch: 0.95,
-  distance: 17,
+  distance: 24,
   target: { x: 8, z: 6 },
 };
+
+/** The map's footprint, set when a battle opens, so the camera target stays over the block. */
+export const bounds = { width: 16, depth: 12 };
+
+/** Centres the camera on a tile (a new raid, Continue, picking an agent from the squad panel). */
+export function focusOn(p: { x: number; y: number }): void {
+  rig.target.x = p.x + 0.5;
+  rig.target.z = p.y + 0.5;
+  clampRig();
+}
 
 export const PITCH_MIN = 0.35;
 export const PITCH_MAX = 1.45;
 export const DIST_MIN = 5;
-export const DIST_MAX = 40;
+export const DIST_MAX = 110;
 
 export function clampRig(): void {
   rig.pitch = Math.min(PITCH_MAX, Math.max(PITCH_MIN, rig.pitch));
   rig.distance = Math.min(DIST_MAX, Math.max(DIST_MIN, rig.distance));
-  rig.target.x = Math.min(24, Math.max(-8, rig.target.x));
-  rig.target.z = Math.min(20, Math.max(-8, rig.target.z));
+  rig.target.x = Math.min(bounds.width + 6, Math.max(-6, rig.target.x));
+  rig.target.z = Math.min(bounds.depth + 6, Math.max(-6, rig.target.z));
 }
 
 export function applyRig(camera: THREE.Camera, levelY: number): void {

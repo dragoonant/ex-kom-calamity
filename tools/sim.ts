@@ -2,7 +2,7 @@
 // Plays seeded battles to completion under two policy pairs and reports outcomes (KB rule 30).
 // Exit code 1 if any invariant breaks. The policies are sim drivers, not the game's AI (M3).
 import { query } from '../src/engine';
-import { randomPolicy, standPolicy, sweepPolicy } from '../src/sim/policies';
+import { demolitionPolicy, randomPolicy, standPolicy, sweepPolicy } from '../src/sim/policies';
 import { runBattle } from '../src/sim/run';
 
 const args = new Map<string, string>();
@@ -77,6 +77,42 @@ for (const pair of pairs) {
     'orders / battle': r2(row.orders / battles),
     'rejected orders': row.rejected,
   });
+}
+// The city block (MAP-7): a short demolition sweep per seed, to keep pathing over 7 levels, stray rounds,
+// charges and collapses under the invariants. Capped in ticks: it is a smoke test, not a balance figure.
+const blockBattles = Number(args.get('block') ?? 4);
+const blockTicks = Number(args.get('blockticks') ?? 500);
+if (blockBattles > 0) {
+  const rows: Record<string, unknown>[] = [];
+  for (let i = 0; i < blockBattles; i++) {
+    const seed = seed0 + i;
+    let blasts = 0;
+    let destroyed = 0;
+    let fell = 0;
+    let levelSteps = 0;
+    const r = runBattle({
+      setup: { battleId: 'block-raid', seed },
+      agency: demolitionPolicy(0.05),
+      hostile: standPolicy(),
+      maxTicks: blockTicks,
+      deepEvery: 100,
+      lightLegal: true,
+      onEvent: (e) => {
+        if (e.type === 'blast') blasts += 1;
+        else if (e.type === 'tileDestroyed') destroyed += 1;
+        else if (e.type === 'fell') fell += 1;
+        else if (e.type === 'moved' && e.from.level !== e.to.level) levelSteps += 1;
+      },
+    });
+    if (r.broken.length) {
+      failed = true;
+      console.error(`[block-raid] seed ${seed}: ${r.broken.slice(0, 5).join('; ')}`);
+    }
+    const o = query.outcome(r.state);
+    rows.push({ seed, ticks: r.ticks, orders: r.orders, blasts, 'tiles destroyed': destroyed, falls: fell, 'level steps': levelSteps, shots: o.score.shotsFired, 'hostiles down': o.score.hostilesDown, 'agents down': o.score.agentsDown, over: o.over ? o.over.reason : 'cap' });
+  }
+  console.log(`\nblock-raid demolition sweep (${blockBattles} battles of at most ${blockTicks} ticks, map halcyon-block)`);
+  console.table(rows);
 }
 console.log(`\n${failed ? 'INVARIANT FAILURES (see above)' : 'all invariants held'}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 process.exit(failed ? 1 : 0);

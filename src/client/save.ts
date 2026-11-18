@@ -1,13 +1,18 @@
 // Save/Continue, client side (docs/spec/10-rules.md section 15, SAV-3..SAV-6; KB rule 22; PLAN.md D13, Q5).
-// The snapshot is the engine state itself (SAV-1); the log rides along for replay. No DOM here beyond
-// the Storage interface, so tests drive it with a plain object.
-import { BATTLES } from '../data';
-import { query, type LogEntry, type Setup, type State } from '../engine';
+// The snapshot is the engine state (SAV-1) with one packing step: a city block has 25,200 tiles (2 MB as
+// JSON), so the envelope keeps only the tiles that differ from the map file and the hash of the full state;
+// loading rebuilds the tiles from the map, applies the diff and checks the hash. The log rides along for
+// replay. No DOM here beyond the Storage interface, so tests drive it with a plain object.
+import { BATTLES, MAPS } from '../data';
+import { hashState, parseMap, query, type LogEntry, type Setup, type State, type Tile, type TileKind } from '../engine';
 
 export const SAVE_KEY = 'ekc-save';
 export const SAVE_VERSION = 1;
 
 export type SaveReason = 'start' | 'pause' | 'order' | 'interval' | 'leave';
+
+/** [tile index, kind, open (0|1), material, hp] for a tile that differs from the map file. */
+export type TileDiff = [number, TileKind, 0 | 1, string, number];
 
 export interface SaveEnvelope {
   game: 'ekc';
@@ -15,7 +20,11 @@ export interface SaveEnvelope {
   savedAt: string;
   reason: SaveReason;
   setup: Setup;
+  /** The state with `tiles` emptied; `tileDiff` and the map file restore them. */
   snapshot: State;
+  tileDiff: TileDiff[];
+  /** hashState of the full state, checked after unpacking (SAV-6). */
+  hash: string;
   /** Equals snapshot.log; kept at the top level so a bug report can replay from the seed by hand. */
   log: LogEntry[];
   /** A real-time battle always reopens paused (SAV-4). */
@@ -42,14 +51,55 @@ export interface StorageLike {
 
 export type LoadResult =
   | { kind: 'none' }
-  | { kind: 'ok'; save: SaveEnvelope }
+  | { kind: 'ok'; save: SaveEnvelope; state: State }
   | { kind: 'unreadable'; reason: string };
 
 export type WriteResult = { ok: true; bytes: number } | { ok: false; reason: string };
 
+const baseTiles = new Map<string, Tile[]>();
+function mapTiles(mapId: string): Tile[] | null {
+  const hit = baseTiles.get(mapId);
+  if (hit) return hit;
+  const def = MAPS[mapId];
+  if (!def) return null;
+  const tiles = parseMap(def);
+  baseTiles.set(mapId, tiles);
+  return tiles;
+}
+
+export function packTiles(state: State): TileDiff[] {
+  const base = mapTiles(state.mapId);
+  const out: TileDiff[] = [];
+  if (!base || base.length !== state.tiles.length) {
+    state.tiles.forEach((t, i) => out.push([i, t.kind, t.open ? 1 : 0, t.material, t.hp]));
+    return out;
+  }
+  for (let i = 0; i < base.length; i++) {
+    const a = base[i]!;
+    const b = state.tiles[i]!;
+    if (a.kind !== b.kind || a.open !== b.open || a.material !== b.material || a.hp !== b.hp) out.push([i, b.kind, b.open ? 1 : 0, b.material, b.hp]);
+  }
+  return out;
+}
+
+export function unpackState(env: SaveEnvelope): { ok: true; state: State } | { ok: false; reason: string } {
+  const base = mapTiles(env.snapshot.mapId);
+  if (!base) return { ok: false, reason: `the map "${env.snapshot.mapId}" is not in this build` };
+  const tiles = base.slice();
+  for (const d of env.tileDiff) {
+    const [i, kind, open, material, hp] = d;
+    const t = tiles[i];
+    if (!t) return { ok: false, reason: 'the save names a tile the map does not have' };
+    tiles[i] = { ...t, kind, open: open === 1, material, hp };
+  }
+  const state: State = { ...env.snapshot, tiles };
+  if (hashState(state) !== env.hash) return { ok: false, reason: 'the map in this build differs from the one the raid was saved on' };
+  return { ok: true, state };
+}
+
 export function makeEnvelope(
   setup: Setup,
-  snapshot: State,
+  state: State,
   reason: SaveReason,
   ui: { selected: string | null; level: number },
   now: Date = new Date(),
@@ -60,8 +110,10 @@ export function makeEnvelope(
     savedAt: now.toISOString(),
     reason,
     setup,
-    snapshot,
-    log: snapshot.log,
+    snapshot: { ...state, tiles: [] },
+    tileDiff: packTiles(state),
+    hash: hashState(state),
+    log: state.log,
     paused: true,
     selected: ui.selected,
     level: ui.level,
@@ -110,7 +162,10 @@ export function readSave(storage: StorageLike | null): LoadResult {
   }
   const why = validateEnvelope(parsed);
   if (why) return { kind: 'unreadable', reason: why };
-  return { kind: 'ok', save: parsed as SaveEnvelope };
+  const save = parsed as SaveEnvelope;
+  const un = unpackState(save);
+  if (!un.ok) return { kind: 'unreadable', reason: un.reason };
+  return { kind: 'ok', save, state: un.state };
 }
 
 /** Returns a reason when the value is not a usable envelope, else null. */
@@ -125,8 +180,9 @@ export function validateEnvelope(x: unknown): string | null {
   if (!s || s.version !== 1) return 'the snapshot is missing or of another engine version';
   if (!Array.isArray(s.units) || !Array.isArray(s.tiles) || !Array.isArray(s.log)) return 'the snapshot is incomplete';
   if (typeof s.width !== 'number' || typeof s.depth !== 'number' || typeof s.levels !== 'number') return 'the snapshot has no map size';
-  if (s.tiles.length !== s.width * s.depth * s.levels) return 'the snapshot map does not match its size';
+  if (!Array.isArray(e.tileDiff) || typeof e.hash !== 'string') return 'the save has no tile record';
   if (s.battleId !== e.setup.battleId) return 'the snapshot and the setup name different battles';
+  if (typeof s.mapId !== 'string' || !MAPS[s.mapId]) return `the map "${String(s.mapId)}" is not in this build`;
   return null;
 }
 

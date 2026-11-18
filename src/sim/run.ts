@@ -12,6 +12,8 @@ export interface RunOptions {
   /** Run the deep invariants (INV-5, INV-6) every N accepted actions; 0 = never. */
   deepEvery?: number;
   policySeed?: number;
+  /** Check INV-1 only on deep passes (legalActions for three sides is the costly part on a city block). */
+  lightLegal?: boolean;
   onEvent?: (e: GameEvent) => void;
 }
 
@@ -45,7 +47,7 @@ export function runBattle(opts: RunOptions): RunResult {
     steps += 1;
     if (opts.onEvent) for (const e of r.events) opts.onEvent(e);
     const deep = deepEvery > 0 && steps % deepEvery === 0;
-    for (const b of checkInvariants(state, { prev, ticked: action.type === 'tick', deep })) broken.push(`tick ${state.tick}: ${b}`);
+    for (const b of checkInvariants(state, { prev, ticked: action.type === 'tick', deep, skipLegal: !!opts.lightLegal && !deep })) broken.push(`tick ${state.tick}: ${b}`);
   };
 
   while (!state.over && state.tick < maxTicks && broken.length === 0) {

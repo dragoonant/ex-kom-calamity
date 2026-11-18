@@ -1,6 +1,8 @@
 // Section 16 (INV): checked by sim and action-fuzz after every step, and by tests.
 import { SIDES, hashState, isPassable, legalActions, replay, tileAt, tileIndex, view, type Setup, type State } from '../engine';
 import { sideSeesTile } from '../engine/sight';
+import { isBreakable } from '../engine/structure';
+import { MATERIALS } from '../data';
 
 export interface InvariantOptions {
   /** Run the JSON round trip (INV-5) and the view check (INV-6); both are costly. */
@@ -8,13 +10,15 @@ export interface InvariantOptions {
   prev?: State | null;
   /** Whether the previous step was an accepted tick on a running battle (INV-4). */
   ticked?: boolean;
+  /** Skip INV-1 (legalActions for every side is the costly check on a city block). */
+  skipLegal?: boolean;
 }
 
 /** Returns the list of broken invariants, empty when all hold. */
 export function checkInvariants(state: State, opts: InvariantOptions = {}): string[] {
   const broken: string[] = [];
   // INV-1
-  for (const side of SIDES) if (legalActions(state, side).length === 0) broken.push(`INV-1 legalActions empty for ${side}`);
+  if (!opts.skipLegal) for (const side of SIDES) if (legalActions(state, side).length === 0) broken.push(`INV-1 legalActions empty for ${side}`);
   // INV-2
   for (const u of state.units) {
     if (!(u.hp >= 0 && u.hp <= u.maxHp)) broken.push(`INV-2 ${u.id} hp ${u.hp}/${u.maxHp}`);
@@ -39,6 +43,21 @@ export function checkInvariants(state: State, opts: InvariantOptions = {}): stri
       break;
     }
   }
+  // INV-8 (tiles are checked when they changed, and on every deep pass)
+  if (opts.deep || !opts.prev || opts.prev.tiles !== state.tiles) {
+    for (const t of state.tiles) {
+      const max = MATERIALS[t.material]?.hp;
+      if (max === undefined) broken.push(`INV-8 tile ${t.x},${t.y},${t.level} has unknown material ${t.material}`);
+      else if (!(t.hp >= 0 && t.hp <= max)) broken.push(`INV-8 tile ${t.x},${t.y},${t.level} hp ${t.hp}/${max}`);
+      else if (isBreakable(t) && t.hp === 0) broken.push(`INV-8 breakable tile ${t.x},${t.y},${t.level} rests at 0 hp`);
+      else if ((t.kind === 'rubble' || t.kind === 'void') && t.material !== 'none') broken.push(`INV-8 ${t.kind} tile ${t.x},${t.y},${t.level} has material ${t.material}`);
+      if (broken.length > 20) break;
+    }
+  }
+  for (const u of state.units) {
+    if (!(u.charges >= 0)) broken.push(`INV-8 ${u.id} charges ${u.charges}`);
+    if (u.blast && u.blast.at.level !== u.level && !u.down) broken.push(`INV-8 ${u.id} pending charge on another level`);
+  }
   // INV-4
   if (opts.prev) {
     if (state.tick < opts.prev.tick) broken.push(`INV-4 tick went back ${opts.prev.tick} -> ${state.tick}`);
@@ -61,7 +80,7 @@ export function checkInvariants(state: State, opts: InvariantOptions = {}): stri
           continue;
         }
         if (side === 'civilian' || !sideSeesTile(state, side, real)) broken.push(`INV-6 view(${side}) shows unseen ${u.id}`);
-        if (u.order !== null || u.fireTarget !== null || u.aimProgress !== 0 || u.stance !== 'hold') broken.push(`INV-6 view(${side}) leaks orders of ${u.id}`);
+        if (u.order !== null || u.fireTarget !== null || u.aimProgress !== 0 || u.stance !== 'hold' || u.blast !== null || u.charges !== 0) broken.push(`INV-6 view(${side}) leaks orders of ${u.id}`);
         if (side === 'agency' && real.side === 'hostile' && real.disguised && !real.revealed && (u.side !== 'civilian' || u.weapon !== null)) {
           broken.push(`INV-6 view(agency) unmasks ${u.id}`);
         }

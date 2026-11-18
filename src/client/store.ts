@@ -4,6 +4,7 @@
 import { create } from 'zustand';
 import { BATTLES, WEAPONS } from '../data';
 import { advance as engineAdvance, createGame, hashState, query, step, view, type Action, type GameEvent, type Pos, type Setup, type State, type Unit } from '../engine';
+import { bounds, focusOn } from './board/world';
 import { browserStorage, clearSave, makeEnvelope, readSave, summarise, writeSave, type LoadResult, type SaveEnvelope, type SaveReason, type SaveSummary } from './save';
 
 export type Screen = 'title' | 'battle' | 'report';
@@ -27,7 +28,7 @@ export interface SaveStatus {
 
 export interface TapResult {
   tile: Pos;
-  did: 'fire' | 'move' | 'select' | 'clear' | 'rejected';
+  did: 'fire' | 'move' | 'blast' | 'select' | 'clear' | 'rejected';
   detail: string;
 }
 
@@ -42,6 +43,8 @@ export interface ClientState {
   selected: string | null;
   level: number;
   hover: Pos | null;
+  /** 'blast': the next tap on a tile throws the selected agent's charge there (ORD-9). */
+  mode: 'normal' | 'blast';
   slips: Slip[];
   saveStatus: SaveStatus;
   continueSummary: SaveSummary | null;
@@ -69,6 +72,8 @@ export interface ClientState {
   select(id: string | null): void;
   setLevel(level: number): void;
   setHover(p: Pos | null): void;
+  setMode(mode: 'normal' | 'blast'): void;
+  focusUnit(id: string): void;
   tapTile(p: Pos): TapResult;
   saveNow(reason: SaveReason): void;
   hash(): string | null;
@@ -109,6 +114,7 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
         else if (a.type === 'fire') push(e.tick, `${label(a.unit)}: fire at ${label(a.target)}.`, 'note');
         else if (a.type === 'stance') push(e.tick, `${label(a.unit)}: stance ${a.stance}.`, 'note');
         else if (a.type === 'halt') push(e.tick, `${label(a.unit)}: halt.`, 'note');
+        else if (a.type === 'blast') push(e.tick, `${label(a.unit)}: arming a charge for ${fmtPos(a.at)}.`, 'caution');
         break;
       }
       case 'arrived':
@@ -146,6 +152,18 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
         if (u.side !== 'agency' && !seen.has(e.unit) && !seenBefore.has(e.unit)) break;
         const who = label(e.unit);
         push(e.tick, u.side === 'agency' ? `${who} is DOWN.` : u.side === 'hostile' ? `${who} is down.` : `A citizen is down.`, u.side === 'agency' ? 'alert' : u.side === 'hostile' ? 'ok' : 'caution');
+        break;
+      }
+      case 'blast':
+        push(e.tick, `${label(e.unit)}'s charge goes off at ${fmtPos(e.at)}.`, 'caution');
+        break;
+      case 'tileDestroyed':
+        push(e.tick, e.now === 'void' ? `The floor at ${fmtPos(e.at)} collapses.` : `The ${e.was} at ${fmtPos(e.at)} is destroyed.`, 'caution');
+        break;
+      case 'fell': {
+        const u = unitIn(after, e.unit);
+        if (u && u.side !== 'agency' && !seen.has(e.unit) && !seenBefore.has(e.unit)) break;
+        push(e.tick, `${label(e.unit)} falls to level ${e.to.level}: ${e.dealt} damage, ${e.hp} hp left.`, u?.side === 'agency' ? 'alert' : 'note');
         break;
       }
       case 'revealed': {
@@ -196,6 +214,14 @@ export const useClient = create<ClientState>((set, get) => {
   const commit = (next: State, events: GameEvent[], prev: State): void => {
     const slips = slipsFor(events, prev, next);
     const patch: Partial<ClientState> = { game: next, agency: view(next, 'agency') };
+    // The cut-away follows the selected agent up and down the stairs (and through a collapsed floor).
+    const selId = get().selected;
+    if (selId) {
+      const was = prev.units.find((u) => u.id === selId);
+      const now = next.units.find((u) => u.id === selId);
+      if (was && now && was.level !== now.level && get().level === was.level) patch.level = now.level;
+      if (now?.down) patch.mode = 'normal';
+    }
     if (slips.length) patch.slips = appendSlips(get().slips, slips);
     if (next.over && !prev.over) {
       // SAV-5: a finished battle clears its save.
@@ -217,6 +243,10 @@ export const useClient = create<ClientState>((set, get) => {
 
   const enter = (setup: Setup, game: State, ui: { selected: string | null; level: number }, reason: SaveReason): void => {
     const battle = BATTLES[setup.battleId];
+    bounds.width = game.width;
+    bounds.depth = game.depth;
+    const focus = game.units.find((u) => u.id === ui.selected) ?? game.units.find((u) => u.side === 'agency');
+    if (focus) focusOn(focus);
     set({
       screen: 'battle',
       setup,
@@ -226,6 +256,7 @@ export const useClient = create<ClientState>((set, get) => {
       selected: ui.selected,
       level: ui.level,
       hover: null,
+      mode: 'normal',
       lastTap: null,
       report: null,
       slips: [
@@ -252,6 +283,7 @@ export const useClient = create<ClientState>((set, get) => {
     selected: null,
     level: 0,
     hover: null,
+    mode: 'normal',
     slips: [],
     saveStatus: { ok: true, reason: null, tick: null, savedAt: null },
     continueSummary: null,
@@ -267,7 +299,7 @@ export const useClient = create<ClientState>((set, get) => {
     },
 
     newBattle(seed = Math.floor(Math.random() * 1_000_000) + 1) {
-      const setup: Setup = { battleId: 'first-raid', seed };
+      const setup: Setup = { battleId: 'block-raid', seed };
       const game = createGame(setup);
       const first = game.units.find((u) => u.side === 'agency')?.id ?? null;
       enter(setup, game, { selected: first, level: 0 }, 'start');
@@ -280,7 +312,7 @@ export const useClient = create<ClientState>((set, get) => {
         return false;
       }
       const env: SaveEnvelope = r.save;
-      enter(env.setup, env.snapshot, { selected: env.selected, level: env.level }, 'leave');
+      enter(env.setup, r.state, { selected: env.selected, level: env.level }, 'leave');
       return true;
     },
 
@@ -351,10 +383,10 @@ export const useClient = create<ClientState>((set, get) => {
       if (id && agency) {
         const u = agency.units.find((x) => x.id === id);
         if (!u || u.side !== 'agency' || u.down) return;
-        set({ selected: id, level: u.level });
+        set({ selected: id, level: u.level, mode: 'normal' });
         return;
       }
-      set({ selected: null });
+      set({ selected: null, mode: 'normal' });
     },
 
     setLevel(level) {
@@ -369,6 +401,18 @@ export const useClient = create<ClientState>((set, get) => {
       set({ hover: p });
     },
 
+    setMode(mode) {
+      const { agency, selected } = get();
+      const u = selected ? agency?.units.find((x) => x.id === selected) : undefined;
+      if (mode === 'blast' && !(u && !u.down && u.charges > 0)) return;
+      set({ mode });
+    },
+
+    focusUnit(id) {
+      const u = get().agency?.units.find((x) => x.id === id);
+      if (u) focusOn(u);
+    },
+
     /** KB rule 25: a tap resolves in exactly one place. Legal action for the tile, else select the unit on it, else clear. */
     tapTile(p) {
       const { agency, selected } = get();
@@ -380,6 +424,11 @@ export const useClient = create<ClientState>((set, get) => {
       if (!agency) return finish('clear', 'no battle');
       const holder = agency.units.find((u) => !u.down && u.x === p.x && u.y === p.y && u.level === p.level);
       const sel = selected ? agency.units.find((u) => u.id === selected && !u.down) : undefined;
+      if (sel && get().mode === 'blast') {
+        const r = get().order({ type: 'blast', side: 'agency', unit: sel.id, at: { x: p.x, y: p.y, level: p.level } });
+        if (r.ok) set({ mode: 'normal' });
+        return r.ok ? finish('blast', `${sel.id} -> ${fmtPos(p)}`) : finish('rejected', r.reason);
+      }
       if (sel && holder && holder.side !== 'agency') {
         const r = get().order({ type: 'fire', side: 'agency', unit: sel.id, target: holder.id });
         return r.ok ? finish('fire', holder.id) : finish('rejected', r.reason);
@@ -393,7 +442,7 @@ export const useClient = create<ClientState>((set, get) => {
         get().select(holder.id);
         return finish('select', holder.id);
       }
-      set({ selected: null });
+      set({ selected: null, mode: 'normal' });
       return finish('clear', 'nothing to do on that tile');
     },
 

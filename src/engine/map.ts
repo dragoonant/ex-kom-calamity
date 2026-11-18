@@ -1,5 +1,5 @@
 // Section 2 (MAP) and 6 (SEE): tiles, distance and line of sight.
-import { LEGEND, type MapDef } from '../data';
+import { DEFAULT_MATERIAL, LEGEND, MATERIALS, type MapDef } from '../data';
 import type { Pos, State, Tile, TileKind } from './types';
 
 export function parseMap(def: MapDef): Tile[] {
@@ -11,7 +11,11 @@ export function parseMap(def: MapDef): Tile[] {
       for (let x = 0; x < def.width; x++) {
         const ch = row[x] ?? ' ';
         const kind: TileKind = LEGEND[ch] ?? 'void';
-        tiles.push({ x, y, level: lvl.level, kind, open: false });
+        // STR-1: the map's material grid, else the default of the kind.
+        const mch = lvl.materials?.[y]?.[x] ?? ' ';
+        const named = mch !== ' ' ? def.materialKey?.[mch] : undefined;
+        const material = named && MATERIALS[named] ? named : DEFAULT_MATERIAL[kind];
+        tiles.push({ x, y, level: lvl.level, kind, open: false, material, hp: MATERIALS[material]?.hp ?? 0 });
       }
     }
   }
@@ -42,7 +46,7 @@ export function tileAt(s: State, p: Pos): Tile | null {
 }
 
 export function isPassable(kind: TileKind): boolean {
-  return kind === 'ground' || kind === 'floor' || kind === 'door' || kind === 'stair';
+  return kind === 'ground' || kind === 'floor' || kind === 'door' || kind === 'stair' || kind === 'rubble';
 }
 
 /** SEE-1: what blocks a line of sight. */

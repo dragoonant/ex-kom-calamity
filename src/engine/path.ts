@@ -16,9 +16,12 @@ const PLANAR: ReadonlyArray<readonly [number, number]> = [
 
 export function stepCost(s: State, unit: Pick<Unit, 'moveTicks'>, from: Pos, to: Pos): number {
   const t = s.tuning.move;
-  if (from.level !== to.level) return Math.round((unit.moveTicks * t.stairCostPercent) / 100);
-  if (from.x !== to.x && from.y !== to.y) return Math.round((unit.moveTicks * t.diagonalCostPercent) / 100);
-  return unit.moveTicks;
+  let cost = unit.moveTicks;
+  if (from.level !== to.level) cost = Math.round((unit.moveTicks * t.stairCostPercent) / 100);
+  else if (from.x !== to.x && from.y !== to.y) cost = Math.round((unit.moveTicks * t.diagonalCostPercent) / 100);
+  // MOVE-2: rubble is slow going.
+  if (s.tiles[tileIndex(s, to)]?.kind === 'rubble') cost = Math.round((cost * t.rubbleCostPercent) / 100);
+  return cost;
 }
 
 function passableAt(s: State, p: Pos, blocked: Set<number> | null): boolean {

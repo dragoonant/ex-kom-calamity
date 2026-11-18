@@ -3,19 +3,25 @@
 import tuningJson from './tuning.json';
 import weaponsJson from './weapons.json';
 import unitsJson from './units.json';
+import materialsJson from './materials.json';
 import civicSavingsBranch from './maps/civic-savings-branch.json';
+import halcyonBlock from './maps/halcyon-block.json';
 import firstRaid from './battles/first-raid.json';
+import blockRaid from './battles/block-raid.json';
 
 export type Side = 'agency' | 'hostile' | 'civilian';
 export type Stance = 'engage' | 'retaliate' | 'hold';
 export type WeaponKind = 'ranged' | 'melee';
+export type TileKindName = 'ground' | 'floor' | 'wall' | 'door' | 'stair' | 'window' | 'rubble' | 'void';
 
 export interface Tuning {
   time: { ticksPerSecond: number; maxBattleSeconds: number };
-  move: { diagonalCostPercent: number; stairCostPercent: number; blockedWaitTicks: number };
+  move: { diagonalCostPercent: number; stairCostPercent: number; blockedWaitTicks: number; rubbleCostPercent: number };
   sight: { revealRange: number };
   fire: { minHitChance: number; maxHitChance: number; movingTargetPenalty: number; retaliateMemoryTicks: number };
   save: { autosaveSeconds: number };
+  structure: { fallDamage: number };
+  blast: { throwRange: number; armTicks: number; structureDamage: number; edgeStructureDamage: number; unitDamage: number; edgeUnitDamage: number };
 }
 
 export interface WeaponDef {
@@ -28,6 +34,8 @@ export interface WeaponDef {
   damageMax: number;
   aimTicks: number;
   cooldownTicks: number;
+  /** STR-6: what a stray round does to the wall behind the target. */
+  structureDamage: number;
   source: string;
 }
 
@@ -42,6 +50,15 @@ export interface UnitTemplate {
   weapon: string | null;
   disguised: boolean;
   defaultStance: Stance;
+  /** BLAST-1 */
+  charges: number;
+  source: string;
+}
+
+/** STR-1 */
+export interface MaterialDef {
+  name: string;
+  hp: number;
   source: string;
 }
 
@@ -51,12 +68,25 @@ export interface Pos {
   level: number;
 }
 
+/** MAP-8 */
+export interface BuildingDef {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  w: number;
+  d: number;
+  floors: number;
+}
+
 export interface MapDef {
   id: string;
   name: string;
   width: number;
   depth: number;
-  levels: { level: number; rows: string[] }[];
+  levels: { level: number; rows: string[]; materials?: string[] }[];
+  materialKey?: Record<string, string>;
+  buildings?: BuildingDef[];
 }
 
 export interface SquadEntry {
@@ -92,19 +122,26 @@ function stripComments<T>(obj: Record<string, unknown>): T {
 export const TUNING: Tuning = stripComments<Tuning>(tuningJson as Record<string, unknown>);
 export const WEAPONS: Record<string, WeaponDef> = records<WeaponDef>(weaponsJson as Record<string, unknown>);
 export const UNITS: Record<string, UnitTemplate> = records<UnitTemplate>(unitsJson as Record<string, unknown>);
+export const MATERIALS: Record<string, MaterialDef> = records<MaterialDef>(materialsJson as Record<string, unknown>);
+/** STR-1: the material a tile takes when its map names none. */
+export const DEFAULT_MATERIAL: Record<TileKindName, string> = (materialsJson as unknown as { _defaults: Record<TileKindName, string> })._defaults;
 export const MAPS: Record<string, MapDef> = {
   [civicSavingsBranch.id]: stripComments<MapDef>(civicSavingsBranch as Record<string, unknown>),
+  [halcyonBlock.id]: stripComments<MapDef>(halcyonBlock as Record<string, unknown>),
 };
 export const BATTLES: Record<string, BattleDef> = {
   [firstRaid.id]: stripComments<BattleDef>(firstRaid as Record<string, unknown>),
+  [blockRaid.id]: stripComments<BattleDef>(blockRaid as Record<string, unknown>),
 };
 
 /** MAP-2 legend. */
-export const LEGEND: Record<string, 'ground' | 'floor' | 'wall' | 'door' | 'stair' | 'void'> = {
+export const LEGEND: Record<string, TileKindName> = {
   ',': 'ground',
   '.': 'floor',
   '#': 'wall',
   '+': 'door',
   '>': 'stair',
+  '=': 'window',
+  '%': 'rubble',
   ' ': 'void',
 };

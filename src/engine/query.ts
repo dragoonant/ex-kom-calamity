@@ -4,6 +4,9 @@ import { distance as tileDistance, hasLineOfSight, tileIndex } from './map';
 import { pathField, pathTo, posOfIndex } from './path';
 import { sideSeesUnit, unitById, visibleTileIndices } from './sight';
 import { canFire, damageRange as weaponDamageRange, hitBreakdown } from './fire';
+import { MATERIALS } from '../data';
+import { blastFootprint, canBlast, isBreakable } from './structure';
+import { inBounds } from './map';
 
 export type HitChance =
   | ({ ok: true; shooter: string; target: string; weapon: string; distance: number } & ShotBreakdown)
@@ -81,6 +84,23 @@ export const query = {
     const living = { agency: 0, hostile: 0, civilian: 0 };
     for (const u of state.units) if (!u.down) living[u.side] += 1;
     return { tick: state.tick, seconds: state.tick / state.tuning.time.ticksPerSecond, score: { ...state.score }, living, over: state.over ? { ...state.over } : null };
+  },
+
+  /** QRY-7 */
+  tileInfo(state: State, p: Pos): { kind: string; open: boolean; material: string; materialName: string; hp: number; maxHp: number; breakable: boolean } | null {
+    if (!inBounds(state, p)) return null;
+    const t = state.tiles[tileIndex(state, p)];
+    if (!t) return null;
+    const m = MATERIALS[t.material];
+    return { kind: t.kind, open: t.open, material: t.material, materialName: m?.name ?? t.material, hp: t.hp, maxHp: m?.hp ?? 0, breakable: isBreakable(t) };
+  },
+  /** QRY-8 */
+  blastPreview(state: State, unitId: string, at: Pos): { ok: true; armTicks: number; tiles: (Pos & { structureDamage: number; unitDamage: number })[] } | { ok: false; reason: string } {
+    const u = unitById(state, unitId);
+    if (!u) return { ok: false, reason: `no unit ${unitId}` };
+    const cb = canBlast(state, u, at);
+    if (!cb.ok) return cb;
+    return { ok: true, armTicks: state.tuning.blast.armTicks, tiles: blastFootprint(state, at) };
   },
 
   /** QRY-6 */

@@ -13,7 +13,9 @@ import { useClient } from './store';
 function Battle() {
   return (
     <div className="battle" data-testid="battle">
-      <Scene />
+      <div className="board-wrap">
+        <Scene />
+      </div>
       <Hud />
     </div>
   );
@@ -34,6 +36,9 @@ export function App() {
       resume: () => s().setPaused(false),
       isPaused: () => s().paused,
       select: (id) => s().select(id),
+      setMode: (m) => s().setMode(m),
+      setLevel: (l) => s().setLevel(l),
+      level: () => s().level,
       tapTile: (p) => s().tapTile(p),
       lastTap: () => s().lastTap,
       hash: () => s().hash(),

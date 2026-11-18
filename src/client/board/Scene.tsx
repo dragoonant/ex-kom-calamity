@@ -24,7 +24,8 @@ function Board() {
   const agency = useClient((s) => s.agency);
   const selected = useClient((s) => s.selected);
   const hover = useClient((s) => s.hover);
-  const derived = useBoardDerived(agency, selected, hover);
+  const mode = useClient((s) => s.mode);
+  const derived = useBoardDerived(agency, selected, hover, mode);
   if (!agency) return null;
   return (
     <>
@@ -43,7 +44,7 @@ export function Scene() {
       frameloop="always"
       dpr={[1, 1.5]}
       gl={{ antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance' }}
-      camera={{ fov: 42, near: 0.1, far: 200, position: [20, 16, 20] }}
+      camera={{ fov: 42, near: 0.1, far: 400, position: [20, 16, 20] }}
       onCreated={({ gl }) => {
         gl.setClearColor('#cfd8d3');
       }}
