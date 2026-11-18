@@ -4,4 +4,4 @@ Codename for an original 3D game by **evilgouki**: one retro-future city, real-t
 
 Start with `CLAUDE.md`, then `PLAN.md` and `STATUS.md`. Design: `docs/GAME-DESIGN.md`. Look: `docs/presentation-concept.md`.
 
-`npm install`, then `npm run dev` | `npm run build` | `npm test`.
+`npm install`, then `npm run dev` | `npm run build` | `npm test` | `npm run validate:data` | `npm run sim` | `npm run action-fuzz`. Rules: `docs/spec/10-rules.md`.

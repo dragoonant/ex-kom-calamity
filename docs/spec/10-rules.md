@@ -166,5 +166,13 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - RULING: MOVE-8 | The moving flag is the target's state at its last step, which may be the previous tick | A shooter earlier in unit order cannot know what the target will do later in the same tick; the lag is one tick and symmetric. provisional
 - RULING: TIME-3 | Inside a tick a unit downed by an earlier unit does not act | Units act in a fixed order; the alternative (simultaneous resolution) needs a two-phase tick this slice does not need. provisional
 
+## 18. Sim baseline (KB rule 30)
+`npm run sim`, 40 battles per driver pair, seeds 1-40, 2026-11-17, numbers as committed. The drivers are not an AI (hostiles stand or take random orders), so this is the starting line, not a verdict. Re-run after M3 and change one number at a time.
+
+| Driver pair | Agency wins | Mean sim seconds | Agents down / battle | Civilian hits / battle | Hit rate |
+|---|---|---|---|---|---|
+| random vs random | 100% | 28.1 | 0.45 | 0.28 | 54.8% |
+| sweep vs stand | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
+
 ## Sources
 `docs/GAME-DESIGN.md` draft 1 (2026-11-17), `PLAN.md` D3, D4, D6, D7, D10, Q3-Q5; KB `rules.md` 2, 8, 22, 30; KB `recipe.md` sections 2, 3, 5, 11; project-x `docs/spec/10-rules.md` as the shape donor (ARCH, MOVE-2, MOVE-7).

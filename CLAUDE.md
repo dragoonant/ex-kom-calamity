@@ -15,4 +15,4 @@ From 3d-game-generation `templates/CLAUDE.md`. An original 3D video game by **ev
 - **Studios:** they run on the owner's machine. Announce GPU work, one GPU job at a time, never kill node by image name, stop the studios when done (10, 17).
 - **Before every commit:** grep the staged diff for the real name and the home path (it must print nothing); commits end with the attribution lines the session provides.
 - **Update the KB entry** `projects/ex-kom-calamity.md` at the end of every milestone (KB rule 19).
-- Gates today: `npm run typecheck`, `npm test`, `npm run build`. `validate:data`, `sim` and `e2e` arrive with M1 and M2.
+- Gates today: `npm run typecheck`, `npm test`, `npm run build`, `npm run validate:data`, `npm run sim`, `npm run action-fuzz`. `e2e` arrives with M2.
