@@ -20,7 +20,8 @@ From 3d-game-generation `templates/PLAN.md`. Rewrite, do not append. Owner decis
 | D11 | Presentation concept (KB rule 21) | "Civil Defence switchboard of the City of Tomorrow". Owner: "I am good with the console and [futuristic] 50s look" | owner, 2026-11-17 | `docs/presentation-concept.md`; sample `console-mood-s95` |
 | D12 | Hosting (KB rule 28) | Private repo `dragoonant/ex-kom-calamity`; playtests as a private Artifact | default, not yet asked | KB rule 28 |
 | D13 | Save key (KB rule 22) | `ekc-save` | default | KB rule 22 |
-| D14 | Alien look | One species in three bodies, all sea-glass green with an amber core, dark chitin and branching coral. **References locked** in `docs/concept/samples/`: host `alien-host-s42` (full alien head, the host once it stops hiding), `gemini-alien-host-a` and `chrome-host-2` (human face with coral growth, the host while it passes as a clerk); taker `alien-taker-s51` and `alien-taker-s52`; fighter `gemini-alien-fighter-a` (headless column on three stilt legs) and `alien-fighter-s61` (two-legged crested fighter) | owner, 2026-11-17 | `sheet-10-aliens.jpg`; `gemini-chrome-brief.md` Locked section |
+| D14 | Alien look | One species in three bodies, all sea-glass green with an amber core, dark chitin and branching coral. **References locked** in `docs/concept/samples/`: host `alien-host-s42` (full alien head, the host once it stops hiding), `gemini-alien-host-a` and `chrome-host-2` (human face with coral growth, the host while it passes as a clerk); taker `alien-taker-s51` and `alien-taker-s52`; fighter `gemini-alien-fighter-a` (headless column on three stilt legs) **as the first fighter in the game** and `alien-fighter-s61` (two-legged crested fighter) as a later or elite type | owner, 2026-11-17 | `s
+| D15 | Autonomy while the owner is away | Owner, 2026-11-17: keep working toward a playable build and "make sensible choices". Merge pull requests into `main` without asking once every gate is green (typecheck, test, build, validate:data, sim, action-fuzz, e2e). Each playable is published as a private Artifact (D12) with the link posted to the owner. Build through M4 and beyond; GPU runs go to the evilaegis environment (Q7). Open questions stay on their defaults | owner, 2026-11-17 | question batch 3 (asked by the concept session) |heet-10-aliens.jpg`; `gemini-chrome-brief.md` Locked section |
 
 ## 2. Open questions (each with a default; never blocks work)
 Both question batches of KB rule 12 were used on 2026-11-17, so these stay on their defaults until the owner speaks.
@@ -28,12 +29,12 @@ Both question batches of KB rule 12 were used on 2026-11-17, so these stay on th
 | # | Question | Recommended default (in use) | Asked | Answer |
 |---|---|---|---|---|
 | Q1 | Figure proportions on the real art run | Round 1 was off-model (owner: "Proportions are definitely off"); round 2 reworded the measurements. Attach the style reference image on the owner's machine and gate each figure by measured head ratio (KB rules 7, 13) | 2026-11-17, with the samples | open |
-| Q2 | Shipping title | Placeholder "CITY OF TOMORROW (working title)" on the title screen | not yet | |
+| Q2 | Shipping title | Placeholder "CITY OF TOMORROW (working title)" on the title screen | not yet | default stands while the owner is away (2026-11-17) |
 | Q3 | Squad size in a battle | 6 agents *(tune)* | not yet | |
 | Q4 | Floors per building in the first map | 2 floors plus a roof; every tile carries a level from the first engine step, because height is hard to retrofit and the flying suit (D7) needs it | not yet | |
 | Q5 | How a real-time battle saves (KB rule 22) | Autosave on every pause, every accepted order and every 10 s of sim time *(tune)*; Continue reopens paused | not yet | |
 | Q6 | Selecting several agents at once | Tile tap selects one (KB rule 25); squad buttons and a "select all" key; no drag box until a playtest asks for it, because left-drag pans (KB rule 27) | not yet | |
-| Q7 | GPU and overnight art runs (KB rule 10) | Ask first. The studios run on the owner's machine, which a cloud session cannot reach | not yet | |
+| Q7 | GPU and overnight art runs (KB rule 10) | Ask first. The studios run on the owner's machine, which a cloud session cannot reach | 2026-11-17 | Owner: "We have an environment on evilaegis to run the gpu sessions. Use it to get to M4 and beyond." GPU work runs in sessions on the evilaegis host; one GPU job at a time, stop the studios when done |
 | Q8 | When the turn-based mode lands | After the join (M8), on the same tick rules | not yet | |
 
 ## 3. Standing rules adopted
