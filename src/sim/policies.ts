@@ -1,7 +1,7 @@
 // Headless policies for sim and fuzz. These are not the game's AI (M3): they exist to drive
 // battles to completion and to cover the rules. Each takes its own RNG so the engine's stays
 // untouched and a run is reproducible from its seed.
-import { legalActions, query, type Action, type Side, type State } from '../engine';
+import { blastTargets, legalActions, query, type Action, type Side, type State } from '../engine';
 import { nextInt, nextU32, seedRng, type RngState } from '../engine/rng';
 
 export type Policy = (state: State, side: Side, rng: RngState) => Action | null;
@@ -38,6 +38,21 @@ export function sweepPolicy(): Policy {
       if (to) return { type: 'move', side, unit: u.id, to: { x: to.x, y: to.y, level: to.level } };
     }
     return null;
+  };
+}
+
+/** Sweep, and now and then an idle unit with a charge throws it at a random legal tile (STR, BLAST coverage). */
+export function demolitionPolicy(blastRate: number): Policy {
+  const sweep = sweepPolicy();
+  return (state, side, rng) => {
+    if (chance(rng, blastRate)) {
+      for (const u of state.units) {
+        if (u.down || u.side !== side || u.blast || u.charges <= 0) continue;
+        const at = pick(rng, blastTargets(state, u));
+        if (at) return { type: 'blast', side, unit: u.id, at };
+      }
+    }
+    return sweep(state, side, rng);
   };
 }
 

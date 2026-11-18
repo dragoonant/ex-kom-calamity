@@ -1,2 +1,7 @@
 node_modules
 dist
+dist-artifact
+.claude/worktrees/
+e2e/out/
+playwright-report/
+test-results/

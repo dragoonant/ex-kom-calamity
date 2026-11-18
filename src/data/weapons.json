@@ -1,5 +1,5 @@
 {
-  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune).",
+  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune). structureDamage is what a stray round does to a wall (STR-6).",
   "service-pistol": {
     "name": "Service pistol",
     "kind": "ranged",
@@ -10,6 +10,7 @@
     "damageMax": 30,
     "aimTicks": 5,
     "cooldownTicks": 8,
+    "structureDamage": 0,
     "source": "agency sidearm, tier 1 gear"
   },
   "patrol-carbine": {
@@ -22,6 +23,7 @@
     "damageMax": 40,
     "aimTicks": 8,
     "cooldownTicks": 10,
+    "structureDamage": 6,
     "source": "agency long arm, tier 1 gear"
   },
   "scatter-gun": {
@@ -34,6 +36,7 @@
     "damageMax": 55,
     "aimTicks": 6,
     "cooldownTicks": 14,
+    "structureDamage": 14,
     "source": "agency close-quarters arm"
   },
   "pocket-pistol": {
@@ -46,6 +49,7 @@
     "damageMax": 25,
     "aimTicks": 6,
     "cooldownTicks": 10,
+    "structureDamage": 0,
     "source": "what a host carries under a coat"
   },
   "taker-bite": {
@@ -58,6 +62,7 @@
     "damageMax": 35,
     "aimTicks": 4,
     "cooldownTicks": 8,
+    "structureDamage": 0,
     "source": "the organism's own attack"
   }
 }

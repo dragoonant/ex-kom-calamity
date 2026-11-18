@@ -4,15 +4,17 @@ import type { Pos, Side, Stance, Tuning } from '../data';
 
 export type { Pos, Side, Stance, Tuning };
 
-export type TileKind = 'ground' | 'floor' | 'wall' | 'door' | 'stair' | 'void';
+export type TileKind = 'ground' | 'floor' | 'wall' | 'door' | 'stair' | 'window' | 'rubble' | 'void';
 
-/** MAP-1. Every tile carries a level. `open` is only ever true on a used door (MAP-3). */
+/** MAP-1. Every tile carries a level, a material and health (STR-1). `open` is only ever true on a used door (MAP-3). */
 export interface Tile {
   x: number;
   y: number;
   level: number;
   kind: TileKind;
   open: boolean;
+  material: string;
+  hp: number;
 }
 
 /** MOVE-3 */
@@ -51,6 +53,9 @@ export interface Unit {
   lastFiredTick: number;
   /** MOVE-8: advanced its move progress at its most recent step. */
   moving: boolean;
+  /** BLAST-1: charges left, and the pending one. */
+  charges: number;
+  blast: { at: Pos; progress: number } | null;
 }
 
 export interface Score {
@@ -83,6 +88,7 @@ export type Action =
   | { type: 'fire'; side: Side; unit: string; target: string }
   | { type: 'stance'; side: Side; unit: string; stance: Stance }
   | { type: 'halt'; side: Side; unit: string }
+  | { type: 'blast'; side: Side; unit: string; at: Pos }
   | { type: 'withdraw'; side: Side };
 
 /** ARCH-9: consecutive ticks are stored as one entry. */
@@ -136,6 +142,10 @@ export type GameEvent =
   | { type: 'damaged'; tick: number; unit: string; raw: number; armour: number; dealt: number; hp: number }
   | { type: 'down'; tick: number; unit: string }
   | { type: 'revealed'; tick: number; unit: string; by: 'fire' | 'proximity' }
+  | { type: 'tileDamaged'; tick: number; at: Pos; amount: number; hp: number }
+  | { type: 'tileDestroyed'; tick: number; at: Pos; was: TileKind; now: TileKind }
+  | { type: 'fell'; tick: number; unit: string; from: Pos; to: Pos; dealt: number; hp: number }
+  | { type: 'blast'; tick: number; unit: string; at: Pos }
   | { type: 'over'; tick: number; winner: Winner; reason: OverReason };
 
 export type StepResult =

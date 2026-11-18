@@ -16,3 +16,4 @@ export { parseMap, tileIndex, tileAt, inBounds, isPassable, distance, chebyshev,
 export { pathField, pathTo, posOfIndex, stepCost, neighbours } from './path';
 export { unitById, livingUnits, sideSeesUnit, sideSeesTile, unitSeesTile, appearsCivilianTo } from './sight';
 export { canFire, hitBreakdown, weaponOf } from './fire';
+export { canBlast, blastFootprint, blastTargets, isBreakable } from './structure';

@@ -11,7 +11,12 @@
     "validate:data": "tsx tools/validate-data.ts",
     "sim": "tsx tools/sim.ts",
     "action-fuzz": "tsx tools/action-fuzz.ts",
-    "golden:make": "tsx tools/make-golden.ts"
+    "golden:make": "tsx tools/make-golden.ts",
+    "e2e": "playwright test",
+    "check:look": "node tools/check-look.mjs",
+    "shot": "node tools/shot.mjs",
+    "map:make": "tsx tools/make-block.ts",
+    "artifact": "node tools/make-artifact.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -30,6 +35,7 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "@playwright/test": "^1.65.1"
   }
 }

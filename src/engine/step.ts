@@ -9,11 +9,17 @@ import { canFire, hitBreakdown, weaponOf } from './fire';
 import { hasLineOfSight, distance as unitDistance } from './map';
 import { nextInt } from './rng';
 import { appendLog } from './replay';
+import { canBlast, detonate, hurtUnit, strayRound, writableTiles } from './structure';
+import { neighbours } from './path';
 
 function cloneState(s: State): State {
   return {
     ...s,
-    units: s.units.map((u) => ({ ...u, order: u.order ? { ...u.order, to: { ...u.order.to }, path: u.order.path.map((p) => ({ ...p })) } : null })),
+    units: s.units.map((u) => ({
+      ...u,
+      order: u.order ? { ...u.order, to: { ...u.order.to }, path: u.order.path.map((p) => ({ ...p })) } : null,
+      blast: u.blast ? { at: { ...u.blast.at }, progress: u.blast.progress } : null,
+    })),
     rng: [s.rng[0], s.rng[1], s.rng[2], s.rng[3]],
     score: { ...s.score },
     over: s.over ? { ...s.over } : null,
@@ -109,6 +115,16 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       u.order = null;
       u.fireTarget = null;
       u.aimProgress = 0;
+      u.blast = null;
+      return accept(st, action);
+    }
+    case 'blast': {
+      // ORD-9
+      if (!isPos(action.at)) return reject(state, 'missing blast tile');
+      const cb = canBlast(state, target, action.at);
+      if (!cb.ok) return reject(state, cb.reason);
+      const st = cloneState(state);
+      unitById(st, action.unit)!.blast = { at: { x: action.at.x, y: action.at.y, level: action.at.level }, progress: 0 };
       return accept(st, action);
     }
     default:
@@ -134,6 +150,17 @@ function runTick(state: State): StepResult {
   // TIME-3a: every living unit in unit order.
   for (const u of st.units) {
     if (u.down) continue;
+    if (u.blast) {
+      // BLAST-2: arming a charge comes before everything else.
+      if (u.blast.at.level !== u.level) u.blast = null;
+      else {
+        u.moving = false;
+        u.aimProgress = 0;
+        u.blast.progress += 1;
+        if (u.blast.progress >= st.tuning.blast.armTicks) detonate(st, u, events, occ);
+        continue;
+      }
+    }
     let current: Unit | null = null;
     if (u.fireTarget) {
       const t = unitById(st, u.fireTarget);
@@ -236,27 +263,17 @@ function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<
     u.revealed = true;
     events.push({ type: 'revealed', tick: st.tick, unit: u.id, by: 'fire' });
   }
-  if (!hit) return; // FIRE-7
+  if (!hit) {
+    // FIRE-7, STR-6: a miss never hits a unit, but it may chew the wall behind the target.
+    strayRound(st, u, t, w, events, occ);
+    return;
+  }
   // Section 10
   const appearsCivilian = appearsCivilianTo('agency', t); // CIV-3, judged before anything changes
   const raw = w.damageMin + nextInt(st.rng, w.damageMax - w.damageMin + 1);
-  const dealt = Math.max(0, raw - t.armour);
-  t.hp = Math.max(0, t.hp - dealt);
   st.score.hits += 1;
   if (appearsCivilian) st.score.civilianHits += 1;
-  events.push({ type: 'damaged', tick: st.tick, unit: t.id, raw, armour: t.armour, dealt, hp: t.hp });
-  if (t.hp === 0) {
-    t.down = true;
-    t.order = null;
-    t.fireTarget = null;
-    t.aimProgress = 0;
-    t.moving = false;
-    occ.delete(tileIndex(st, t));
-    if (t.side === 'agency') st.score.agentsDown += 1;
-    else if (t.side === 'hostile') st.score.hostilesDown += 1;
-    else st.score.civiliansDown += 1;
-    events.push({ type: 'down', tick: st.tick, unit: t.id });
-  }
+  hurtUnit(st, t, raw, t.armour, events, occ);
 }
 
 /** MOVE-3, MOVE-5, MOVE-7 */
@@ -270,6 +287,20 @@ function advanceMove(st: State, u: Unit, events: GameEvent[], occ: Map<number, U
   if (!next) {
     u.order = null;
     u.moving = false;
+    return;
+  }
+  // MOVE-5: the next step may have been destroyed under the order (STR-4); replan at once.
+  if (!neighbours(st, u, null).some((n) => n.x === next.x && n.y === next.y && n.level === next.level)) {
+    const path = pathTo(st, pathField(st, u, null), o.to);
+    u.moving = false;
+    if (!path || path.length === 0) {
+      u.order = null;
+      events.push({ type: 'moveBlocked', tick: st.tick, unit: u.id });
+    } else {
+      o.path = path;
+      o.progress = 0;
+      o.blockedTicks = 0;
+    }
     return;
   }
   const cost = stepCost(st, u, u, next);
@@ -310,8 +341,7 @@ function advanceMove(st: State, u: Unit, events: GameEvent[], occ: Map<number, U
   u.moving = true;
   const tile = st.tiles[nIdx];
   if (tile && tile.kind === 'door' && !tile.open) {
-    st.tiles = st.tiles.slice();
-    st.tiles[nIdx] = { ...tile, open: true };
+    writableTiles(st)[nIdx] = { ...tile, open: true };
     events.push({ type: 'doorOpened', tick: st.tick, at: { ...next } });
   }
   events.push({ type: 'moved', tick: st.tick, unit: u.id, from, to: { ...next } });

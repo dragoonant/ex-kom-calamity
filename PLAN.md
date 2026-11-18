@@ -2,7 +2,7 @@
 
 From 3d-game-generation `templates/PLAN.md`. Rewrite, do not append. Owner decisions carry the owner's words and a date (KB rule 14); every open question has its default written here and work continues on it (KB rule 20). "ex-kom-calamity" is the repo and internal codename only (D10).
 
-**Status:** M1 done (battle spec, data, tick engine), 2026-11-17. Next: M2, the battle first playable.
+**Status:** M2 done (battle first playable on a destructible city block), 2026-11-18. Next: M3, the hostile AI.
 
 ## 1. Decisions
 | # | Topic | Decision | Who / when | Source |
@@ -20,8 +20,11 @@ From 3d-game-generation `templates/PLAN.md`. Rewrite, do not append. Owner decis
 | D11 | Presentation concept (KB rule 21) | "Civil Defence switchboard of the City of Tomorrow". Owner: "I am good with the console and [futuristic] 50s look" | owner, 2026-11-17 | `docs/presentation-concept.md`; sample `console-mood-s95` |
 | D12 | Hosting (KB rule 28) | Private repo `dragoonant/ex-kom-calamity`; playtests as a private Artifact | default, not yet asked | KB rule 28 |
 | D13 | Save key (KB rule 22) | `ekc-save` | default | KB rule 22 |
-| D14 | Engine contract frozen | `src/engine/types.ts` and the shapes in `docs/spec/10-rules.md` section 0 are frozen now that tests exist; a change needs a matching spec edit, a new golden (`npm run golden:make`) and a note here | M1, 2026-11-17 | `CLAUDE.md`; KB `recipe.md` step 3 |
-| D15 | Battle tick rate | 10 ticks per second (`tuning.time.ticksPerSecond`); the client's 60 Hz loop accumulates time and issues ticks through `advance(seconds)` | default, M1 2026-11-17 | spec TIME-1, TIME-4 and RULING TIME-1 |
+| D14 | Alien look | One species in three bodies, all sea-glass green with an amber core, dark chitin and branching coral. **References locked** in `docs/concept/samples/`: host `alien-host-s42` (full alien head, the host once it stops hiding), `gemini-alien-host-a` and `chrome-host-2` (human face with coral growth, the host while it passes as a clerk); taker `alien-taker-s51` and `alien-taker-s52`; fighter `gemini-alien-fighter-a` (headless column on three stilt legs) **as the first fighter in the game** and `alien-fighter-s61` (two-legged crested fighter) as a later or elite type | owner, 2026-11-17 | `s
+| D15 | Autonomy while the owner is away | Owner, 2026-11-17: keep working toward a playable build and "make sensible choices". Merge pull requests into `main` without asking once every gate is green (typecheck, test, build, validate:data, sim, action-fuzz, e2e). Each playable is published as a private Artifact (D12) with the link posted to the owner. Build through M4 and beyond; GPU runs go to the evilaegis environment (Q7). Open questions stay on their defaults | owner, 2026-11-17 | question batch 3 (asked by the concept session) |heet-10-aliens.jpg`; `gemini-chrome-brief.md` Locked section |
+| D16 | Battle maps | Owner, 2026-11-17: "I want larger maps with full graphics implemented. The xcom apocalypse maps were multi level and had nice details even for how old it is." Decided in question batch 4: (a) one battle map is a **city block**, several buildings around a street or courtyard, about 60 by 60 tiles, each building with its own floors, battles can start outside and move in; (b) the engine and the first map plan for **up to 6 floors plus roofs**; (c) **walls and floors are destructible from M2**: tiles carry health, explosions and heavy fire remove walls and collapse floors, so the field and the rules go into the spec now. End state is full 3D graphics with detailed interiors and props, not placeholder boxes; the first playable may ship with placeholder meshes on real map data, and the art pass (M4) replaces them | owner, 2026-11-17 | question batch 4; `docs/GAME-DESIGN.md` 3 |
+| D17 | Engine contract frozen | `src/engine/types.ts` and the shapes in `docs/spec/10-rules.md` section 0 are frozen now that tests exist; a change needs a matching spec edit, a new golden (`npm run golden:make`) and a note here. **Changed once, in M2, for D16:** `Tile` gained `material` and `hp`, `TileKind` gained `window` and `rubble`, `Unit` gained `charges` and `blast`, `Action` gained `blast`, four events were added; spec sections 19 and 20, golden remade 2026-11-18 | M1, 2026-11-17; M2, 2026-11-18 | `CLAUDE.md`; KB `recipe.md` step 3 |
+| D18 | Battle tick rate | 10 ticks per second (`tuning.time.ticksPerSecond`); the client's 60 Hz loop accumulates time and issues ticks through `advance(seconds)` | default, M1 2026-11-17 | spec TIME-1, TIME-4 and RULING TIME-1 |
 
 ## 2. Open questions (each with a default; never blocks work)
 Both question batches of KB rule 12 were used on 2026-11-17, so these stay on their defaults until the owner speaks.
@@ -29,15 +32,20 @@ Both question batches of KB rule 12 were used on 2026-11-17, so these stay on th
 | # | Question | Recommended default (in use) | Asked | Answer |
 |---|---|---|---|---|
 | Q1 | Figure proportions on the real art run | Round 1 was off-model (owner: "Proportions are definitely off"); round 2 reworded the measurements. Attach the style reference image on the owner's machine and gate each figure by measured head ratio (KB rules 7, 13) | 2026-11-17, with the samples | open |
-| Q2 | Shipping title | Placeholder "CITY OF TOMORROW (working title)" on the title screen | not yet | |
+| Q2 | Shipping title | Placeholder "CITY OF TOMORROW (working title)" on the title screen | not yet | default stands while the owner is away (2026-11-17) |
 | Q3 | Squad size in a battle | 6 agents *(tune)*; in `src/data/battles/first-raid.json` | not yet | |
-| Q4 | Floors per building in the first map | 2 floors plus a roof; every tile carries a level from the first engine step, because height is hard to retrofit and the flying suit (D7) needs it. Built: `civic-savings-branch`, 16 x 12 x 3 | not yet | |
-| Q5 | How a real-time battle saves (KB rule 22) | Autosave on every pause, every accepted order and every 10 s of sim time *(tune)*; Continue reopens paused | not yet | |
-| Q6 | Selecting several agents at once | Tile tap selects one (KB rule 25); squad buttons and a "select all" key; no drag box until a playtest asks for it, because left-drag pans (KB rule 27) | not yet | |
-| Q7 | GPU and overnight art runs (KB rule 10) | Ask first. The studios run on the owner's machine, which a cloud session cannot reach | not yet | |
+| Q4 | Floors per building in the first map | 2 floors plus a roof; every tile carries a level from the first engine step, because height is hard to retrofit and the flying suit (D7) needs it. Built in M1: `civic-savings-branch`, 16 x 12 x 3 (kept as the test map) | 2026-11-17 | Superseded by D16: up to 6 floors plus roofs |
+| Q5 | How a real-time battle saves (KB rule 22) | Autosave on every pause, every accepted order and every 10 s of sim time *(tune)*; Continue reopens paused. Built in M2 (spec SAV-3..6): a new raid also starts paused, and the save holds a tile diff against the map file plus the state hash instead of the block's 25,200 tiles | not yet | default stands (D15) |
+| Q6 | Selecting several agents at once | Tile tap selects one (KB rule 25); squad buttons and a "select all" key; no drag box until a playtest asks for it, because left-drag pans (KB rule 27). Built in M2: tile tap and squad lamps (keys 1 to 6) select one agent; "select all" is not built yet | not yet | default stands (D15) |
+| Q7 | GPU and overnight art runs (KB rule 10) | Ask first. The studios run on the owner's machine, which a cloud session cannot reach | 2026-11-17 | Owner: "We have an environment on evilaegis to run the gpu sessions. Use it to get to M4 and beyond." GPU work runs in sessions on the evilaegis host; one GPU job at a time, stop the studios when done |
 | Q8 | When the turn-based mode lands | After the join (M8), on the same tick rules | not yet | |
 | Q9 | Balance of the first slice | Leave the M1 numbers until the M3 AI moves the hostiles; the M1 sim baseline (agency wins 100% against standing hosts, `STATUS.md`) is the starting line, and each later change moves one number with a `sim` result (KB rule 30) | not yet | |
 | Q10 | The hosts' disguise | Hosts look like citizens until they fire or an agent comes within 3 tiles with line of sight (spec HIDE-1..5, `tuning.sight.revealRange`); a hit does not reveal them | not yet | |
+
+| Q11 | What the first explosion is (D16 asks for explosions from M2) | A breaching charge: each agent carries 2, thrown up to 6 tiles at a seen tile, armed over 6 ticks; 160 structure damage on the tile and 60 around it, 40 and 20 to anyone there less armour *(tune)* (spec section 20) | not yet | |
+| Q12 | Lifts (D16: "stairs or lifts") | Stairs only, two stair columns per building; a lift needs a moving-platform rule (RULING MAP-7) | not yet | |
+| Q13 | How far a collapse goes | Only the destroyed tile changes: no chain collapse, and a floor whose occupant could not land holds at 1 hp (RULINGS STR-4, STR-5) | not yet | |
+| Q14 | What the first block is | `halcyon-block`: Halcyon Arms (6 floors), Meridian Wireless (4), Civic Savings (3), Depot 7 (2) and the Sunbeam Automat (1) around a courtyard, 60 x 60, written by `npm run map:make`; all names placeholders. Furniture and props wait for the art pass (M4) | not yet | |
 
 ## 3. Standing rules adopted
 KB `rules.md` rules 1, 2, 6, 8-13, 19-30 apply without re-asking. Notes: rule 22 follows the real-time form (Q5); rule 25 applies because battles are on a tile grid; rule 6 limits each spec to the slice being built, so D2 is the target and the milestones below are the path. Rule 2 in force since M1: `docs/spec/10-rules.md` is the product, tests are named by its ids (`tests/coverage.test.ts` fails on an id without a test), and every ambiguity is a `RULING:` line there.
@@ -47,9 +55,9 @@ KB `rules.md` rules 1, 2, 6, 8-13, 19-30 apply without re-asking. Notes: rule 22
 |---|---|---|---|---|---|
 | M0 | Kickoff, scaffold, `CLAUDE.md`, `PLAN.md`, `STATUS.md`, design draft 1 | `npm run build` green | done | 2026-11-17 | not measured |
 | M1 | Battle spec, data, tick engine | `docs/spec/10-rules.md` with ids; tests by rule id; golden replay; `sim` and `action-fuzz` clean | done: 97 ids, 23 rulings, 101 tests, golden seed 7, sim 80 battles and fuzz 17k steps clean | 2026-11-17 | ~0.35M (one session, estimate) |
-| M2 | Battle first playable (real-time with pause, one building, save/Continue, KB rules 24-27) | Clickable on a URL with a screenshot | next | | |
+| M2 | Battle first playable (real-time with pause, one city block per D16 with destructible multi-level buildings, save/Continue, KB rules 24-27) | Clickable on a URL with a screenshot | done: 119 ids, 35 rulings, 127 tests, 8 e2e tests; private Artifact https://claude.ai/artifact/NtYezrJFZ5cYKuVs475YUG; screenshots in `docs/screenshots/` | 2026-11-18 | not measured (one session; larger than M1 because D16 landed mid-milestone) |
 | M3 | Alien AI and agent self-defence behaviour | Bench: normal beats random at least 95% | | | |
-| M4 | Art and audio, pass 1 | `docs/figures.md`; rigged GLBs through `?gallery`; `sounds.html` judged by ear | | | |
+| M4 | Art and audio, pass 1 | `docs/figures.md`; rigged GLBs through `?gallery`; building and street tile set with interiors and props for the D16 block; `sounds.html` judged by ear | | | |
 | M5 | City spec, data, engine | `docs/spec/20-city.md` with ids; clock sim with bots inside a win-rate target | | | |
 | M6 | City first playable | 3D city, organisations, alerts, craft, auto-resolved battles | | | |
 | M7 | The join | A city alert opens a battle on that building's map; results flow back; one campaign save | | | |
@@ -57,7 +65,7 @@ KB `rules.md` rules 1, 2, 6, 8-13, 19-30 apply without re-asking. Notes: rule 22
 | M9 | Polish and playtest tools | No scene-start hitch; phone tiers; tuning panel; Copy report | | | |
 
 ## 5. Out of scope for now
-Multiplayer; a second city; anything from M5 on in the M1 spec (KB rule 6: spec the slice being built).
+Multiplayer; a second city; anything from M5 on in the battle spec (KB rule 6: spec the slice being built). Not in M2 and waiting for their own slice: furniture and props, lifts, chain collapse, blast occlusion by walls, stray hits on units, glass that stops rounds.
 
 ## Sources
-Owner's messages and two multiple-choice batches of 2026-11-17; 3d-game-generation `rules.md`, `recipe.md`, `projects/project-x.md`; `docs/spec/10-rules.md` and `STATUS.md` for M1.
+Owner's messages and two multiple-choice batches of 2026-11-17; 3d-game-generation `rules.md`, `recipe.md`, `projects/project-x.md`; `docs/spec/10-rules.md` and `STATUS.md` for M1 and M2; the concept session's question batches 3 and 4 (D15, D16).

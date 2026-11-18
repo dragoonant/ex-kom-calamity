@@ -1,0 +1,21 @@
+{
+  "_": "Structure materials (STR-1, STR-2). hp is what a tile of the material starts with; hp 0 is unbreakable. Placeholder names (PLAN.md D10). All (tune).",
+  "_defaults": {
+    "wall": "brick",
+    "door": "timber",
+    "window": "glass",
+    "floor": "concrete",
+    "stair": "concrete",
+    "ground": "paving",
+    "rubble": "none",
+    "void": "none"
+  },
+  "brick": { "name": "Brick", "hp": 120, "source": "outer walls and parapets" },
+  "plaster": { "name": "Plaster partition", "hp": 50, "source": "interior walls" },
+  "timber": { "name": "Timber", "hp": 30, "source": "doors" },
+  "glass": { "name": "Plate glass", "hp": 8, "source": "windows" },
+  "concrete": { "name": "Concrete slab", "hp": 150, "source": "floors and stairs" },
+  "steel": { "name": "Sheet steel", "hp": 200, "source": "depot walls and pillars" },
+  "paving": { "name": "Paving", "hp": 0, "source": "streets and courtyards; never damaged (STR-2)" },
+  "none": { "name": "Nothing", "hp": 0, "source": "rubble and open air" }
+}

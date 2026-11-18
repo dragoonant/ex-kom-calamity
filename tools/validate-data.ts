@@ -2,7 +2,7 @@
 // Checks src/data/*.json against docs/spec/10-rules.md (sections 2, 3, 9, 10) and prints the
 // unit and weapon tables from the data so prose never drifts from the numbers. Exit 1 on any error.
 import { readFileSync } from 'node:fs';
-import { BATTLES, LEGEND, MAPS, TUNING, UNITS, WEAPONS } from '../src/data';
+import { BATTLES, DEFAULT_MATERIAL, LEGEND, MAPS, MATERIALS, TUNING, UNITS, WEAPONS } from '../src/data';
 import { STANCES, SIDES } from '../src/engine';
 
 const errors: string[] = [];
@@ -32,13 +32,14 @@ for (const [id, w] of Object.entries(WEAPONS)) {
   if (!/^[a-z0-9-]+$/.test(id)) err(`weapon id ${id} is not kebab-case`);
   if (typeof w.name !== 'string' || !w.name) err(`weapon ${id} has no name`);
   if (w.kind !== 'ranged' && w.kind !== 'melee') err(`weapon ${id} kind ${String(w.kind)}`);
-  for (const k of ['range', 'accuracy', 'falloffPerTile', 'damageMin', 'damageMax', 'aimTicks', 'cooldownTicks'] as const) {
+  for (const k of ['range', 'accuracy', 'falloffPerTile', 'damageMin', 'damageMax', 'aimTicks', 'cooldownTicks', 'structureDamage'] as const) {
     if (!isInt(w[k]) || w[k] < 0) err(`weapon ${id}.${k} is not a non-negative integer`);
   }
   if (w.damageMin > w.damageMax) err(`weapon ${id} damageMin > damageMax`);
   if (w.kind === 'melee' && w.range !== 1) err(`melee weapon ${id} must have range 1 (FIRE-1)`);
   if (w.kind === 'ranged' && w.range < 1) err(`ranged weapon ${id} needs range >= 1`);
   if (w.aimTicks < 1) err(`weapon ${id} aimTicks must be >= 1 (FIRE-3)`);
+  if (w.kind === 'melee' && w.structureDamage !== 0) err(`melee weapon ${id} must have structureDamage 0 (STR-6)`);
   if (typeof w.source !== 'string') err(`weapon ${id} has no source`);
 }
 
@@ -46,7 +47,7 @@ for (const [id, w] of Object.entries(WEAPONS)) {
 for (const [id, u] of Object.entries(UNITS)) {
   if (!/^[a-z0-9-]+$/.test(id)) err(`unit id ${id} is not kebab-case`);
   if (!(SIDES as string[]).includes(u.side)) err(`unit ${id} side ${String(u.side)}`);
-  for (const k of ['hp', 'armour', 'aim', 'moveTicks', 'sight'] as const) if (!isInt(u[k]) || u[k] < 0) err(`unit ${id}.${k} is not a non-negative integer`);
+  for (const k of ['hp', 'armour', 'aim', 'moveTicks', 'sight', 'charges'] as const) if (!isInt(u[k]) || u[k] < 0) err(`unit ${id}.${k} is not a non-negative integer`);
   if (u.hp < 1) err(`unit ${id} hp must be >= 1`);
   if (u.moveTicks < 1) err(`unit ${id} moveTicks must be >= 1`);
   if (u.weapon !== null && !WEAPONS[u.weapon]) err(`unit ${id} weapon ${u.weapon} unknown`);
@@ -61,8 +62,23 @@ for (const [id, u] of Object.entries(UNITS)) {
   if (u.side === 'civilian' && u.weapon) err(`civilian ${id} carries a weapon (CIV-1)`);
 }
 
+// --- materials (STR-1, STR-2)
+for (const [id, m] of Object.entries(MATERIALS)) {
+  if (!/^[a-z0-9-]+$/.test(id)) err(`material id ${id} is not kebab-case`);
+  if (typeof m.name !== 'string' || !m.name) err(`material ${id} has no name`);
+  if (!isInt(m.hp) || m.hp < 0) err(`material ${id}.hp is not a non-negative integer`);
+  if (typeof m.source !== 'string') err(`material ${id} has no source`);
+}
+for (const kind of new Set(Object.values(LEGEND))) {
+  const d = DEFAULT_MATERIAL[kind];
+  if (!d || !MATERIALS[d]) err(`materials.json _defaults has no known material for ${kind}`);
+}
+for (const kind of ['ground', 'rubble', 'void'] as const) if (MATERIALS[DEFAULT_MATERIAL[kind]]?.hp !== 0) err(`default material of ${kind} must have hp 0 (STR-2)`);
+if (DEFAULT_MATERIAL.rubble !== 'none' || DEFAULT_MATERIAL.void !== 'none') err('rubble and void must default to material none (INV-8)');
+for (const kind of ['wall', 'door', 'window', 'floor', 'stair'] as const) if (!((MATERIALS[DEFAULT_MATERIAL[kind]]?.hp ?? 0) > 0)) err(`default material of ${kind} must be breakable (STR-2)`);
+
 // --- maps
-const passable = new Set(['ground', 'floor', 'door', 'stair']);
+const passable = new Set(['ground', 'floor', 'door', 'stair', 'rubble']);
 for (const [id, m] of Object.entries(MAPS)) {
   if (m.id !== id) err(`map ${id} has id ${m.id}`);
   if (!isInt(m.width) || !isInt(m.depth) || m.width < 1 || m.depth < 1) err(`map ${id} size`);
@@ -91,6 +107,30 @@ for (const [id, m] of Object.entries(MAPS)) {
     }
   }
   if (!anyPassable) err(`map ${id} has no passable tile`);
+  // MAP-7: at most six floors plus a roof. STR-1: material grids and their key. MAP-8: buildings.
+  if (levels.length > 7) err(`map ${id} has ${levels.length} levels; the limit is 6 floors plus a roof (MAP-7)`);
+  for (const [ch, mat] of Object.entries(m.materialKey ?? {})) {
+    if (ch.length !== 1 || ch === ' ') err(`map ${id} materialKey "${ch}" must be one non-space character`);
+    if (!MATERIALS[mat]) err(`map ${id} materialKey ${ch} names unknown material ${mat}`);
+  }
+  for (const l of levels) {
+    if (!l.materials) continue;
+    if (l.materials.length !== m.depth) err(`map ${id} level ${l.level} materials has ${l.materials.length} rows, depth is ${m.depth}`);
+    l.materials.forEach((row, y) => {
+      if (row.length !== m.width) err(`map ${id} level ${l.level} materials row ${y} has ${row.length} chars, width is ${m.width}`);
+      for (const ch of row) if (ch !== ' ' && !(m.materialKey && ch in m.materialKey)) err(`map ${id} level ${l.level} materials row ${y} has unknown key "${ch}"`);
+    });
+  }
+  const seenB = new Set<string>();
+  for (const b of m.buildings ?? []) {
+    if (!/^[a-z0-9-]+$/.test(b.id) || seenB.has(b.id)) err(`map ${id} building id ${b.id} is not unique kebab-case`);
+    seenB.add(b.id);
+    if (typeof b.name !== 'string' || !b.name) err(`map ${id} building ${b.id} has no name`);
+    for (const k of ['x', 'y', 'w', 'd', 'floors'] as const) if (!isInt(b[k]) || b[k] < 0) err(`map ${id} building ${b.id}.${k} is not a non-negative integer`);
+    if (b.x + b.w > m.width || b.y + b.d > m.depth) err(`map ${id} building ${b.id} leaves the map`);
+    if (b.floors < 1 || b.floors > 6) err(`map ${id} building ${b.id} has ${b.floors} floors (MAP-7 allows 1 to 6)`);
+    if (b.floors >= levels.length) err(`map ${id} building ${b.id} needs a roof level ${b.floors} the map lacks`);
+  }
 }
 
 // --- battles
@@ -143,6 +183,8 @@ console.log('Units (src/data/units.json)');
 console.table(Object.fromEntries(Object.entries(UNITS).map(([id, u]) => [id, { side: u.side, hp: u.hp, armour: u.armour, aim: u.aim, moveTicks: u.moveTicks, sight: u.sight, weapon: u.weapon ?? '-', disguised: u.disguised, stance: u.defaultStance }])));
 console.log('Weapons (src/data/weapons.json)');
 console.table(Object.fromEntries(Object.entries(WEAPONS).map(([id, w]) => [id, { kind: w.kind, range: w.range, accuracy: w.accuracy, falloff: w.falloffPerTile, damage: `${w.damageMin}-${w.damageMax}`, aimTicks: w.aimTicks, cooldownTicks: w.cooldownTicks }])));
+console.log('Materials (src/data/materials.json)');
+console.table(Object.fromEntries(Object.entries(MATERIALS).map(([id, m]) => [id, { name: m.name, hp: m.hp }])));
 console.log(`Spec: ${idSet.size} rule ids, ${[...spec.matchAll(/^- RULING: /gm)].length} rulings. Maps: ${Object.keys(MAPS).join(', ')}. Battles: ${Object.keys(BATTLES).join(', ')}.`);
 if (errors.length) {
   console.error(`\n${errors.length} error(s):`);

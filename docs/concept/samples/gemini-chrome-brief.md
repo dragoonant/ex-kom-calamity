@@ -54,3 +54,7 @@ Owner's call after round 6: h2 is good but reads too much like a well-known armo
 
 The owner picked `chrome-suit-t2-h2.jpg` (sheet 9, REF 2) over the round 7 smooth-shell variants. It is now the tier 2 suit reference, recorded in `PLAN.md` D7: suit 2 body, rigid face-mask helmet with two upward-slanting almond lenses with sharp rims, a straight engraved mouth line and a thin crown fin, bright red and black, no chest light, no antenna. Its measured proportions are about 3.2 head-heights with the helmet about 31% of the height, which supersedes the 2.8 / 35% target for this suit. Later art prompts for tier 2 attach this image as the reference.
 
+## Locked (2026-11-17): alien references
+
+From `sheet-10-aliens.jpg` the owner picked seven images; recorded in `PLAN.md` D14. Hosts: `alien-host-s42.jpg` (the whole head alien, for a host that has stopped hiding), `gemini-alien-host-a.jpg` and `chrome-host-2.jpg` (human face with the sea-glass coral growth, for a host still passing as a clerk). Takers: `alien-taker-s51.jpg` and `alien-taker-s52.jpg`. Fighters: `gemini-alien-fighter-a.jpg` (headless sea-glass column on three chitin stilt legs with four coral whip arms) and `alien-fighter-s61.jpg` (two-legged crested fighter). The drafter reads the two fighter picks as two different bodies rather than two takes on one; which is the first fighter in the game is open and defaults to `gemini-alien-fighter-a`, the one on the species brief. Later art prompts for these units attach the matching image as the reference.
+

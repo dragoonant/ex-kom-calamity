@@ -114,7 +114,8 @@ describe('0. Engine contract (ARCH)', () => {
     for (const f of readdirSync(dir)) {
       const text = readFileSync(new URL(f, dir), 'utf8');
       expect(text, f).not.toMatch(/from '(react|three|@react-three|zustand)/);
-      expect(text, f).not.toMatch(/\b(document|window|requestAnimationFrame|performance\.now|Date\.now)\b/);
+      // `window` is also a tile kind since M2 (MAP-2), so the check is for the globals being used, not the word.
+      expect(text, f).not.toMatch(/\b(document|window|globalThis)\s*[.[]|\b(requestAnimationFrame|performance\.now|Date\.now)\b/);
       for (const m of text.matchAll(/from '([^']+)'/g)) expect(m[1], `${f} imports ${m[1]}`).toMatch(/^\.\.?\//);
     }
   });

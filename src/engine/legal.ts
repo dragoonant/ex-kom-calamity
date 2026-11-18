@@ -4,6 +4,7 @@ import { SIDES, STANCES } from './types';
 import { tileIndex } from './map';
 import { pathField, posOfIndex } from './path';
 import { sideSeesUnit } from './sight';
+import { blastTargets } from './structure';
 
 export function legalActions(state: State, side: Side): Action[] {
   const acts: Action[] = [{ type: 'tick' }];
@@ -25,6 +26,8 @@ export function legalActions(state: State, side: Side): Action[] {
       if (t.down || t.side === side) continue;
       if (sideSeesUnit(state, side, t)) acts.push({ type: 'fire', side, unit: u.id, target: t.id });
     }
+    // ORD-9
+    for (const at of blastTargets(state, u)) acts.push({ type: 'blast', side, unit: u.id, at });
   }
   if (side === 'agency') acts.push({ type: 'withdraw', side });
   return acts;

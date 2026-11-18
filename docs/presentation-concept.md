@@ -33,8 +33,8 @@ From 3d-game-generation `templates/presentation-concept.md`. Status: **the owner
 Layout rules, camera rig and mouse map (KB rule 27), save/Continue flow (KB rule 22), tile-only picking (KB rule 25).
 
 ## 5. Checks before the first playable ships
-- [ ] Screenshots of the title, the setup screen and a mid-battle view beside project-x's; none could be mistaken for the other.
-- [ ] A failing check greps the stylesheet for project-x's fonts, palette colours and scanline effects (0 hits).
+- [ ] Screenshots of the title, the setup screen and a mid-battle view beside project-x's; none could be mistaken for the other. Ours are in `docs/screenshots/` (M2: title, mid-battle, the whole block); the side-by-side with project-x has not been made.
+- [x] A failing check greps the stylesheet and the client's markup for video-feed effects, monospace type, parchment, neon, cut corners, native tooltips and the codename: `npm run check:look`, 0 hits on 2026-11-18 (M2). It checks effects and type, not project-x's exact palette values, which this repo does not hold.
 - [x] Owner's yes recorded in `PLAN.md` with the date (D11, 2026-11-17).
 
 ## Sources

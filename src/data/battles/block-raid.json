@@ -1,0 +1,122 @@
+{
+  "id": "block-raid",
+  "name": "Raid on Halcyon Row",
+  "_": "Written by tools/make-block.ts. The first playable raid on a city block (MAP-7): the squad starts in the west street. Agent names are placeholders. Non-agent units get ids by spawn position (UNIT-3).",
+  "map": "halcyon-block",
+  "squad": [
+    {
+      "name": "Vance",
+      "template": "agent-t1",
+      "weapon": "patrol-carbine",
+      "at": { "x": 2, "y": 44, "level": 0 }
+    },
+    {
+      "name": "Okoro",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 2, "y": 45, "level": 0 }
+    },
+    {
+      "name": "Lindqvist",
+      "template": "agent-t1",
+      "weapon": "scatter-gun",
+      "at": { "x": 2, "y": 46, "level": 0 }
+    },
+    {
+      "name": "Marsh",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 2, "y": 47, "level": 0 }
+    },
+    {
+      "name": "Teodoro",
+      "template": "agent-t1",
+      "weapon": "patrol-carbine",
+      "at": { "x": 2, "y": 48, "level": 0 }
+    },
+    {
+      "name": "Quill",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 1, "y": 46, "level": 0 }
+    }
+  ],
+  "others": [
+    {
+      "template": "host",
+      "at": { "x": 8, "y": 41, "level": 0 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 17, "y": 50, "level": 2 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 12, "y": 7, "level": 1 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 18, "y": 16, "level": 4 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 41, "y": 7, "level": 2 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 37, "y": 46, "level": 1 }
+    },
+    {
+      "template": "taker",
+      "at": { "x": 15, "y": 8, "level": 6 }
+    },
+    {
+      "template": "taker",
+      "at": { "x": 52, "y": 43, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 12, "y": 27, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 29, "y": 30, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 43, "y": 26, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 47, "y": 29, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 44, "y": 31, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 13, "y": 41, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 18, "y": 50, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 8, "y": 16, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 17, "y": 7, "level": 3 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 46, "y": 16, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 36, "y": 7, "level": 1 }
+    }
+  ]
+}
