@@ -2,7 +2,7 @@
 
 From 3d-game-generation `templates/spec-10-rules.md`. **The spec is the product** (KB rule 2): the engine in `src/engine/` implements exactly this, tests under `tests/` are named by these ids, and every ambiguity met while building is logged in section 17 as `RULING: <id> | <what we did> | <why>` with a status word instead of blocking. Where this spec and `docs/GAME-DESIGN.md` disagree, this spec wins. Every number written as `section.key = N` is a key in `src/data/tuning.json` (default shown; `npm run validate:data` checks that the two agree); unit and weapon numbers live in `src/data/units.json` and `src/data/weapons.json`. The engine reads numbers only from data. Every number is a first guess *(tune)* until a `sim` result says otherwise (KB rule 30).
 
-**Scope (KB rule 6):** one raid on one building, real time with pause, hidden hosts among citizens. Nothing from the city layer (M5 on), no alien AI (M3: hostiles only defend themselves by stance here), no client (M2). Every proper name is a placeholder (`PLAN.md` D10); none is taken from the inspiration (`docs/GAME-DESIGN.md` section 5).
+**Scope (KB rule 6):** one raid on one building, real time with pause, hidden hosts among citizens. Nothing from the city layer (M5 on), no alien AI (M3: hostiles only defend themselves by stance here). The client rules (TIME-6, SAV-3..6) arrived with M2; everything else is M1. Every proper name is a placeholder (`PLAN.md` D10); none is taken from the inspiration (`docs/GAME-DESIGN.md` section 5).
 
 Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, D7, Q3, Q4, Q5; KB `recipe.md` sections 2, 3, 5 and 11.
 
@@ -26,6 +26,7 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - **TIME-3** One `tick` resolves in this order: (a) every living unit in id order acts: it picks its current target (FIRE-2) and either aims or fires at it, or, with no current target, advances its move order (section 5); (b) proximity reveals (HIDE-3); (c) `tick` increases by 1; (d) the end check (section 12).
 - **TIME-4** `advance(state, seconds) -> { state, events }` applies `round(seconds * time.ticksPerSecond)` tick actions and concatenates their events. It is the deterministic hook a client's fixed-step loop and the tests drive (KB `recipe.md` section 11); nothing in the engine reads a clock.
 - **TIME-5** After the battle is over (END-5), `tick` is still legal and accepted; it returns the same state (no log entry, no event).
+- **TIME-6** The client's loop (M2) owns no clock of its own: each frame it feeds wall time, clamped to 0.25 s and multiplied by the speed setting (1, 2 or 4), into an accumulator and issues `floor(accumulated * time.ticksPerSecond)` ticks through `advance` (TIME-4), keeping the remainder. A paused frame feeds nothing. The same `advance(seconds)` is exposed on the page as `window.__ekc.advance(seconds)` so tests drive time without a frame clock.
 
 ## 2. Map (MAP)
 - **MAP-1** The battle takes place on one map of `width` x `depth` tiles on `levels` levels. A tile is `{ x, y, level, kind, open }`, `x` east, `y` south, level 0 the ground. **Every tile carries a level** (`PLAN.md` Q4).
@@ -126,9 +127,13 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - **QRY-5** `query.outcome(state)` returns the counters of `state.score`, living counts per side and `over`.
 - **QRY-6** `query.unitsSeen(state, side)` lists the ids of units the side can see (SEE-4).
 
-## 15. Save (SAV) - engine side; the client's part arrives with M2 (`PLAN.md` Q5)
+## 15. Save (SAV) - engine side (SAV-1, SAV-2) and client side (SAV-3..SAV-6, M2; `PLAN.md` D13, Q5; KB rule 22)
 - **SAV-1** The save snapshot is `state` itself (ARCH-6). A battle reopens by loading the snapshot; the action list rides along for replay (`replay(setup, log)` equals the snapshot, ARCH-9).
 - **SAV-2** Autosave points for M2: every pause, every accepted order and every `save.autosaveSeconds = 10` seconds of sim time. The engine only supplies the number.
+- **SAV-3** The client keeps one save under the `localStorage` key `ekc-save`: an envelope `{ game: "ekc", version: 1, savedAt, reason, setup, snapshot, log, paused: true, selected, level }` where `snapshot` is the state and `log` equals `snapshot.log`. It is written when a raid starts (before its first frame), at every SAV-2 point and when the player leaves the battle screen. Over-long saves are not a concern: one envelope is about 60 KB.
+- **SAV-4** Continue reopens the snapshot **paused**, with the saved selection and level, without replaying; the title screen names what it reopens: the battle, the sim seconds, agents standing out of the squad, hostiles down and the time saved. Discard asks once more before clearing.
+- **SAV-5** A finished battle clears its save the moment `over` is set; the report is shown from memory.
+- **SAV-6** Never silent: a save that is not readable JSON, of another version, for a battle this build lacks, or with an incomplete snapshot is reported on the title screen by reason, with Discard offered; a storage that refuses a write is reported in the console strip and the battle plays on unsaved.
 
 ## 16. Invariants (INV) - checked by `sim` and `action-fuzz` after every step
 - **INV-1** `legalActions(state, side)` is never empty for any side (ARCH-3).
@@ -165,6 +170,9 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - RULING: ORD-4 | A new fire order resets the aim in progress; re-issuing the same target does not | Swinging to a new target takes the aim time; a repeated click must not be a penalty. provisional
 - RULING: MOVE-8 | The moving flag is the target's state at its last step, which may be the previous tick | A shooter earlier in unit order cannot know what the target will do later in the same tick; the lag is one tick and symmetric. provisional
 - RULING: TIME-3 | Inside a tick a unit downed by an earlier unit does not act | Units act in a fixed order; the alternative (simultaneous resolution) needs a two-phase tick this slice does not need. provisional
+- RULING: SAV-4 | A raid always reopens paused, and a new raid starts paused | The player should never return to a fight already moving; the opening pause is where orders are given (PLAN.md Q5 default). provisional
+- RULING: SAV-5 | The save is cleared when the battle ends, not when the report is closed | A reload during the report returns to the title without a stale Continue; the report is a summary the city layer (M7) will own. provisional
+- RULING: ORD-4 | A tap on a tile that holds an apparent citizen with an agent selected is a fire order | KB rule 25 resolves a tap to the legal action for the tile; the hover card names the target and the civilian-hit cost before the tap. provisional
 
 ## 18. Sim baseline (KB rule 30)
 `npm run sim`, 40 battles per driver pair, seeds 1-40, 2026-11-17, numbers as committed. The drivers are not an AI (hostiles stand or take random orders), so this is the starting line, not a verdict. Re-run after M3 and change one number at a time.
