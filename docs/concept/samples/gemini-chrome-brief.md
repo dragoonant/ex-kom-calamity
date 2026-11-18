@@ -25,3 +25,15 @@ Photograph of one premium hand-painted collectible miniature figure with heroic 
   - Suits: all three are about 3.4-3.7 head-heights with the helmet about 27-30% of the height, the same as reference A (about 3.4 heads, 29%), not the 2.8 / 35% target. Red and black only, no chest light, crest or antenna, on all three. Variant 2 has the smallest shoulder plates (about 1.85x helmet width) and is the only one that reads as slim like reference B; variants 1 and 3 kept reference A's large shoulder shells. The red is a brick red rather than bright signal red.
   - Hosts: both about 4 head-heights, head about 25%. Soft cloth suit only, no armour, shoulder plates or hood; growth on jaw, neck and one hand with the amber glow; face normal. Host 1 came out landscape (2752x1536) with the figure small in frame; host 2 is portrait.
 - Open for the owner: pick a suit (2 is closest to the brief) or ask for a round with reference B's shoulder size written into the prompt as a measurement; the proportions target may need the prompt to say "three and a half heads" if reference A's look is the one wanted.
+
+## Round 6 (2026-11-17): helmet redesign on suit 2
+
+Owner's call after round 5: suit 2 is right, but the domed glass-visor helmet reads as a spaceman. Wanted: a sculpted face-mask helmet with large upward-slanting eye lenses and a crown fin, described in measurements and materials only.
+
+- Made: `chrome-suit-t2-h1..h3.jpg` from `chrome-suit-t2-2.jpg` as the attached base, prompts in `prompts-r6-chrome.json`, sheet `sheet-8-helmet.jpg`. Same Gemini web app through Claude in Chrome, no API calls. A third prompt came back as a near-duplicate of h2 and was dropped.
+- RULING: r6-crest | the round 5 gate said "no crest"; the requested face-mask carries a thin central fin from between the eyes over the crown, so the fin is allowed and the gate for this suit now reads "no antenna, no chest light" | the owner asked for this helmet shape on 2026-11-17.
+- Gate (KB rule 13), by eye, about +/-10%:
+  - h1: about 3.5 heads, helmet 28%, shoulders 2.2x. Red and black only. FAIL on the helmet: it reads as a living alien face with a nose, lips and skin texture, not a rigid helmet. Body bulked up versus the base.
+  - h2: about 3.2 heads, helmet 31%, shoulders 2.1x. Red and black only, no light, no antenna. Rigid metal mask with sharp-rimmed almond lenses, engraved mouth line, thin crown fin. Closest to the ask. Body is bulkier than suit 2 (shoulder shells came back).
+  - h3: about 3.2 heads, helmet 31%, shoulders 2.1x. Same mask with softer edges and a pointed chin; shoulders a little smaller than h2 but still not as slim as suit 2.
+- Open for the owner: h2 or h3 as the helmet; whichever is picked, the next round should lock the body to suit 2 (Gemini kept drifting bulkier when editing in-chat, even with the photo re-attached), probably by starting a fresh chat with suit 2 attached and the chosen helmet image attached as a second reference.
