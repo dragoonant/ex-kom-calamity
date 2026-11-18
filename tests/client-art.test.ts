@@ -1,0 +1,187 @@
+// M4 art and audio pass 1, the parts vitest can hold without a browser: the tile set's geometry and counts
+// (docs/art/tile-set.md), prop placement by tile health (MAP-9), effects from events (fx.ts), the audio settings
+// and the sound catalogue. The board, gallery and sound desk themselves are covered by the e2e.
+import { describe, expect, it } from 'vitest';
+import { BATTLES, MAPS, PROP_KINDS } from '../src/data';
+import { createGame, step, tileIndex, type State } from '../src/engine';
+import { PROP_PARTS, STYLE_PALETTE, baseColour, buildingIndex, damageOf, fillLayers, groupProps, layerCapacity, makeLayers, placeProp, propCatalogue, propGeometry, styleAt } from '../src/client/board/tileset';
+import { fxFor } from '../src/client/fx';
+import { readAudioSettings, writeAudioSettings, DEFAULT_AUDIO } from '../src/client/audio/settings';
+import { SOUNDS, SOUND_NAMES } from '../src/client/audio/synth';
+import { FIGURE_PARTS, figureGeometry, gateOf, humanoidRole, measureParts } from '../src/client/board/placeholders';
+import { FIGURE_ROLES } from '../src/client/models';
+import * as THREE from 'three';
+
+const block = (): State => createGame({ battleId: 'block-raid', seed: 5 });
+
+describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
+  it('MAP-9 every building style has a palette and every footprint tile resolves to its building, the street to none', () => {
+    const map = MAPS['halcyon-block']!;
+    const idx = buildingIndex(map);
+    for (const b of map.buildings!) {
+      expect(styleAt(idx, map.width, b.x + 1, b.y + 1).building?.id).toBe(b.id);
+      expect(STYLE_PALETTE[b.style!]).toBeDefined();
+    }
+    expect(styleAt(idx, map.width, 0, 0)).toEqual({ style: 'street', building: null });
+    expect(styleAt(idx, map.width, 30, 30).style).toBe('street');
+  });
+
+  it('MAP-9 the pick mesh colours a tile by kind, style and roof, and reads the three destructible states', () => {
+    const s = block();
+    const c = new THREE.Color();
+    const map = MAPS['halcyon-block']!;
+    const idx = buildingIndex(map);
+    const floor = s.tiles.find((t) => t.kind === 'floor' && t.level === 0 && styleAt(idx, s.width, t.x, t.y).style === 'bank')!;
+    const roof = s.tiles.find((t) => t.kind === 'floor' && t.level === 3 && styleAt(idx, s.width, t.x, t.y).building?.id === 'civic-savings')!;
+    expect(baseColour(floor, 'bank', false, c).getHexString()).not.toBe(baseColour(roof, 'bank', true, c.clone()).getHexString());
+    const wall = s.tiles.find((t) => t.kind === 'wall' && t.material === 'brick')!;
+    expect(damageOf(wall)).toBe('intact');
+    expect(damageOf({ ...wall, hp: 40 })).toBe('damaged');
+    expect(damageOf({ ...wall, kind: 'rubble', material: 'none', hp: 0 })).toBe('rubble');
+    expect(damageOf(s.tiles.find((t) => t.kind === 'ground')!)).toBe('intact'); // paving never damages (STR-2)
+  });
+
+  it('MAP-9 the dressing layers hold every window, door and stair of the block and grow rubble where a wall falls', () => {
+    const s = block();
+    const map = MAPS['halcyon-block']!;
+    const layers = makeLayers(layerCapacity(s));
+    fillLayers(layers, { state: s, map, active: 6 });
+    expect(layers.glass.count).toBe(323);
+    expect(layers.mullion.count).toBe(323 * 2);
+    expect(layers.leaf.count).toBe(113);
+    expect(layers.step.count).toBe(42 * 4);
+    expect(layers.chunk.count).toBe(0);
+    expect(layers.scorch.count).toBe(0);
+    for (const l of Object.values(layers)) expect(l.count).toBeLessThanOrEqual(l.capacity);
+    // The cut-away draws only the levels up to the active one.
+    fillLayers(layers, { state: s, map, active: 0 });
+    expect(layers.glass.count).toBeLessThan(323);
+    expect(layers.glass.count).toBeGreaterThan(0);
+    // Break a wall: three chunks appear; damage a wall: a scorch band appears.
+    const wallIdx = s.tiles.findIndex((t) => t.kind === 'wall' && t.level === 0);
+    const broken: State = { ...s, tiles: s.tiles.map((t, i) => (i === wallIdx ? { ...t, kind: 'rubble' as const, material: 'none', hp: 0 } : t)) };
+    fillLayers(layers, { state: broken, map, active: 0 });
+    expect(layers.chunk.count).toBe(3);
+    const damaged: State = { ...s, tiles: s.tiles.map((t, i) => (i === wallIdx ? { ...t, hp: 10 } : t)) };
+    fillLayers(layers, { state: damaged, map, active: 0 });
+    expect(layers.scorch.count).toBe(1);
+  });
+
+  it('MAP-9 every prop kind has a merged vertex-coloured geometry under 5 tiles tall, and the block uses every kind', () => {
+    const cat = propCatalogue();
+    expect(cat.map((c) => c.kind).sort()).toEqual([...PROP_KINDS].sort());
+    for (const c of cat) {
+      expect(c.parts).toBeGreaterThan(0);
+      expect(c.height).toBeGreaterThan(0.3);
+      expect(c.height).toBeLessThan(5);
+      expect(c.vertices).toBeGreaterThan(0);
+      expect(c.vertices).toBeLessThan(2000); // one instance is cheap; 400 props stay under a million vertices
+      expect(propGeometry(c.kind).getAttribute('color')).toBeDefined();
+    }
+    expect(Object.keys(PROP_PARTS).length).toBe(PROP_KINDS.length);
+    const groups = groupProps(MAPS['halcyon-block']!, block());
+    expect([...groups.keys()].sort()).toEqual([...PROP_KINDS].sort());
+  });
+
+  it('MAP-9 a prop follows the tile under it: upright on an intact floor, askew and darker on a damaged one, gone when it collapses or the cut-away hides its level', () => {
+    const s = block();
+    const groups = groupProps(MAPS['halcyon-block']!, s);
+    const desk = groups.get('desk')!.find((p) => p.def.level === 1)!;
+    const out = { x: 0, y: 0, z: 0, yaw: 0, tilt: 0, scale: 1, tint: 1, shown: false };
+    placeProp(desk, s, 6, out);
+    expect(out).toMatchObject({ shown: true, tilt: 0, tint: 1, scale: 1, y: 2 });
+    expect(out.x).toBe(desk.def.x + 0.5);
+    placeProp(desk, s, 0, out);
+    expect(out.shown).toBe(false); // level 1 is above the cut-away
+    const t = s.tiles[desk.index]!;
+    const damaged: State = { ...s, tiles: s.tiles.map((x, i) => (i === desk.index ? { ...x, hp: 75 } : x)) };
+    placeProp(desk, damaged, 6, out);
+    expect(out.shown).toBe(true);
+    expect(out.tilt).toBeGreaterThan(0.1);
+    expect(out.tint).toBeLessThan(1);
+    const gone: State = { ...s, tiles: s.tiles.map((x, i) => (i === desk.index ? { ...x, kind: 'void' as const, material: 'none', hp: 0 } : x)) };
+    placeProp(desk, gone, 6, out);
+    expect(out.shown).toBe(false);
+    expect(t.kind).toBe('floor');
+  });
+});
+
+describe('M4 figure placeholders (docs/figures.md sections 1 to 3)', () => {
+  it('MAP-9 every humanoid placeholder measures inside the section 4 gates, and every role merges into one body geometry with a core where D14 asks for one', () => {
+    for (const role of FIGURE_ROLES) {
+      const m = measureParts(role);
+      const g = gateOf(m, role);
+      if (humanoidRole(role)) {
+        expect(m.found).toEqual(['head', 'torso', 'legs']);
+        expect(g.pass, `${role}: ${JSON.stringify(m)}`).toBe(true);
+        expect(m.height).toBeGreaterThan(1.15); // 1.2 plus a brim, a fin or coral on the crown
+        expect(m.height).toBeLessThan(1.32);
+      } else {
+        expect(g.pass).toBe(true);
+      }
+      expect(figureGeometry(role).getAttribute('color')).toBeDefined();
+      expect(figureGeometry(role).getAttribute('position').count).toBeLessThan(6000);
+    }
+    const cores = (role: string) => FIGURE_PARTS[role as keyof typeof FIGURE_PARTS].filter((p) => p.core).length;
+    expect(cores('host-revealed')).toBe(1);
+    expect(cores('taker')).toBe(1);
+    expect(cores('fighter')).toBe(1);
+    expect(cores('agent-t1')).toBe(0);
+    expect(cores('citizen')).toBe(0);
+    // A hidden host is the citizen, part for part (HIDE-1).
+    expect(FIGURE_PARTS['host-hidden']).toEqual(FIGURE_PARTS.citizen);
+  });
+});
+
+describe('M4 effects from events (fx.ts; VIEW-2, VIEW-1)', () => {
+  it('MAP-9 a charge that breaks a wall queues a blast and a breach with the material that fell; a hidden shooter makes no flash', () => {
+    let s = block();
+    s = step(s, { type: 'blast', side: 'agency', unit: 'a3', at: { x: 5, y: 44, level: 0 } }).state;
+    const events = [];
+    let prev = s;
+    for (let i = 0; i < s.tuning.blast.armTicks; i++) {
+      const r = step(s, { type: 'tick' });
+      if (!r.ok) throw new Error(r.reason);
+      events.push(...r.events);
+      prev = s;
+      s = r.state;
+    }
+    const fx = fxFor(events, prev, s);
+    expect(fx.some((f) => f.kind === 'blast' && f.at.x === 5 && f.at.y === 44)).toBe(true);
+    const breach = fx.find((f) => f.kind === 'breach');
+    expect(breach).toMatchObject({ material: 'brick' });
+    expect(s.tiles[tileIndex(s, { x: 5, y: 44, level: 0 })]!.kind).toBe('rubble');
+    // A shot between two units the agency cannot see yields nothing; the agency's own shot always does.
+    const hidden = fxFor([{ type: 'shot', tick: 1, shooter: 'u9', target: 'u10', weapon: 'pocket-pistol', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
+    expect(hidden.filter((f) => f.kind === 'muzzle')).toEqual([]);
+    const own = fxFor([{ type: 'shot', tick: 1, shooter: 'a1', target: 'u9', weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
+    expect(own.filter((f) => f.kind === 'muzzle')).toHaveLength(1);
+    expect(own[0]).toMatchObject({ weapon: 'patrol-carbine', side: 'agency', hit: true });
+    expect(BATTLES['block-raid']!.squad[0]!.name).toBe('Vance');
+  });
+});
+
+describe('M4 audio settings and catalogue (PLAN.md Q19)', () => {
+  it('MAP-9 settings read defaults from nothing, round-trip through storage, and reject nonsense', () => {
+    const mem = new Map<string, string>();
+    const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
+    expect(readAudioSettings(null)).toEqual(DEFAULT_AUDIO);
+    expect(readAudioSettings(storage)).toEqual(DEFAULT_AUDIO);
+    expect(writeAudioSettings(storage, { volume: 0.25, muted: true })).toBe(true);
+    expect(readAudioSettings(storage)).toEqual({ volume: 0.25, muted: true });
+    mem.set('ekc-audio', '{"volume": 7, "muted": "yes"}');
+    expect(readAudioSettings(storage)).toEqual(DEFAULT_AUDIO);
+    mem.set('ekc-audio', 'not json');
+    expect(readAudioSettings(storage)).toEqual(DEFAULT_AUDIO);
+  });
+
+  it('MAP-9 the catalogue names every sound the brief asked for, each with a cue and a mechanism', () => {
+    for (const must of ['fire-pistol', 'fire-carbine', 'fire-scatter', 'fire-whip', 'bite', 'hit-armour', 'breach', 'collapse', 'taking', 'alert', 'pause', 'resume', 'click', 'ambient']) expect(SOUND_NAMES).toContain(must);
+    for (const s of SOUNDS) {
+      expect(s.cue.length).toBeGreaterThan(5);
+      expect(s.mechanism.length).toBeGreaterThan(10);
+      expect(s.seconds).toBeGreaterThan(0);
+    }
+    expect(new Set(SOUND_NAMES).size).toBe(SOUND_NAMES.length);
+  });
+});

@@ -2,7 +2,7 @@
 // Checks src/data/*.json against docs/spec/10-rules.md (sections 2, 3, 9, 10) and prints the
 // unit and weapon tables from the data so prose never drifts from the numbers. Exit 1 on any error.
 import { readFileSync } from 'node:fs';
-import { BATTLES, DEFAULT_MATERIAL, LEGEND, MAPS, MATERIALS, TUNING, UNITS, WEAPONS } from '../src/data';
+import { BATTLES, BUILDING_STYLES, DEFAULT_MATERIAL, LEGEND, MAPS, MATERIALS, PROP_KINDS, TUNING, UNITS, WEAPONS } from '../src/data';
 import { STANCES, SIDES } from '../src/engine';
 
 const errors: string[] = [];
@@ -136,6 +136,23 @@ for (const [id, m] of Object.entries(MAPS)) {
     if (b.x + b.w > m.width || b.y + b.d > m.depth) err(`map ${id} building ${b.id} leaves the map`);
     if (b.floors < 1 || b.floors > 6) err(`map ${id} building ${b.id} has ${b.floors} floors (MAP-7 allows 1 to 6)`);
     if (b.floors >= levels.length) err(`map ${id} building ${b.id} needs a roof level ${b.floors} the map lacks`);
+    if (b.style !== undefined && !(BUILDING_STYLES as string[]).includes(b.style)) err(`map ${id} building ${b.id} has unknown style ${String(b.style)} (MAP-9)`);
+  }
+  // MAP-9: props stand on a floor or ground tile, one per tile, of a known kind, with a quarter-turn yaw.
+  const propTiles = new Set<string>();
+  for (const p of m.props ?? []) {
+    const where = `map ${id} prop ${p.kind} at (${p.x},${p.y},${p.level})`;
+    if (!(PROP_KINDS as string[]).includes(p.kind)) err(`${where}: unknown prop kind (MAP-9)`);
+    if (!isInt(p.x) || !isInt(p.y) || !isInt(p.level)) err(`${where}: position not integer`);
+    else if (p.x < 0 || p.x >= m.width || p.y < 0 || p.y >= m.depth || p.level < 0 || p.level >= levels.length) err(`${where}: off the map`);
+    else {
+      const k = kindAt(p.x, p.y, p.level);
+      if (k !== 'floor' && k !== 'ground') err(`${where}: stands on ${k}; props stand on floor or ground (MAP-9)`);
+    }
+    if (p.yaw !== undefined && ![0, 1, 2, 3].includes(p.yaw)) err(`${where}: yaw ${String(p.yaw)} is not 0..3`);
+    const key = `${p.x},${p.y},${p.level}`;
+    if (propTiles.has(key)) err(`${where}: a second prop on the same tile`);
+    propTiles.add(key);
   }
 }
 
@@ -171,6 +188,8 @@ for (const [id, b] of Object.entries(BATTLES)) {
     check(`others[${i}]`, e.template, e.at);
     if (UNITS[e.template] && UNITS[e.template]!.side === 'agency') err(`battle ${id} others[${i}] is an agency template`);
   });
+  // MAP-9: a prop under a spawn would be drawn through the figure.
+  for (const p of m.props ?? []) if (used.has(`${p.x},${p.y},${p.level}`)) err(`battle ${id}: a ${p.kind} prop stands on the spawn tile ${p.x},${p.y},${p.level}`);
   if (!b.others.some((e) => UNITS[e.template]?.side === 'hostile')) err(`battle ${id} has no hostile unit (END-1 would hold at tick 1)`);
 }
 
@@ -191,7 +210,7 @@ console.log('Weapons (src/data/weapons.json)');
 console.table(Object.fromEntries(Object.entries(WEAPONS).map(([id, w]) => [id, { kind: w.kind, range: w.range, accuracy: w.accuracy, falloff: w.falloffPerTile, damage: `${w.damageMin}-${w.damageMax}`, aimTicks: w.aimTicks, cooldownTicks: w.cooldownTicks }])));
 console.log('Materials (src/data/materials.json)');
 console.table(Object.fromEntries(Object.entries(MATERIALS).map(([id, m]) => [id, { name: m.name, hp: m.hp }])));
-console.log(`Spec: ${idSet.size} rule ids, ${[...spec.matchAll(/^- RULING: /gm)].length} rulings. Maps: ${Object.keys(MAPS).join(', ')}. Battles: ${Object.keys(BATTLES).join(', ')}.`);
+console.log(`Spec: ${idSet.size} rule ids, ${[...spec.matchAll(/^- RULING: /gm)].length} rulings. Maps: ${Object.keys(MAPS).map((k) => `${k} (${MAPS[k]!.props?.length ?? 0} props)`).join(', ')}. Battles: ${Object.keys(BATTLES).join(', ')}.`);
 if (errors.length) {
   console.error(`\n${errors.length} error(s):`);
   for (const e of errors) console.error('  ' + e);

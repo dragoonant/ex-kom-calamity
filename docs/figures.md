@@ -27,10 +27,24 @@ The owner chose the house figure style of KB rule 7, animated (D8: it "should wo
 | Taker | The organism that takes hosts: sea-glass body with an amber core on dark chitin legs | `alien-taker-s51` / `alien-taker-s52` (locked, D14) |
 | Fighter (in the game since M3, template `fighter`) | Headless sea-glass column with an amber core on three dark chitin stilt legs, four coral whip arms | `gemini-alien-fighter-a`, **the first fighter in the game** (owner, 2026-11-17, D14); `alien-fighter-s61` (two-legged, crested) is a later or elite type |
 
-## 3. Placeholders in M2 and M3
-M2 draws procedural stand-ins in the colours above, built to the measurements in section 1 (head sphere 35% of a 1.2-unit figure, shoulders 1.8 heads wide, legs one head long); the taker's stand-in is a column on three legs until its own model exists. M3 adds the fighter's stand-in: a taller headless column on three long stilt legs with four whip arms angled out, the amber core at mid-height (`src/client/board/Figures.tsx`, `Fighter`). They carry no pointer handlers (KB rule 25) and are only ever replaced, never shown while a model loads (KB rule 26). No art is generated in M2 or M3.
+## 3. Placeholders (M2, M3; rebuilt in M4 pass 1)
+M2 drew procedural stand-ins in the colours above to the measurements in section 1; M3 added the fighter's. **M4 pass 1 rebuilds them** in `src/client/board/placeholders.tsx`, shared by the board (`Figures.tsx`) and the gallery (`?gallery`, `src/client/Gallery.tsx`), with every part named (`head`, `torso`, `leg`, `arm`, `boot`, `pauldron`, `core`, ...) so the gallery **measures the built mesh** instead of trusting the constants (KB rule 13). They carry no pointer handlers and no raycast (KB rule 25) and are only ever replaced, never shown while a model loads (KB rule 26). No image is generated in this pass (the GPU pass does that, section 4).
 
-## 4. When figures are generated (M4)
+| Role (`models.ts` `FIGURE_ROLES`) | Placeholder | Measured in the gallery (2026-11-18) |
+|---|---|---|
+| `agent-t1` | Red plates over a black underlayer; squared helmet with one black visor band, a jaw guard and a red brim; shoulder plates, a chest seam, a belt, dark gloves and red-edged boots, a short carbine held low along the right thigh | head 35%, shoulders 1.80 heads, legs 1.0 heads: PASS |
+| `agent-t2` | Same body; a smooth spherical shell helmet with two upward-slanting almond lenses (teal glint), an engraved mouth line and a thin crown fin (`chrome-suit-t2-h2.jpg`, D7). Not yet a unit template; the gallery shows it so the GLB slot exists | PASS |
+| `citizen` | Cream coat with graphite lapels and trousers, bare head with a dark hair cap and a brow line, stern | PASS |
+| `host-hidden` | The citizen, exactly (HIDE-1); listed so the slot reads the same model | PASS |
+| `host-revealed` | Citizen body, sea-glass head with a deep-green brow, an **amber core** at the throat (shared pulsing `CORE_MATERIAL`), three coral growths on the crown | PASS |
+| `taker` | Low sea-glass body (two spheres) on **six** dark chitin legs in two joints, a biting head low in front with two chitin jaws, a ridge along the back, the amber core on top. 0.55 tall | by eye against `alien-taker-s51/52` |
+| `fighter` | Headless sea-glass column (0.9) on three stilt legs with knees and splayed feet, a chitin band, a deep-green cap, four coral whip arms in two segments with tips, the amber core at mid-height. 1.45 tall | by eye against `gemini-alien-fighter-a` |
+
+Gates in the gallery (section 4 numbers): head share 30 to 40%, shoulders 1.6 to 2.0 heads, legs at most 1.2 heads, applied to the five humanoid roles; the two aliens are measured and judged by eye against the locked D14 references. `e2e/gallery.spec.ts` holds every humanoid at PASS.
+
+**GLB slot per role** (`src/client/models.ts` `FIGURE_SLOTS`): `url: null` now. The GPU pass drops a rigged GLB into `public/models/<role>.glb`, fills the url, and the figure is preloaded at startup (`preloadModels`, the start switch counts it), drawn by `FigureModel` through `Suspense fallback={null}`, and falls back to the placeholder only when the file is missing or fails (rule 26). The gallery names each slot's path and state (`placeholder`, `loading`, `ready`, `failed`) and measures a GLB by nodes named head, torso or chest, leg, thigh or boot.
+
+## 4. When figures are generated (M4, the GPU pass)
 - One prompt per figure, the first with the style reference attached, through the Gemini web app in Claude in Chrome (never the API, owner's spend decision), with the locked references of D7 and D14 attached for suits and aliens.
 - Gate per image: head share of height within 30-40%, shoulder width 1.6-2.0 heads, legs at most 1.2 heads, white background, no base. A side-by-side with `chrome-suit-t2-h2.jpg` goes in `docs/concept/gates/`.
 - Figures that predate this file are listed here with the date they are regenerated (KB `gotchas.md`, figures).

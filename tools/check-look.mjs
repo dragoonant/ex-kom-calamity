@@ -6,7 +6,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-const files = ['src/styles.css', 'index.html'];
+const files = ['src/styles.css', 'index.html', 'sounds.html', 'src/sounds.tsx'];
 const walk = (dir) => {
   for (const f of readdirSync(dir, { withFileTypes: true })) {
     if (f.isDirectory()) walk(join(dir, f.name));

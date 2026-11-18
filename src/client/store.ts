@@ -7,6 +7,7 @@ import { createGame, hashState, query, sideSeesTile, step, view, type Action, ty
 import { advanceWithAi, isDifficulty, makeAi, type AiDriver, type Difficulty } from '../ai';
 import { bounds, focusOn } from './board/world';
 import { browserStorage, clearSave, makeEnvelope, readSave, summarise, writeSave, type LoadResult, type SaveEnvelope, type SaveReason, type SaveSummary } from './save';
+import { appendFx, fxFor, type Fx } from './fx';
 
 export type Screen = 'title' | 'battle' | 'report';
 /** AI-2: the hostile AI level the page runs; `none` leaves the hostiles to their stances (flow tests, KB gotchas). */
@@ -49,6 +50,8 @@ export interface ClientState {
   /** 'blast': the next tap on a tile throws the selected agent's charge there (ORD-9). */
   mode: 'normal' | 'blast';
   slips: Slip[];
+  /** Effects from the latest commits (fx.ts): the board draws them, the audio director plays them. */
+  fx: Fx[];
   saveStatus: SaveStatus;
   continueSummary: SaveSummary | null;
   loadError: string | null;
@@ -247,6 +250,8 @@ export const useClient = create<ClientState>((set, get) => {
       if (now?.down) patch.mode = 'normal';
     }
     if (slips.length) patch.slips = appendSlips(get().slips, slips);
+    const fx = fxFor(events, prev, next);
+    if (fx.length) patch.fx = appendFx(get().fx, fx);
     if (next.over && !prev.over) {
       // SAV-5: a finished battle clears its save.
       clearSave(storage);
@@ -283,6 +288,7 @@ export const useClient = create<ClientState>((set, get) => {
       mode: 'normal',
       lastTap: null,
       report: null,
+      fx: [],
       slips: [
         {
           id: ++slipSeq,
@@ -309,6 +315,7 @@ export const useClient = create<ClientState>((set, get) => {
     hover: null,
     mode: 'normal',
     slips: [],
+    fx: [],
     saveStatus: { ok: true, reason: null, tick: null, savedAt: null },
     continueSummary: null,
     loadError: null,

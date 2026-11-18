@@ -55,10 +55,52 @@ export function applyRig(camera: THREE.Camera, levelY: number): void {
 export const live: {
   camera: THREE.Camera | null;
   canvas: HTMLCanvasElement | null;
+  renderer: THREE.WebGLRenderer | null;
   tileMeshes: THREE.InstancedMesh[];
   tileOfInstance: Map<THREE.InstancedMesh, (instanceId: number) => Pos | null>;
   levelY: number;
-} = { camera: null, canvas: null, tileMeshes: [], tileOfInstance: new Map(), levelY: 0 };
+  /** The tile set's dressing layers as last filled (counts per layer), for the perf hook and tests. */
+  dressing: { layers: { kind: string; count: number; capacity: number }[]; active: number } | null;
+  /** The last 120 frame times in ms, newest last (useFrame dt), for the perf hook. */
+  frameMs: number[];
+} = { camera: null, canvas: null, renderer: null, tileMeshes: [], tileOfInstance: new Map(), levelY: 0, dressing: null, frameMs: [] };
+
+/** What window.__ekc.perf() reports: draw calls and triangles of the last frame, instance counts, frame times. */
+export interface PerfReport {
+  drawCalls: number;
+  triangles: number;
+  programs: number;
+  geometries: number;
+  textures: number;
+  /** Instances per dressing layer as last filled. */
+  layers: Record<string, number>;
+  tileInstances: number;
+  /** Mean and worst of the last frames, ms; 0 when no frame has run. */
+  frameMsMean: number;
+  frameMsMax: number;
+  frames: number;
+}
+
+export function perfReport(): PerfReport | null {
+  const r = live.renderer;
+  if (!r) return null;
+  const layers: Record<string, number> = {};
+  for (const l of live.dressing?.layers ?? []) layers[l.kind] = l.count;
+  const f = live.frameMs;
+  const mean = f.length ? f.reduce((a, b) => a + b, 0) / f.length : 0;
+  return {
+    drawCalls: r.info.render.calls,
+    triangles: r.info.render.triangles,
+    programs: r.info.programs?.length ?? 0,
+    geometries: r.info.memory.geometries,
+    textures: r.info.memory.textures,
+    layers,
+    tileInstances: live.tileMeshes.reduce((a, m) => a + m.count, 0),
+    frameMsMean: mean,
+    frameMsMax: f.length ? Math.max(...f) : 0,
+    frames: f.length,
+  };
+}
 
 export function worldToScreen(v: THREE.Vector3): { x: number; y: number } | null {
   if (!live.camera || !live.canvas) return null;

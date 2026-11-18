@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { MAPS, WEAPONS } from '../data';
 import { query, STANCES, type Stance, type Unit } from '../engine';
 import { unitLabel, useClient, type Speed } from './store';
+import { director } from './App';
 
 function levelName(level: number): string {
   return level === 0 ? 'GROUND' : `LEVEL ${level}`;
@@ -48,6 +49,15 @@ export function Hud() {
   const saveStatus = useClient((s) => s.saveStatus);
   const { togglePause, setSpeed, select, setLevel, setMode, focusUnit, order, leaveBattle } = useClient.getState();
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+  const [audio, setAudio] = useState(() => director.getSettings());
+  const setMuted = (muted: boolean) => {
+    director.setMuted(muted);
+    setAudio(director.getSettings());
+  };
+  const setVolume = (volume: number) => {
+    director.setVolume(volume);
+    setAudio(director.getSettings());
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -139,6 +149,12 @@ export function Hud() {
                   {sp}x
                 </button>
               ))}
+            </div>
+            <div className="switch-row sound-row" role="group" aria-label="Sound">
+              <button type="button" className={`toggle ${audio.muted ? 'toggle-alert' : ''}`} data-testid="mute" aria-pressed={audio.muted} onClick={() => setMuted(!audio.muted)}>
+                {audio.muted ? 'MUTED' : 'SOUND'}
+              </button>
+              <input className="volume-slider" type="range" min={0} max={100} value={Math.round(audio.volume * 100)} aria-label="Volume" data-testid="volume" onChange={(e) => setVolume(Number(e.target.value) / 100)} />
             </div>
             <div className={`save-lamp ${saveStatus.ok ? '' : 'save-lamp-alert'}`} data-testid="save-lamp">
               <span className={`lamp ${saveStatus.ok ? 'lamp-ok' : 'lamp-alert'}`} />
