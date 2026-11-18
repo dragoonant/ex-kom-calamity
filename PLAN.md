@@ -20,8 +20,9 @@ From 3d-game-generation `templates/PLAN.md`. Rewrite, do not append. Owner decis
 | D11 | Presentation concept (KB rule 21) | "Civil Defence switchboard of the City of Tomorrow". Owner: "I am good with the console and [futuristic] 50s look" | owner, 2026-11-17 | `docs/presentation-concept.md`; sample `console-mood-s95` |
 | D12 | Hosting (KB rule 28) | Private repo `dragoonant/ex-kom-calamity`; playtests as a private Artifact | default, not yet asked | KB rule 28 |
 | D13 | Save key (KB rule 22) | `ekc-save` | default | KB rule 22 |
-| D14 | Engine contract frozen | `src/engine/types.ts` and the shapes in `docs/spec/10-rules.md` section 0 are frozen now that tests exist; a change needs a matching spec edit, a new golden (`npm run golden:make`) and a note here | M1, 2026-11-17 | `CLAUDE.md`; KB `recipe.md` step 3 |
-| D15 | Battle tick rate | 10 ticks per second (`tuning.time.ticksPerSecond`); the client's 60 Hz loop accumulates time and issues ticks through `advance(seconds)` | default, M1 2026-11-17 | spec TIME-1, TIME-4 and RULING TIME-1 |
+| D14 | Alien look | One species in three bodies, all sea-glass green with an amber core, dark chitin and branching coral. **References locked** in `docs/concept/samples/`: host `alien-host-s42` (full alien head, the host once it stops hiding), `gemini-alien-host-a` and `chrome-host-2` (human face with coral growth, the host while it passes as a clerk); taker `alien-taker-s51` and `alien-taker-s52`; fighter `gemini-alien-fighter-a` (headless column on three stilt legs) and `alien-fighter-s61` (two-legged crested fighter) | owner, 2026-11-17 | `sheet-10-aliens.jpg`; `gemini-chrome-brief.md` Locked section |
+| D15 | Engine contract frozen | `src/engine/types.ts` and the shapes in `docs/spec/10-rules.md` section 0 are frozen now that tests exist; a change needs a matching spec edit, a new golden (`npm run golden:make`) and a note here | M1, 2026-11-17 | `CLAUDE.md`; KB `recipe.md` step 3 |
+| D16 | Battle tick rate | 10 ticks per second (`tuning.time.ticksPerSecond`); the client's 60 Hz loop accumulates time and issues ticks through `advance(seconds)` | default, M1 2026-11-17 | spec TIME-1, TIME-4 and RULING TIME-1 |
 
 ## 2. Open questions (each with a default; never blocks work)
 Both question batches of KB rule 12 were used on 2026-11-17, so these stay on their defaults until the owner speaks.
