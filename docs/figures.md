@@ -24,10 +24,11 @@ The owner chose the house figure style of KB rule 7, animated (D8: it "should wo
 | Citizen | Enamel cream coat (`#e7dcc1`) over graphite (`#3b3f44`), bare head, stern | none yet; placeholder |
 | Host, passing as a citizen | Drawn exactly as a citizen until revealed (spec HIDE-1) | `gemini-alien-host-a`, `chrome-host-2` once revealed up close |
 | Host, revealed | Citizen body with sea-glass green (`#7fc8b0`) skin and an amber (`#e0a030`) core glow at the throat; coral growth on the head | `alien-host-s42` (locked, D14) |
-| Taker | Headless sea-glass column with an amber core on three dark chitin stilt legs, four coral whip arms | `gemini-alien-fighter-a` is the fighter; the taker follows `alien-taker-s51` / `s52` (locked, D14) |
+| Taker | The organism that takes hosts: sea-glass body with an amber core on dark chitin legs | `alien-taker-s51` / `alien-taker-s52` (locked, D14) |
+| Fighter (not in the game before M3) | Headless sea-glass column with an amber core on three dark chitin stilt legs, four coral whip arms | `gemini-alien-fighter-a`, **the first fighter in the game** (owner, 2026-11-17, D14); `alien-fighter-s61` (two-legged, crested) is a later or elite type |
 
 ## 3. Placeholders in M2
-M2 draws procedural stand-ins in the colours above, built to the measurements in section 1 (head sphere 35% of a 1.2-unit figure, shoulders 1.8 heads wide, legs one head long). They carry no pointer handlers (KB rule 25) and are only ever replaced, never shown while a model loads (KB rule 26). No art is generated in M2.
+M2 draws procedural stand-ins in the colours above, built to the measurements in section 1 (head sphere 35% of a 1.2-unit figure, shoulders 1.8 heads wide, legs one head long); the taker's stand-in is a column on three legs until its own model exists. They carry no pointer handlers (KB rule 25) and are only ever replaced, never shown while a model loads (KB rule 26). No art is generated in M2.
 
 ## 4. When figures are generated (M4)
 - One prompt per figure, the first with the style reference attached, through the Gemini web app in Claude in Chrome (never the API, owner's spend decision), with the locked references of D7 and D14 attached for suits and aliens.

@@ -191,12 +191,16 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - RULING: ORD-4 | A tap on a tile that holds an apparent citizen with an agent selected is a fire order | KB rule 25 resolves a tap to the legal action for the tile; the hover card names the target and the civilian-hit cost before the tap. provisional
 
 ## 18. Sim baseline (KB rule 30)
-`npm run sim`, 40 battles per driver pair, seeds 1-40, 2026-11-17, numbers as committed. The drivers are not an AI (hostiles stand or take random orders), so this is the starting line, not a verdict. Re-run after M3 and change one number at a time.
+`npm run sim`, 40 battles per driver pair, seeds 1-40, battle `first-raid`, numbers as committed. The drivers are not an AI (hostiles stand or take random orders), so this is the starting line, not a verdict. Re-run after M3 and change one number at a time.
 
-| Driver pair | Agency wins | Mean sim seconds | Agents down / battle | Civilian hits / battle | Hit rate |
-|---|---|---|---|---|---|
-| random vs random | 100% | 28.1 | 0.45 | 0.28 | 54.8% |
-| sweep vs stand | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
+| Driver pair | Run | Agency wins | Mean sim seconds | Agents down / battle | Civilian hits / battle | Hit rate |
+|---|---|---|---|---|---|---|
+| random vs random | M1, 2026-11-17 | 100% | 28.1 | 0.45 | 0.28 | 54.8% |
+| sweep vs stand | M1, 2026-11-17 | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
+| random vs random | M2, 2026-11-18 | 100% | 25.4 | 0.57 | 0.40 | 55.0% |
+| sweep vs stand | M2, 2026-11-18 | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
+
+M2 added structure and charges without a new roll, so sweep vs stand did not move; random vs random moved because the random driver now throws charges too. The sim also runs a demolition sweep on the block (`block-raid`, 4 battles capped at 500 ticks): on 2026-11-18, 46 charges, 50 tiles destroyed, 96 steps between levels, no invariant broken.
 
 ## 19. Structure (STR) - `PLAN.md` D16: walls and floors are destructible from M2
 - **STR-1** Every tile carries a `material` (an id in `src/data/materials.json`) and `hp`. A map names materials per tile through an optional `levels[].materials` grid, one character per tile, read through the map's `materialKey`; a tile without one (or with a space there) takes the default material of its kind (`materials.json` `_defaults`). `hp` starts at the material's `hp`.

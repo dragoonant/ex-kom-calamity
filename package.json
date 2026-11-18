@@ -15,7 +15,8 @@
     "e2e": "playwright test",
     "check:look": "node tools/check-look.mjs",
     "shot": "node tools/shot.mjs",
-    "map:make": "tsx tools/make-block.ts"
+    "map:make": "tsx tools/make-block.ts",
+    "artifact": "node tools/make-artifact.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
