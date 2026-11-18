@@ -75,11 +75,11 @@ describe('19. Structure (STR)', () => {
     expect(tileAt(b, pos(7, 5))).toMatchObject({ kind: 'window', material: 'glass', hp: 8 });
   });
 
-  it('STR-2 walls, doors, windows, floors and stairs of a material with hp are breakable; ground, rubble and void are not', () => {
+  it('STR-2 walls, doors, windows and floors of a material with hp are breakable; ground, rubble, void and stairs are not', () => {
     const s = game();
     expect(query.tileInfo(s, pos(2, 2))?.breakable).toBe(true);
     expect(query.tileInfo(s, pos(7, 4))?.breakable).toBe(true);
-    expect(query.tileInfo(s, pos(10, 5))?.breakable).toBe(true); // stair
+    expect(query.tileInfo(s, pos(10, 5))?.breakable).toBe(false); // stair: never damaged (RULING STR-2)
     expect(query.tileInfo(s, pos(0, 0))?.breakable).toBe(false);
     expect(query.tileInfo(s, pos(0, 0, 1))?.breakable).toBe(false);
     // A blast centred on the street damages nothing there.

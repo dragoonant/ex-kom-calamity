@@ -1,7 +1,7 @@
 // npm run map:make
 // Writes the first city block (MAP-7, MAP-8; PLAN.md D16) and its battle from a building list:
 //   src/data/maps/halcyon-block.json     60 x 60 tiles, 7 levels, five buildings of 1, 2, 3, 4 and 6 floors
-//   src/data/battles/block-raid.json     the squad in the street, hosts, takers and citizens indoors
+//   src/data/battles/block-raid.json     the squad in the street, hosts, takers, fighters and citizens indoors
 // Deterministic (no randomness): the JSON it writes is the data, and validate:data checks it. Every name
 // is a placeholder (PLAN.md D10) and none is taken from the inspiration (docs/GAME-DESIGN.md section 5).
 import { writeFileSync } from 'node:fs';
@@ -177,6 +177,9 @@ const others = [
   // Takers: one on the tallest roof, one in the depot's back office.
   { template: 'taker', at: local(arms, 10, 3, 6) },
   { template: 'taker', at: local(depot, 21, 3, 0) },
+  // Fighters (M3, PLAN.md D14): one in the depot hall, one on Halcyon Arms' third floor.
+  { template: 'fighter', at: local(depot, 10, 7, 0) },
+  { template: 'fighter', at: local(arms, 16, 11, 3) },
   // Citizens.
   { template: 'citizen', at: { x: 12, y: 27, level: 0 } },
   { template: 'citizen', at: { x: 29, y: 30, level: 0 } },

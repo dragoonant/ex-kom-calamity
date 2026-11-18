@@ -2,58 +2,65 @@
 
 **Rewrite this file at the end of every milestone; do not append.** `ls` every path before claiming it exists.
 
-**As of:** 2026-11-18 | **Milestone:** M2 done (battle first playable on a destructible city block) | **Last commit:** see `git log -1`
+**As of:** 2026-11-18 | **Milestone:** M3 done (hostile AI: hosts ambush and flee, takers take citizens and hunt, fighters fight from cover and breach) | **Last commit:** see `git log -1`
 
-**Play it:** `npm install`, `npm run dev`, open the printed URL. Private Artifact build (PLAN D12, D15): https://claude.ai/artifact/NtYezrJFZ5cYKuVs475YUG (owner only until shared; republish with `npm run build`, `npm run artifact`, then publish `dist-artifact/city-of-tomorrow.html` to that URL). Screenshots: `docs/screenshots/m2-title.png`, `m2-battle.png`, `m2-block.png` (`npm run shot` remakes them).
+**Play it:** `npm install`, `npm run dev`, open the printed URL. Private Artifact build (PLAN D12, D15): https://claude.ai/artifact/NtYezrJFZ5cYKuVs475YUG (owner only until shared; republish with `npm run build`, `npm run artifact`, then publish `dist-artifact/city-of-tomorrow.html` to that URL). Screenshots: `docs/screenshots/m3-title.png`, `m3-battle.png`, `m3-block.png` (`npm run shot` remakes them; the M2 set stays as the M2 record). `?ai=none` on the URL plays the M2 way (hostiles by stance only), `?ai=random` the random AI.
 
 ## What works now
 | Area | State | Evidence |
 |---|---|---|
-| Spec | `docs/spec/10-rules.md`: 119 rule ids in 19 sections, 35 rulings, every tuning number cited as `section.key = N`. New in M2: the city block (MAP-7, MAP-8), structure (STR-1..6), charges (ORD-9, BLAST-1..5), the client loop (TIME-6), the client save (SAV-3..6), QRY-7, QRY-8, INV-8 | `npm run validate:data` checks the spec's numbers against `src/data/tuning.json` and the ids' uniqueness; `tests/coverage.test.ts` fails on an id without a test |
-| Data | `tuning.json`, `weapons.json` (5, with `structureDamage`), `units.json` (4 templates, with `charges`), `materials.json` (8), maps `civic-savings-branch` (16 x 12 x 3, the test and sim map) and `halcyon-block` (60 x 60 x 7, five buildings of 1, 2, 3, 4 and 6 floors, written by `npm run map:make`), battles `first-raid` and `block-raid` (6 agents, 6 hosts, 2 takers, 11 citizens) | `npm run validate:data` prints the unit, weapon and material tables |
-| Engine | `src/engine/`: as M1, plus `structure.ts`: tiles carry `material` and `hp`; walls, doors and windows break to rubble; upper floors collapse and drop whoever stood on them; a missed ranged shot chews the wall behind the target; agents carry two charges, armed over 6 ticks, that damage structure and units on nine tiles. No new randomness. Contract changed under PLAN D17 (spec edited, golden remade) | `npm test`: 127 tests named by rule id; golden `tests/golden/first-raid-seed-7.json` |
-| Headless sim | `npm run sim`: 40 battles per driver pair on `first-raid`, then a demolition sweep of 4 capped battles on the block; `npm run action-fuzz`: 3 runs x 3000 ticks of random legal and malformed actions, about 120 charges a run | both clean on 2026-11-18: 0 invariant failures |
-| Client | `src/client/`: one zustand store calls `step`; a fixed-step accumulator feeds `advance` (pause is the absence of ticks); `window.__ekc.advance(seconds)` and friends for tests; R3F board with one instanced mesh per level, a floor selector that cuts the block away level by level, placeholder figures to `docs/figures.md`; the Civil Defence console: time dial, PAUSE paddle, speeds 1x 2x 4x, squad lamps, stance switches, HALT, CHARGE, WITHDRAW, a file card (tile kind, material, hp, hit chance, charge preview, path cost, all from `query.*`) and the message-slip tray; title screen with the placeholder title only (D10); incident report with Copy report | `npm run e2e` (8 tests), `npm run shot` |
-| Save/Continue (KB rule 22) | Key `ekc-save`. Written when a raid starts, on every pause, every accepted order, every 10 s of sim time and on leaving. The envelope keeps a tile diff against the map file plus the state hash (a few KB, not 2 MB). Continue names what it reopens and reopens paused; Discard asks once more; a finished raid clears its save; an unreadable save, a changed map or refused storage says why | `tests/client-save-loop.test.ts` SAV-3..6; `e2e/save.spec.ts` (browser closed and reopened on a persistent profile, corrupt save, hash mismatch, finished raid, refused storage) |
-| KB rules 24-27 | 24: `src/base.css` and the `selectstart` / `contextmenu` listeners. 25: pointer handlers only on the tile meshes; figures have no raycast; a tap resolves in `store.tapTile`. 26: `src/client/models.ts` preload (no GLBs yet), `Suspense fallback={null}`, the start switch waits and says so. 27: wheel zooms to the cursor, right-drag turns and tilts, middle-drag pans, left-drag pans until a middle button is seen (remembered under `ekc-mouse`); touch: one finger pans, two twist and pinch | `e2e/rules.spec.ts`, one test per rule |
-| Look (KB rule 21) | "Civil Defence switchboard" tokens in `src/styles.css`; `npm run check:look` fails on a sibling's look, a native tooltip or the codename | 0 hits on 2026-11-18. Not yet done: screenshots side by side with project-x (`docs/presentation-concept.md` section 5) |
-| AI | None (M3). Hostiles defend themselves by stance only, so the agency wins every sim; that is expected | |
-| Art | Placeholder meshes only. Concept rounds 1-7 in `docs/concept/samples/`; references locked in `PLAN.md` D7 and D14; `docs/figures.md` written | |
+| Spec | `docs/spec/10-rules.md`: 133 rule ids in 23 sections, 47 rulings, every tuning number cited as `section.key = N`. New in M3: taking (TAKE-1..4, section 21), the AI (AI-1..10, section 22), the bench baseline (section 23); UNIT-5, DMG-4, BLAST-1 and CIV-1 amended | `npm run validate:data` checks the spec's numbers against `src/data/tuning.json`, the ids' uniqueness and the `takes` flag; `tests/coverage.test.ts` fails on an id without a test |
+| Data | `tuning.json` (new `ai` section, 11 keys), `weapons.json` (6: `lash-whip` added; `taker-bite` carries `takes: "host"`), `units.json` (5 templates: `fighter` added, hp 90, armour 6, whip, one charge), `materials.json` (8), maps `civic-savings-branch` and `halcyon-block`, battles `first-raid` (tests, sim, golden; unchanged), `block-raid` (the playable: 6 agents, 6 hosts, 2 takers, **2 fighters**, 11 citizens; regenerated by `npm run map:make`) and `bench-raid` (the AI bench: 6 agents, 4 hosts, 2 takers, 2 fighters, 4 citizens) | `npm run validate:data` prints the unit, weapon and material tables |
+| Engine | `src/engine/`: as M2, plus section 21: a weapon with `takes` converts a living citizen into that template on a hit (no damage roll, so the RNG stream is untouched), `revealed` if the squad saw it, event `taken`, counter `score.taken`. Contract changed under PLAN D17 (spec edited, golden remade, hash `5a89285c`); stairs are no longer breakable (RULING STR-2) | `npm test`: 142 tests named by rule id; golden `tests/golden/first-raid-seed-7.json` |
+| AI | `src/ai/` (DOM-free, reads `view(state, side)` only): `know.ts` (what a side knows, firing positions, hiding tiles), `nav.ts` (a cost-capped Dijkstra for destinations; the engine paths the order), `hostile.ts` (the `normal` hostile AI by body: hidden hosts stand and ambush within 4 tiles then keep engaging, revealed hosts fight from cover or flee when hurt while a healthier hostile fights, takers charge stragglers or take citizens or guard then roam, fighters fire at the weakest in reach from cover, lurk against bunched squads, breach walls with their charge, take the stairs), `agency.ts` (the agency `normal` driver for the bench: checks citizens in pairs, kites, falls back when hurt), `random.ts` (the floor), `drive.ts` (`advanceWithAi`, `aiOrders`), `rng.ts` (the AI's own sfc32 stream, seeded from seed, tick, side and unit) | `tests/ai.test.ts` (AI-1..10), `npm run bench:ai` |
+| Headless sim | `npm run sim` (sim drivers, unchanged rows) and `npm run action-fuzz`: both clean on 2026-11-18. `npm run bench:ai`: 200 battles of `normal` against `random` in both seats on `bench-raid`, invariants checked, determinism checked | see the baselines below |
+| Client | `src/client/`: as M2, plus the hostile AI inside `store.advance` (`advanceWithAi`; pause is still the absence of ticks; the AI's orders go into the log, so Continue and replay reproduce them), `?ai=` on the page (`normal` default, `random`, `none`), `window.__ekc.ai()`, a fighter stand-in figure (`Figures.tsx`), message slips that never print a hostile order or an unseen door and report a taking only when the squad watched it, citizens taken on the report | `npm run e2e` (10 tests: `e2e/ai.spec.ts` added), `npm run shot` |
+| Save/Continue (KB rule 22) | As M2. The AI's orders are part of the log inside the envelope, so a reopened raid continues with the same hostiles doing the same things | `e2e/ai.spec.ts` checks the saved log holds the hostile orders; `e2e/save.spec.ts` unchanged |
+| KB rules 24-27, Look (rule 21) | As M2; `npm run check:look` 0 hits on 2026-11-18 | `e2e/rules.spec.ts`, `tools/check-look.mjs` |
+| Art | Placeholder meshes only (fighter stand-in added, `docs/figures.md` section 3). No art generated in M3 | |
 | Audio | none | |
 
-## Balance baseline (KB rule 30)
-`npm run sim`, 40 battles per pair, seeds 1-40, battle `first-raid`, 2026-11-18. Hostiles have no AI yet, so this is a coverage check and the starting line for M3, not a verdict on the numbers.
-
+## Balance baselines (KB rule 30)
+### Sim drivers (`npm run sim`, 40 battles per pair, seeds 1-40, `first-raid`, 2026-11-18)
 | Driver pair | Agency wins | Mean sim seconds | Agents down / battle | Civilian hits / battle | Hit rate |
 |---|---|---|---|---|---|
 | random vs random | 100% | 25.4 | 0.57 | 0.40 | 55.0% |
 | sweep vs stand | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
 
-Reading: sweep vs stand is identical to the M1 baseline, so stray rounds and the new fields changed no outcome. Random vs random moved (28.1 s, 0.45, 0.28 in M1) only because the random driver now also throws charges, which hurt its own side and the citizens. Do not tune against these drivers; re-run after the M3 AI moves the hostiles, then change one number at a time.
+Reading: the sim drivers are not the AI; sweep vs stand is the M1 line and did not move (taking adds no roll; nothing in `first-raid` changed). The block demolition sweep (`block-raid`, 4 battles capped at 500 ticks) now has two fighters standing in it: 48 charges, 34 tiles destroyed, 88 steps between levels, 12 hostiles down, 0 agents down, 0 invariant failures (the stairs no longer break, RULING STR-2).
 
-Block demolition sweep (`block-raid`, 4 battles capped at 500 ticks, sweep plus random charges vs stand): 46 charges, 50 tiles destroyed, 96 steps between levels, 7 hostiles down, 1 agent down, 0 invariant failures. No floor collapsed under a unit in the sweep; collapses are covered by `tests/structure-blast.test.ts` and the fuzz.
+### AI bench (`npm run bench:ai`, 200 battles, 100 per seat, seeds 1-100, `bench-raid`, 2026-11-18)
+| Seat | Battles | Normal wins | Random wins | Draws | Mean sim seconds | Agents down / battle | Hostiles down / battle | Taken / battle | Civilian hits / battle |
+|---|---|---|---|---|---|---|---|---|---|
+| normal hostiles vs random agents | 100 | 98.0% | 2.0% | 0 | 25.1 | 5.97 | 1.99 | 2.14 | 5.43 |
+| normal agents vs random hostiles | 100 | 92.0% | 8.0% | 0 | 46.2 | 1.90 | 8.18 | 0.37 | 4.91 |
+| **both seats** | **200** | **95.0% (190/200)** | 5.0% | 0 | | | | | |
+
+Determinism: seed 1 in the hostile seat replays to the same hash. Calibration (`random` against `random`, 40 battles, same roster): agency 33%, hostile 63%, 2 draws. Gate (PLAN M3, 95% over at least 200): **PASS, with no margin**: the agency seat is the weak one (92%), lost to random fighters' stance fire when the squad climbs a stair into them; the hostile seat is at 98%. Earlier drafts, for the record: hosts that walked at agents, 40 to 48% in the hostile seat; standing ambushers and lurking fighters, 90 to 97% over 30 to 60 battles; the stair collapses that timed out 3 of 40 agency-seat battles became RULING STR-2.
+
+Reading: the gate (PLAN M3, normal beats random at 95% or better over at least 200 seeded battles) is **met at exactly 95.0%, with no margin**; the next change to the AI or the numbers must rerun it. Calibration on the same roster, `random` against `random`, 40 battles: agency 33%, hostile 63%, 2 draws (near even, hostile-leaning; RULING AI-10). Both seats move 40 or more points under `normal`, so the number measures the AI, not the material. The playable's roster (`block-raid`) is not benched: on the M2 roster random against random went 67 to 33 for the agency, and 6 agents against 10 hostiles on a 60 x 60 block is a 10-minute battle. Do not tune against these numbers blindly: the balance pass is next (PLAN Q9), one number at a time.
 
 ## Gates (run before every commit)
-`npm run typecheck` | `npm test` | `npm run build` | `npm run validate:data` | `npm run sim` | `npm run action-fuzz` | `npm run e2e` | `npm run check:look` (all pass). The e2e uses port 5181 (`PW_PORT` to change) and reuses a dev server already on it.
+`npm run typecheck` | `npm test` | `npm run build` | `npm run validate:data` | `npm run sim` | `npm run action-fuzz` | `npm run bench:ai` | `npm run e2e` | `npm run check:look` (all pass on 2026-11-18). The e2e uses port 5181 (`PW_PORT` to change) and reuses a dev server already on it; this milestone ran it on 5183 to avoid a sibling's stale server (KB gotchas).
 
 ## Open
 | Item | Owner of the decision | Default in use |
 |---|---|---|
-| `PLAN.md` Q1-Q10 | owner | as written there |
-| 35 provisional rulings in `docs/spec/10-rules.md` section 17, 12 of them new in M2 (charges, collapse, stray rounds, windows, the packed save, tap on a citizen) | owner may confirm or reverse any | as written there |
-| The numbers of structure and charges (`materials.json`, `tuning.blast`, `tuning.structure`, weapon `structureDamage`) | owner, with a sim result (KB rule 30) | first guesses *(tune)* |
-| Lifts (D16 says stairs or lifts) | owner | stairs only (RULING MAP-7) |
-| `CLAUDE.md` still says "`e2e` arrives with M2" in its gates line | owner or the next session | this file's gates line is the current one |
+| `PLAN.md` Q1-Q18 | owner | as written there |
+| 47 provisional rulings in `docs/spec/10-rules.md` section 17, 12 of them new in M3 (taking, the AI's knowledge and tactics, the bench roster, the fighter's charge, stairs that never break, citizens that still stand) | owner may confirm or reverse any | as written there |
+| The fighter's and the whip's numbers (`units.json` `fighter`, `weapons.json` `lash-whip`), the `ai` tuning section, and everything marked *(tune)* since M1 | owner, with a `sim` or `bench:ai` result (KB rule 30) | first guesses *(tune)* |
+| Citizens that run (PLAN Q18) | owner or the balance pass | they stand (RULING CIV-1) |
 
-## Known limits of the first playable
+## Known limits of the playable
 - One agent is selected at a time (PLAN Q6); no drag box, no "select all" yet.
-- Furniture and props are not in the map format yet; rooms are bare (art pass, M4).
-- A phone can play it (touch pan, pinch, tap), but the console takes almost half the screen and the floor selector is large; phone tiers are M9.
-- The Artifact build was checked as a local single file at desktop and phone size, not inside the claude.ai viewer.
+- Rooms are bare (furniture and props are the art pass, M4); the fighter and the taker are stand-in columns.
+- The hostile AI is tuned on the small bench map; on the block it hunts well indoors but hidden hosts in far buildings stay put until three agents are down, so a careful squad can clear building by building. A playtest should say whether that is too quiet.
+- A phone can play it; phone tiers are M9.
+- The Artifact build was checked as a local single file, not inside the claude.ai viewer.
 
 ## Known failing (left alone on purpose)
 None.
 
 ## Next
-1. M3: hostile AI on `view(state, 'hostile')` (hosts that move, flank and flee, takers that hunt), agents' self-defence behaviour, citizens that run; bench normal beats random at least 95%; then the balance pass against this file's baseline, structure and charge numbers included.
-2. M4: art and audio pass 1 on the block (building and street tile set, interiors and props, rigged figures), through the Gemini web app and the GPU host of PLAN Q7.
+1. The balance pass (PLAN Q9): rerun `sim` and `bench:ai` after each single change to the structure, charge, fighter and whip numbers; decide Q18 (citizens that run) with a bench result.
+2. M4: art and audio pass 1 on the block (building and street tile set, interiors and props, rigged figures including the fighter), through the Gemini web app and the GPU host of PLAN Q7.

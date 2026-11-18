@@ -1,5 +1,5 @@
 {
-  "_": "Unit templates (UNIT-2, UNIT-5). Placeholder names (PLAN.md D10). host.hp must equal citizen.hp (RULING UNIT-5). All (tune). charges per BLAST-1.",
+  "_": "Unit templates (UNIT-2, UNIT-5). Placeholder names (PLAN.md D10). host.hp must equal citizen.hp (RULING UNIT-5). All (tune). charges per BLAST-1. fighter: the first purpose-grown fighter (PLAN.md D14, gemini-alien-fighter-a), M3.",
   "agent-t1": {
     "name": "Agent",
     "side": "agency",
@@ -55,5 +55,19 @@
     "defaultStance": "hold",
     "charges": 0,
     "source": "CIV-1"
+  },
+  "fighter": {
+    "name": "Fighter",
+    "side": "hostile",
+    "hp": 90,
+    "armour": 6,
+    "aim": 10,
+    "moveTicks": 3,
+    "sight": 12,
+    "weapon": "lash-whip",
+    "disguised": false,
+    "defaultStance": "engage",
+    "charges": 1,
+    "source": "PLAN.md D14: headless column on three stilt legs with whip arms; docs/GAME-DESIGN.md 3: purpose-grown fighters"
   }
 }

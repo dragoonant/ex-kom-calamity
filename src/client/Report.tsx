@@ -21,6 +21,7 @@ export function Report() {
     `Agents standing ${o.living.agency}, agents down ${o.score.agentsDown}`,
     `Hostiles down ${o.score.hostilesDown}, hostiles standing ${o.living.hostile}`,
     `Shots ${o.score.shotsFired}, hits ${o.score.hits}, civilian hits ${o.score.civilianHits}, citizens down ${o.score.civiliansDown}`,
+    `Citizens taken ${o.score.taken}`,
   ];
   const copy = async () => {
     const text = lines.join('\n');

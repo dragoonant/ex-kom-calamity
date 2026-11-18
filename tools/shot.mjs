@@ -1,6 +1,7 @@
 // npm run shot [-- url]  Screenshots of the title, a raid in progress and the whole block through Playwright
 // (KB gotchas: the built-in browser pane can lose WebGL and throttles frames; use this instead).
-// Writes docs/screenshots/m2-*.png. Time moves through the deterministic hook, so the shots repeat.
+// Writes docs/screenshots/m3-*.png (the M2 set stays as the M2 record). Time moves through the deterministic hook;
+// the hostile AI (normal) runs inside it, so the shots show opponents acting.
 import { chromium } from '@playwright/test';
 
 const url = process.argv[2] ?? `http://localhost:${process.env.PW_PORT ?? 5181}/`;
@@ -14,7 +15,7 @@ await page.waitForSelector('[data-testid=title]');
 await page.evaluate(() => localStorage.removeItem('ekc-save'));
 await page.reload();
 await page.waitForSelector('[data-testid=start]');
-await page.screenshot({ path: 'docs/screenshots/m2-title.png' });
+await page.screenshot({ path: 'docs/screenshots/m3-title.png' });
 await page.click('[data-testid=start]');
 await page.waitForSelector('[data-testid=console]');
 await page.waitForTimeout(1200);
@@ -35,7 +36,7 @@ await page.waitForTimeout(900);
 const wall = await page.evaluate(() => window.__ekc.screenPointOfTile({ x: 10, y: 44, level: 0 }));
 if (wall) await page.mouse.move(wall.x, wall.y - 5, { steps: 4 });
 await page.waitForTimeout(400);
-await page.screenshot({ path: 'docs/screenshots/m2-battle.png' });
+await page.screenshot({ path: 'docs/screenshots/m3-battle.png' });
 await page.evaluate(() => {
   const h = window.__ekc;
   h.setLevel(6);
@@ -43,6 +44,6 @@ await page.evaluate(() => {
 });
 await page.mouse.move(700, 20);
 await page.waitForTimeout(900);
-await page.screenshot({ path: 'docs/screenshots/m2-block.png' });
+await page.screenshot({ path: 'docs/screenshots/m3-block.png' });
 console.log(JSON.stringify(info), errors.length ? `\nERRORS:\n${errors.join('\n')}` : '\nno console errors');
 await browser.close();

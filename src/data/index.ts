@@ -8,6 +8,7 @@ import civicSavingsBranch from './maps/civic-savings-branch.json';
 import halcyonBlock from './maps/halcyon-block.json';
 import firstRaid from './battles/first-raid.json';
 import blockRaid from './battles/block-raid.json';
+import benchRaid from './battles/bench-raid.json';
 
 export type Side = 'agency' | 'hostile' | 'civilian';
 export type Stance = 'engage' | 'retaliate' | 'hold';
@@ -21,6 +22,8 @@ export interface Tuning {
   fire: { minHitChance: number; maxHitChance: number; movingTargetPenalty: number; retaliateMemoryTicks: number };
   save: { autosaveSeconds: number };
   structure: { fallDamage: number };
+  /** Section 22 (AI): the hostile AI's windows and ranges. */
+  ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number };
   blast: { throwRange: number; armTicks: number; structureDamage: number; edgeStructureDamage: number; unitDamage: number; edgeUnitDamage: number };
 }
 
@@ -36,6 +39,8 @@ export interface WeaponDef {
   cooldownTicks: number;
   /** STR-6: what a stray round does to the wall behind the target. */
   structureDamage: number;
+  /** TAKE-1: the template a living citizen becomes when this weapon hits it (melee only). */
+  takes?: string;
   source: string;
 }
 
@@ -132,6 +137,7 @@ export const MAPS: Record<string, MapDef> = {
 export const BATTLES: Record<string, BattleDef> = {
   [firstRaid.id]: stripComments<BattleDef>(firstRaid as Record<string, unknown>),
   [blockRaid.id]: stripComments<BattleDef>(blockRaid as Record<string, unknown>),
+  [benchRaid.id]: stripComments<BattleDef>(benchRaid as Record<string, unknown>),
 };
 
 /** MAP-2 legend. */

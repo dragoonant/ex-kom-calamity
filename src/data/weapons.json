@@ -1,5 +1,5 @@
 {
-  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune). structureDamage is what a stray round does to a wall (STR-6).",
+  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune). structureDamage is what a stray round does to a wall (STR-6). takes: the template a living citizen becomes when this weapon hits it (TAKE-1).",
   "service-pistol": {
     "name": "Service pistol",
     "kind": "ranged",
@@ -63,6 +63,20 @@
     "aimTicks": 4,
     "cooldownTicks": 8,
     "structureDamage": 0,
-    "source": "the organism's own attack"
+    "source": "the organism's own attack; a hit on a citizen takes it (TAKE-1)",
+    "takes": "host"
+  },
+  "lash-whip": {
+    "name": "Lash whip",
+    "kind": "ranged",
+    "range": 5,
+    "accuracy": 70,
+    "falloffPerTile": 3,
+    "damageMin": 18,
+    "damageMax": 30,
+    "aimTicks": 4,
+    "cooldownTicks": 7,
+    "structureDamage": 25,
+    "source": "the fighter's coral whip arms, a reach weapon that also chews walls (STR-6)"
   }
 }

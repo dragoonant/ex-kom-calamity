@@ -6,5 +6,6 @@
   "fire": {"minHitChance": 5, "maxHitChance": 95, "movingTargetPenalty": 15, "retaliateMemoryTicks": 50},
   "save": {"autosaveSeconds": 10},
   "structure": {"fallDamage": 15},
+  "ai": {"decideTicks": 5, "hostAmbushRange": 4, "fleeHpPercent": 40, "takerChaseRange": 12, "coverSearchTicks": 30, "breachRange": 8, "breachDetourTicks": 40, "randomOrderPercent": 50, "isolationRange": 5, "huntAfterAgentsDown": 3, "huntAfterSeconds": 120},
   "blast": {"throwRange": 6, "armTicks": 6, "structureDamage": 160, "edgeStructureDamage": 60, "unitDamage": 40, "edgeUnitDamage": 20}
 }

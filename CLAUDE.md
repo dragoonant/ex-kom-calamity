@@ -4,7 +4,7 @@ From 3d-game-generation `templates/CLAUDE.md`. An original 3D video game by **ev
 
 - **What it is:** a spiritual successor to X-COM Apocalypse: one retro-future city, real-time-with-pause squad battles, a hidden alien takeover. "ex-kom-calamity" is a codename and never appears in the game (`PLAN.md` D10).
 - **Orientation docs:** `PLAN.md` (decisions D#, open questions with defaults, milestones), `STATUS.md` (rewrite, never append), `docs/GAME-DESIGN.md`, `docs/presentation-concept.md` (KB rule 21), `docs/spec/10-rules.md` once M1 writes it (**the spec is the product**).
-- **Engine contract (frozen once tests exist):** pure `step`; time advances only through a `tick` action, so pause is the absence of ticks; `legalActions` never empty; `query.*` owns every number; `view(state, side)`; seeded RNG in the state; plain-JSON state; every tile carries a level. No DOM, three.js or React in `src/engine/`.
+- **Engine contract (frozen once tests exist):** pure `step`; time advances only through a `tick` action, so pause is the absence of ticks; `legalActions` never empty; `query.*` owns every number; `view(state, side)`; seeded RNG in the state; plain-JSON state; every tile carries a level. No DOM, three.js or React in `src/engine/` or `src/ai/`. The AI (`src/ai/`, spec section 22) reads `view(state, 'hostile')` only and is a pure function of it; the client runs it inside `advance` (`advanceWithAi`).
 - **Real time:** fixed-step sim separate from drawing; expose a deterministic `advance(seconds)` hook for tests, because a hidden browser pane throttles `requestAnimationFrame` (KB `recipe.md` section 11).
 - **Every ambiguity** becomes `RULING: <id> | <what we did> | <why>` in the spec; never block on it.
 - **Balance changes** need a `sim` or `bench:ai` result (KB rule 30).
@@ -15,4 +15,4 @@ From 3d-game-generation `templates/CLAUDE.md`. An original 3D video game by **ev
 - **Studios:** they run on the owner's machine. Announce GPU work, one GPU job at a time, never kill node by image name, stop the studios when done (10, 17).
 - **Before every commit:** grep the staged diff for the real name and the home path (it must print nothing); commits end with the attribution lines the session provides.
 - **Update the KB entry** `projects/ex-kom-calamity.md` at the end of every milestone (KB rule 19).
-- Gates today: `npm run typecheck`, `npm test`, `npm run build`, `npm run validate:data`, `npm run sim`, `npm run action-fuzz`. `e2e` arrives with M2.
+- Gates today: `npm run typecheck`, `npm test`, `npm run build`, `npm run validate:data`, `npm run sim`, `npm run action-fuzz`, `npm run bench:ai`, `npm run e2e`, `npm run check:look`.

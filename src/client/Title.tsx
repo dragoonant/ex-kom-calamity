@@ -77,7 +77,7 @@ export function Title() {
           )}
         </div>
         <div className="title-foot">
-          Real time with pause. Space pauses, 1 to 6 pick an agent, B arms a charge, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag pans. Placeholder build M2.
+          Real time with pause. Space pauses, 1 to 6 pick an agent, B arms a charge, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag pans. Hostiles fight back: hosts ambush, takers hunt, fighters breach. Placeholder build M3.
         </div>
       </div>
     </div>

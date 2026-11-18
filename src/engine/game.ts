@@ -68,7 +68,7 @@ export function createGame(setup: Setup): State {
     units: [],
     rng: seedRng(setup.seed),
     tuning: mergeTuning(TUNING, setup.tuning),
-    score: { shotsFired: 0, hits: 0, civilianHits: 0, agentsDown: 0, hostilesDown: 0, civiliansDown: 0 },
+    score: { shotsFired: 0, hits: 0, civilianHits: 0, agentsDown: 0, hostilesDown: 0, civiliansDown: 0, taken: 0 },
     over: null,
     log: [],
   };

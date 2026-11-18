@@ -3,11 +3,14 @@
 // advance(); pause is the absence of them (TIME-2, TIME-6).
 import { create } from 'zustand';
 import { BATTLES, WEAPONS } from '../data';
-import { advance as engineAdvance, createGame, hashState, query, step, view, type Action, type GameEvent, type Pos, type Setup, type State, type Unit } from '../engine';
+import { createGame, hashState, query, sideSeesTile, step, view, type Action, type GameEvent, type Pos, type Setup, type State, type Unit } from '../engine';
+import { advanceWithAi, isDifficulty, makeAi, type AiDriver, type Difficulty } from '../ai';
 import { bounds, focusOn } from './board/world';
 import { browserStorage, clearSave, makeEnvelope, readSave, summarise, writeSave, type LoadResult, type SaveEnvelope, type SaveReason, type SaveSummary } from './save';
 
 export type Screen = 'title' | 'battle' | 'report';
+/** AI-2: the hostile AI level the page runs; `none` leaves the hostiles to their stances (flow tests, KB gotchas). */
+export type AiLevel = Difficulty | 'none';
 export type Speed = 1 | 2 | 4;
 export type Tone = 'note' | 'ok' | 'caution' | 'alert';
 
@@ -55,6 +58,8 @@ export interface ClientState {
   modelsTotal: number;
   /** The report screen keeps the final state after the save is cleared (SAV-5). */
   report: State | null;
+  /** The hostile AI level (AI-2), from `?ai=` on the page; `normal` by default. */
+  ai: AiLevel;
 
   refreshTitle(): void;
   newBattle(seed?: number): void;
@@ -86,7 +91,15 @@ export function unitLabel(u: Unit): string {
   if (u.side === 'agency') return u.name;
   if (u.template === 'host') return 'Host';
   if (u.template === 'taker') return 'Taker';
+  if (u.template === 'fighter') return 'Fighter';
   return u.name;
+}
+
+/** `?ai=none|random|normal` on the page (AI-2); anything else, or no page, is `normal`. */
+export function aiLevelFromSearch(search: string | undefined): AiLevel {
+  const v = search ? new URLSearchParams(search).get('ai') : null;
+  if (v === 'none') return 'none';
+  return isDifficulty(v) ? v : 'normal';
 }
 
 function fmtPos(p: Pos): string {
@@ -109,6 +122,7 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
     switch (e.type) {
       case 'ordered': {
         const a = e.action;
+        if (a.side !== 'agency') break; // AI-9: the tray never prints a hostile order
         if (a.type === 'withdraw') push(e.tick, 'Squad withdrawn.', 'caution');
         else if (a.type === 'move') push(e.tick, `${label(a.unit)}: move to ${fmtPos(a.to)}.`, 'note');
         else if (a.type === 'fire') push(e.tick, `${label(a.unit)}: fire at ${label(a.target)}.`, 'note');
@@ -124,7 +138,8 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
         if (unitIn(after, e.unit)?.side === 'agency') push(e.tick, `${label(e.unit)}: path blocked, order dropped.`, 'caution');
         break;
       case 'doorOpened':
-        push(e.tick, `Door opened at ${fmtPos(e.at)}.`, 'note');
+        // AI-9: a door opened out of the squad's sight would give away a hostile's movements.
+        if (sideSeesTile(after, 'agency', e.at)) push(e.tick, `Door opened at ${fmtPos(e.at)}.`, 'note');
         break;
       case 'shot': {
         const shooter = unitIn(after, e.shooter);
@@ -171,6 +186,13 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
         push(e.tick, `The citizen at ${u ? fmtPos(u) : '?'} is a HOST (${e.by === 'fire' ? 'opened fire' : 'seen up close'}).`, 'alert');
         break;
       }
+      case 'taken': {
+        // TAKE-2: the squad learns of a taking only when it watched it happen.
+        if (!e.seen) break;
+        const u = unitIn(after, e.unit);
+        push(e.tick, `The citizen at ${u ? fmtPos(u) : '?'} has been TAKEN by a ${label(e.by)}.`, 'alert');
+        break;
+      }
       case 'over': {
         const text =
           e.winner === 'agency'
@@ -201,6 +223,8 @@ function appendSlips(old: Slip[], add: Slip[]): Slip[] {
 export const useClient = create<ClientState>((set, get) => {
   const storage = browserStorage();
   let lastSaveTick = 0;
+  const aiLevel = aiLevelFromSearch((globalThis as { location?: { search?: string } }).location?.search);
+  const hostileAi: AiDriver | null = aiLevel === 'none' ? null : makeAi('hostile', aiLevel);
 
   const persist = (reason: SaveReason): void => {
     const { setup, game, selected, level } = get();
@@ -293,6 +317,7 @@ export const useClient = create<ClientState>((set, get) => {
     modelsLoaded: 0,
     modelsTotal: 0,
     report: null,
+    ai: aiLevel,
 
     refreshTitle() {
       set(titleState());
@@ -351,7 +376,8 @@ export const useClient = create<ClientState>((set, get) => {
     advance(seconds) {
       const { game } = get();
       if (!game || seconds <= 0) return [];
-      const r = engineAdvance(game, seconds);
+      // AI-8: the hostile AI takes its turn before each tick; pause is still the absence of ticks (TIME-2).
+      const r = advanceWithAi(game, seconds, hostileAi ? { hostile: hostileAi } : {});
       if (r.state === game) return r.events;
       commit(r.state, r.events, game);
       // SAV-2: every autosaveSeconds of sim time.

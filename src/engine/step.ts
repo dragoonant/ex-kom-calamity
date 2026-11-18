@@ -1,10 +1,10 @@
 // ARCH-2: the pure step. Orders (section 4) and the tick (TIME-3, sections 5-12).
-import type { Side } from '../data';
+import { UNITS, type Side } from '../data';
 import type { Action, GameEvent, Pos, State, StepResult, Unit } from './types';
 import { SIDES, STANCES } from './types';
 import { inBounds, isPassable, tileIndex } from './map';
 import { pathField, pathTo, stepCost } from './path';
-import { appearsCivilianTo, enemySide, sideSeesUnit, unitById } from './sight';
+import { appearsCivilianTo, enemySide, sideSeesTile, sideSeesUnit, unitById } from './sight';
 import { canFire, hitBreakdown, weaponOf } from './fire';
 import { hasLineOfSight, distance as unitDistance } from './map';
 import { nextInt } from './rng';
@@ -270,10 +270,43 @@ function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<
   }
   // Section 10
   const appearsCivilian = appearsCivilianTo('agency', t); // CIV-3, judged before anything changes
+  if (w.takes && t.side === 'civilian' && UNITS[w.takes]) {
+    // Section 21: a taking hit converts the citizen instead of hurting it (no damage roll, so the RNG stream is untouched).
+    st.score.hits += 1;
+    st.score.civilianHits += 1;
+    take(st, t, u, w.takes, events);
+    return;
+  }
   const raw = w.damageMin + nextInt(st.rng, w.damageMax - w.damageMin + 1);
   st.score.hits += 1;
   if (appearsCivilian) st.score.civilianHits += 1;
   hurtUnit(st, t, raw, t.armour, events, occ);
+}
+
+/** TAKE-1..TAKE-3: the citizen becomes the taking weapon's template, on its tile, with its hp. */
+function take(st: State, t: Unit, by: Unit, templateId: string, events: GameEvent[]): void {
+  const tpl = UNITS[templateId]!;
+  const seen = sideSeesTile(st, 'agency', t);
+  t.template = templateId;
+  t.name = tpl.name;
+  t.side = tpl.side;
+  t.armour = tpl.armour;
+  t.aim = tpl.aim;
+  t.moveTicks = tpl.moveTicks;
+  t.sight = tpl.sight;
+  t.weapon = tpl.weapon;
+  t.disguised = tpl.disguised;
+  t.revealed = seen;
+  t.stance = tpl.defaultStance;
+  t.order = null;
+  t.fireTarget = null;
+  t.aimProgress = 0;
+  t.readyTick = st.tick;
+  t.moving = false;
+  t.charges = tpl.charges ?? 0;
+  t.blast = null;
+  st.score.taken += 1;
+  events.push({ type: 'taken', tick: st.tick, unit: t.id, by: by.id, seen });
 }
 
 /** MOVE-3, MOVE-5, MOVE-7 */

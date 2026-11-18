@@ -65,6 +65,8 @@ export interface Score {
   agentsDown: number;
   hostilesDown: number;
   civiliansDown: number;
+  /** TAKE-3: citizens taken over during the battle. */
+  taken: number;
 }
 
 export type Winner = 'agency' | 'hostile' | 'none';
@@ -146,6 +148,7 @@ export type GameEvent =
   | { type: 'tileDestroyed'; tick: number; at: Pos; was: TileKind; now: TileKind }
   | { type: 'fell'; tick: number; unit: string; from: Pos; to: Pos; dealt: number; hp: number }
   | { type: 'blast'; tick: number; unit: string; at: Pos }
+  | { type: 'taken'; tick: number; unit: string; by: string; seen: boolean }
   | { type: 'over'; tick: number; winner: Winner; reason: OverReason };
 
 export type StepResult =

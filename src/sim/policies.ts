@@ -1,10 +1,12 @@
 // Headless policies for sim and fuzz. These are not the game's AI (M3): they exist to drive
 // battles to completion and to cover the rules. Each takes its own RNG so the engine's stays
 // untouched and a run is reproducible from its seed.
-import { blastTargets, legalActions, query, type Action, type Side, type State } from '../engine';
+import { blastTargets, legalActions, query, view, type Action, type Side, type State } from '../engine';
+import type { AiDriver } from '../ai/types';
 import { nextInt, nextU32, seedRng, type RngState } from '../engine/rng';
 
-export type Policy = (state: State, side: Side, rng: RngState) => Action | null;
+/** One order, several (an AI's turn, applied in order) or none, per loop pass of runBattle. */
+export type Policy = (state: State, side: Side, rng: RngState) => Action | Action[] | null;
 
 export function makeRng(seed: number): RngState {
   return seedRng(seed);
@@ -59,4 +61,9 @@ export function demolitionPolicy(blastRate: number): Policy {
 /** Hostiles hold their ground: no orders. */
 export function standPolicy(): Policy {
   return () => null;
+}
+
+/** The game's AI as a sim policy (section 22): it is handed the side's view, never the state (AI-1). */
+export function aiPolicy(driver: AiDriver): Policy {
+  return (state, side) => driver(view(state, side), side);
 }

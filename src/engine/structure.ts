@@ -16,9 +16,9 @@ export function writableTiles(st: State): Tile[] {
   return st.tiles;
 }
 
-/** STR-2 */
+/** STR-2 (stairs are never damaged since M3, RULING STR-2) */
 export function isBreakable(t: Tile): boolean {
-  if (t.kind !== 'wall' && t.kind !== 'door' && t.kind !== 'window' && t.kind !== 'floor' && t.kind !== 'stair') return false;
+  if (t.kind !== 'wall' && t.kind !== 'door' && t.kind !== 'window' && t.kind !== 'floor') return false;
   return (MATERIALS[t.material]?.hp ?? 0) > 0;
 }
 
