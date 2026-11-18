@@ -17,7 +17,7 @@ Inspiration, stated openly (KB rule 3): X-COM Apocalypse. The owner, 2026-11-17:
 | 5 | **Bright surface, rot underneath.** A city of tomorrow that is proud of itself | D5 |
 
 ## 3. The battle half (built first, D3)
-- Squad of 6 *(tune, Q3)* inside one building: several floors, rooms, doors, stairs, destructible walls and furniture (**proposal**; floors per Q4).
+- Squad of 6 *(tune, Q3)* on a city block (D16): several buildings around a street or courtyard, about 60 by 60 tiles, each building with its own floors up to 6 plus roofs, rooms, doors, stairs and lifts. Walls, floors and furniture are destructible from the first playable; tiles carry health and heavy fire or explosions open walls and collapse floors. The owner wants the maps large, multi-level and detailed, as X-COM Apocalypse's were; full 3D graphics with interiors and props are the end state, placeholder meshes on real map data are allowed only until the art pass.
 - Time runs in fixed ticks. The player pauses at will, gives orders to one agent or several, and unpauses. Agents left alone defend themselves by stance (**proposal**).
 - Enemy: hosts (taken-over citizens who look ordinary until close), the organisms that take hosts, and later purpose-grown fighters (**proposal**, from D6).
 - Civilians and property count: the building belongs to an organisation, and damage is billed to your standing with it (**proposal**, from pillars 1 and 3).
@@ -44,3 +44,4 @@ The codename "ex-kom-calamity" sounds like the inspiration's title, so it stays 
 
 ## Changelog
 - Draft 1, 2026-11-17: kickoff, from the owner's messages and two question batches.
+- 2026-11-17: section 3 maps widened to a city block, 6 floors, destructible from M2 (D16).
