@@ -1,28 +1,18 @@
-// Engine seam, M0 stub. The contract (CLAUDE.md, KB recipe.md step 3): pure step, plain-JSON
-// state, seeded RNG in the state, and time that advances only through a `tick` action.
-// M1 replaces the body from docs/spec/10-rules.md; the shapes below are the starting point.
-
-export interface GameState {
-  /** Sim ticks elapsed. Pause is the absence of tick actions. */
-  tick: number;
-  seed: number;
-}
-
-export type Action = { type: 'tick' };
-
-export type StepResult =
-  | { ok: true; state: GameState; events: never[] }
-  | { ok: false; state: GameState; reason: string };
-
-export function initialState(seed: number): GameState {
-  return { tick: 0, seed };
-}
-
-export function step(state: GameState, action: Action): StepResult {
-  if (action.type === 'tick') return { ok: true, state: { ...state, tick: state.tick + 1 }, events: [] };
-  return { ok: false, state, reason: 'unknown action' };
-}
-
-export function legalActions(_state: GameState): Action[] {
-  return [{ type: 'tick' }];
-}
+// The battle engine (docs/spec/10-rules.md). Pure functions over plain-JSON state; no DOM,
+// three.js or React anywhere under src/engine/ (ARCH-10). Contract frozen: a change here needs
+// a matching edit to the spec.
+export type * from './types';
+export { STANCES, SIDES } from './types';
+export { createGame, mergeTuning } from './game';
+export { step } from './step';
+export { legalActions } from './legal';
+export { view } from './view';
+export { query } from './query';
+export type { HitChance } from './query';
+export { advance } from './advance';
+export { replay, hashState, appendLog, expandLog } from './replay';
+export { seedRng, nextInt, nextU32 } from './rng';
+export { parseMap, tileIndex, tileAt, inBounds, isPassable, distance, chebyshev, hasLineOfSight } from './map';
+export { pathField, pathTo, posOfIndex, stepCost, neighbours } from './path';
+export { unitById, livingUnits, sideSeesUnit, sideSeesTile, unitSeesTile, appearsCivilianTo } from './sight';
+export { canFire, hitBreakdown, weaponOf } from './fire';

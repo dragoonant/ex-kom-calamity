@@ -1,0 +1,389 @@
+{
+ "setup": {
+  "battleId": "first-raid",
+  "seed": 7
+ },
+ "ticks": 135,
+ "over": {
+  "winner": "agency",
+  "reason": "cleared",
+  "tick": 135
+ },
+ "hash": "b9648a66",
+ "log": [
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a1",
+   "to": {
+    "x": 8,
+    "y": 6,
+    "level": 2
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a2",
+   "to": {
+    "x": 14,
+    "y": 7,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a3",
+   "to": {
+    "x": 11,
+    "y": 3,
+    "level": 2
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a4",
+   "to": {
+    "x": 4,
+    "y": 1,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a5",
+   "to": {
+    "x": 11,
+    "y": 5,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a6",
+   "to": {
+    "x": 6,
+    "y": 5,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 7
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a5",
+   "to": {
+    "x": 11,
+    "y": 11,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a6",
+   "to": {
+    "x": 0,
+    "y": 5,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 3
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a1",
+   "to": {
+    "x": 10,
+    "y": 6,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 10
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a5",
+   "to": {
+    "x": 5,
+    "y": 8,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 8
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a5",
+   "to": {
+    "x": 7,
+    "y": 11,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 14
+  },
+  {
+   "type": "move",
+   "side": "hostile",
+   "unit": "u9",
+   "to": {
+    "x": 15,
+    "y": 7,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 3
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a5",
+   "to": {
+    "x": 12,
+    "y": 0,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 2
+  },
+  {
+   "type": "move",
+   "side": "hostile",
+   "unit": "u2",
+   "to": {
+    "x": 7,
+    "y": 10,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 4
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a6",
+   "to": {
+    "x": 3,
+    "y": 8,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 7
+  },
+  {
+   "type": "move",
+   "side": "hostile",
+   "unit": "u5",
+   "to": {
+    "x": 4,
+    "y": 3,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 4
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a1",
+   "to": {
+    "x": 4,
+    "y": 8,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 3
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a2",
+   "to": {
+    "x": 6,
+    "y": 3,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a3",
+   "to": {
+    "x": 3,
+    "y": 4,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 15
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a2",
+   "to": {
+    "x": 11,
+    "y": 7,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 5
+  },
+  {
+   "type": "move",
+   "side": "hostile",
+   "unit": "u5",
+   "to": {
+    "x": 11,
+    "y": 4,
+    "level": 2
+   }
+  },
+  {
+   "type": "tick",
+   "count": 3
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a2",
+   "to": {
+    "x": 10,
+    "y": 11,
+    "level": 0
+   }
+  },
+  {
+   "type": "tick",
+   "count": 15
+  },
+  {
+   "type": "move",
+   "side": "hostile",
+   "unit": "u2",
+   "to": {
+    "x": 4,
+    "y": 4,
+    "level": 2
+   }
+  },
+  {
+   "type": "tick",
+   "count": 7
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a2",
+   "to": {
+    "x": 12,
+    "y": 8,
+    "level": 2
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a3",
+   "to": {
+    "x": 1,
+    "y": 11,
+    "level": 0
+   }
+  },
+  {
+   "type": "move",
+   "side": "hostile",
+   "unit": "u9",
+   "to": {
+    "x": 6,
+    "y": 5,
+    "level": 1
+   }
+  },
+  {
+   "type": "tick",
+   "count": 1
+  },
+  {
+   "type": "move",
+   "side": "agency",
+   "unit": "a4",
+   "to": {
+    "x": 7,
+    "y": 3,
+    "level": 2
+   }
+  },
+  {
+   "type": "tick",
+   "count": 16
+  }
+ ]
+}

@@ -1,0 +1,63 @@
+{
+  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune).",
+  "service-pistol": {
+    "name": "Service pistol",
+    "kind": "ranged",
+    "range": 8,
+    "accuracy": 65,
+    "falloffPerTile": 4,
+    "damageMin": 20,
+    "damageMax": 30,
+    "aimTicks": 5,
+    "cooldownTicks": 8,
+    "source": "agency sidearm, tier 1 gear"
+  },
+  "patrol-carbine": {
+    "name": "Patrol carbine",
+    "kind": "ranged",
+    "range": 14,
+    "accuracy": 70,
+    "falloffPerTile": 2,
+    "damageMin": 25,
+    "damageMax": 40,
+    "aimTicks": 8,
+    "cooldownTicks": 10,
+    "source": "agency long arm, tier 1 gear"
+  },
+  "scatter-gun": {
+    "name": "Scatter gun",
+    "kind": "ranged",
+    "range": 6,
+    "accuracy": 80,
+    "falloffPerTile": 8,
+    "damageMin": 35,
+    "damageMax": 55,
+    "aimTicks": 6,
+    "cooldownTicks": 14,
+    "source": "agency close-quarters arm"
+  },
+  "pocket-pistol": {
+    "name": "Pocket pistol",
+    "kind": "ranged",
+    "range": 7,
+    "accuracy": 55,
+    "falloffPerTile": 5,
+    "damageMin": 15,
+    "damageMax": 25,
+    "aimTicks": 6,
+    "cooldownTicks": 10,
+    "source": "what a host carries under a coat"
+  },
+  "taker-bite": {
+    "name": "Taker bite",
+    "kind": "melee",
+    "range": 1,
+    "accuracy": 85,
+    "falloffPerTile": 0,
+    "damageMin": 20,
+    "damageMax": 35,
+    "aimTicks": 4,
+    "cooldownTicks": 8,
+    "source": "the organism's own attack"
+  }
+}
