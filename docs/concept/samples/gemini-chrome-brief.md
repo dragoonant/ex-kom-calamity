@@ -37,3 +37,15 @@ Owner's call after round 5: suit 2 is right, but the domed glass-visor helmet re
   - h2: about 3.2 heads, helmet 31%, shoulders 2.1x. Red and black only, no light, no antenna. Rigid metal mask with sharp-rimmed almond lenses, engraved mouth line, thin crown fin. Closest to the ask. Body is bulkier than suit 2 (shoulder shells came back).
   - h3: about 3.2 heads, helmet 31%, shoulders 2.1x. Same mask with softer edges and a pointed chin; shoulders a little smaller than h2 but still not as slim as suit 2.
 - Open for the owner: h2 or h3 as the helmet; whichever is picked, the next round should lock the body to suit 2 (Gemini kept drifting bulkier when editing in-chat, even with the photo re-attached), probably by starting a fresh chat with suit 2 attached and the chosen helmet image attached as a second reference.
+
+## Round 7 (2026-11-17): smooth-shell helmet, body locked to suit 2
+
+Owner's call after round 6: h2 is good but reads too much like a well-known armoured-suit film hero. The culprits were the faceplate seams, jaw plates, brow ridges and the rectangular mouth slot. Wanted: the same lenses and fin on one smooth seamless shell.
+
+- Made: `chrome-suit-t2-s1..s3.jpg`, prompts in `prompts-r7-chrome.json`, sheet `sheet-9-smooth-helmet.jpg`. Fresh Gemini chat with two references attached (suit 2 for the body, h2 for the helmet), then two follow-up turns for proportions only. No API calls.
+- What worked: the two-reference fresh chat held the helmet exactly across all three turns and kept suit 2's slim plates and small shoulder plates. The helmet is now one smooth shell with two almond lenses, a short engraved mouth line and a thin crown fin, nothing else. What drifted: proportions. The first result went tall and slender; the follow-ups brought it back.
+- Gate (KB rule 13), by eye, about +/-10%:
+  - s1: about 3.6 heads, helmet 28%, shoulders 1.8x. Red and black only, no light, no antenna. Helmet passes. Body too tall and slender with a long neck and legs about 1.5 heads.
+  - s2: about 3.6 heads, helmet 28%, shoulders 2.0x. Helmet passes. Short neck ring, slim plates, legs about 1.2 heads.
+  - s3: about 3.2 heads, helmet 31%, shoulders 1.9x. Helmet passes. Stoutest of the three, legs about one head, closest to the 2.8 / 35% target. Shoulder plates a little larger than suit 2's but in proportion to the bigger head.
+- Open for the owner: s3 is the recommended tier 2 suit reference going forward. If the full 2.8-head target is still wanted, one more turn in the same chat asking for "two and three-quarter head-heights" should get there; the helmet is stable now.
