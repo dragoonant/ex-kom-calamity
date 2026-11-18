@@ -75,6 +75,14 @@
       "at": { "x": 52, "y": 43, "level": 0 }
     },
     {
+      "template": "fighter",
+      "at": { "x": 41, "y": 47, "level": 0 }
+    },
+    {
+      "template": "fighter",
+      "at": { "x": 21, "y": 16, "level": 3 }
+    },
+    {
       "template": "citizen",
       "at": { "x": 12, "y": 27, "level": 0 }
     },

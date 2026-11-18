@@ -1,0 +1,28 @@
+{
+  "id": "bench-raid",
+  "name": "Bench raid on Civic Savings",
+  "_": "The AI bench battle (AI-10): the first-raid squad against 4 hosts, 2 takers and 2 fighters, a roster calibrated so random against random is near even (RULING AI-10). Not the sim or test battle (first-raid keeps its unit ids) and not the playable (block-raid). Agent names are placeholders. Non-agent units get ids by spawn position (UNIT-3).",
+  "map": "civic-savings-branch",
+  "squad": [
+    { "name": "Vance", "template": "agent-t1", "weapon": "patrol-carbine", "at": { "x": 4, "y": 10, "level": 0 } },
+    { "name": "Okoro", "template": "agent-t1", "weapon": "service-pistol", "at": { "x": 5, "y": 10, "level": 0 } },
+    { "name": "Lindqvist", "template": "agent-t1", "weapon": "scatter-gun", "at": { "x": 6, "y": 10, "level": 0 } },
+    { "name": "Marsh", "template": "agent-t1", "weapon": "service-pistol", "at": { "x": 7, "y": 10, "level": 0 } },
+    { "name": "Teodoro", "template": "agent-t1", "weapon": "patrol-carbine", "at": { "x": 8, "y": 10, "level": 0 } },
+    { "name": "Quill", "template": "agent-t1", "weapon": "service-pistol", "at": { "x": 6, "y": 11, "level": 0 } }
+  ],
+  "others": [
+    { "template": "host", "at": { "x": 4, "y": 4, "level": 0 } },
+    { "template": "host", "at": { "x": 10, "y": 7, "level": 0 } },
+    { "template": "host", "at": { "x": 5, "y": 4, "level": 1 } },
+    { "template": "host", "at": { "x": 10, "y": 4, "level": 1 } },
+    { "template": "taker", "at": { "x": 5, "y": 5, "level": 2 } },
+    { "template": "taker", "at": { "x": 9, "y": 4, "level": 2 } },
+    { "template": "fighter", "at": { "x": 4, "y": 6, "level": 1 } },
+    { "template": "fighter", "at": { "x": 8, "y": 8, "level": 1 } },
+    { "template": "citizen", "at": { "x": 3, "y": 7, "level": 0 } },
+    { "template": "citizen", "at": { "x": 11, "y": 3, "level": 0 } },
+    { "template": "citizen", "at": { "x": 4, "y": 8, "level": 1 } },
+    { "template": "citizen", "at": { "x": 11, "y": 8, "level": 1 } }
+  ]
+}

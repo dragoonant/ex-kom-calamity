@@ -25,6 +25,11 @@ export interface RunResult {
   broken: string[];
 }
 
+function asList(a: Action | Action[] | null): Action[] {
+  if (!a) return [];
+  return Array.isArray(a) ? a : [a];
+}
+
 export function runBattle(opts: RunOptions): RunResult {
   let state = createGame(opts.setup);
   const rng = makeRng(opts.policySeed ?? opts.setup.seed ^ 0x5bd1e995);
@@ -52,9 +57,9 @@ export function runBattle(opts: RunOptions): RunResult {
 
   while (!state.over && state.tick < maxTicks && broken.length === 0) {
     const a = opts.agency(state, 'agency', rng);
-    if (a) apply(a);
+    for (const x of asList(a)) apply(x);
     const h = opts.hostile(state, 'hostile', rng);
-    if (h) apply(h);
+    for (const x of asList(h)) apply(x);
     apply({ type: 'tick' });
   }
   if (broken.length === 0) for (const b of checkReplay(opts.setup, state)) broken.push(b);

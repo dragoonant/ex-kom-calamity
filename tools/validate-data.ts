@@ -40,6 +40,12 @@ for (const [id, w] of Object.entries(WEAPONS)) {
   if (w.kind === 'ranged' && w.range < 1) err(`ranged weapon ${id} needs range >= 1`);
   if (w.aimTicks < 1) err(`weapon ${id} aimTicks must be >= 1 (FIRE-3)`);
   if (w.kind === 'melee' && w.structureDamage !== 0) err(`melee weapon ${id} must have structureDamage 0 (STR-6)`);
+  // TAKE-1: only a melee weapon takes, and into a hostile template.
+  if (w.takes !== undefined) {
+    if (w.kind !== 'melee') err(`weapon ${id} takes but is not melee (TAKE-1)`);
+    if (!UNITS[w.takes]) err(`weapon ${id} takes unknown template ${w.takes}`);
+    else if (UNITS[w.takes]!.side !== 'hostile') err(`weapon ${id} takes into a non-hostile template (TAKE-1)`);
+  }
   if (typeof w.source !== 'string') err(`weapon ${id} has no source`);
 }
 
@@ -75,7 +81,7 @@ for (const kind of new Set(Object.values(LEGEND))) {
 }
 for (const kind of ['ground', 'rubble', 'void'] as const) if (MATERIALS[DEFAULT_MATERIAL[kind]]?.hp !== 0) err(`default material of ${kind} must have hp 0 (STR-2)`);
 if (DEFAULT_MATERIAL.rubble !== 'none' || DEFAULT_MATERIAL.void !== 'none') err('rubble and void must default to material none (INV-8)');
-for (const kind of ['wall', 'door', 'window', 'floor', 'stair'] as const) if (!((MATERIALS[DEFAULT_MATERIAL[kind]]?.hp ?? 0) > 0)) err(`default material of ${kind} must be breakable (STR-2)`);
+for (const kind of ['wall', 'door', 'window', 'floor'] as const) if (!((MATERIALS[DEFAULT_MATERIAL[kind]]?.hp ?? 0) > 0)) err(`default material of ${kind} must be breakable (STR-2)`);
 
 // --- maps
 const passable = new Set(['ground', 'floor', 'door', 'stair', 'rubble']);

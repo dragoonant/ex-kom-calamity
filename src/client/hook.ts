@@ -27,6 +27,8 @@ export interface EkcHook {
   lastTap(): TapResult | null;
   hash(): string | null;
   screen(): string;
+  /** The hostile AI level the page runs (AI-2). */
+  ai(): string;
   /** Screen point (CSS px in the page) of a tile's centre, or null when off screen or no board. */
   screenPointOfTile(p: Pos): { x: number; y: number } | null;
   /** Screen point of a figure's head top, so a test can tap "through" it (KB rule 25). */

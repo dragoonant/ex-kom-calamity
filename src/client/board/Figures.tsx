@@ -30,9 +30,10 @@ const COLOURS = {
   down: '#6b6b6b',
 };
 
-function kindOf(u: Unit): 'agent' | 'citizen' | 'host' | 'taker' {
+function kindOf(u: Unit): 'agent' | 'citizen' | 'host' | 'taker' | 'fighter' {
   if (u.side === 'agency') return 'agent';
   if (u.template === 'taker') return 'taker';
+  if (u.template === 'fighter') return 'fighter';
   if (u.template === 'host') return 'host';
   return 'citizen';
 }
@@ -112,6 +113,41 @@ function Taker({ down }: { down: boolean }) {
   );
 }
 
+/** The fighter stand-in (docs/figures.md section 2): a headless sea-glass column on three long chitin stilt legs, four whip arms. */
+function Fighter({ down }: { down: boolean }) {
+  const body = down ? COLOURS.down : COLOURS.takerBody;
+  const legs = [Math.PI / 6, Math.PI / 6 + (Math.PI * 2) / 3, Math.PI / 6 + (Math.PI * 4) / 3];
+  const whips = [0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2];
+  const legH = FIGURE_H * 0.55;
+  const colH = FIGURE_H * 0.7;
+  return (
+    <group>
+      {legs.map((a) => (
+        <mesh key={a} raycast={NO_RAYCAST} position={[Math.sin(a) * 0.3, legH / 2, Math.cos(a) * 0.3]} rotation={[Math.cos(a) * 0.4, 0, -Math.sin(a) * 0.4]}>
+          <cylinderGeometry args={[0.025, 0.045, legH * 1.15, 6]} />
+          <meshStandardMaterial color={COLOURS.chitin} roughness={0.5} />
+        </mesh>
+      ))}
+      <mesh raycast={NO_RAYCAST} position={[0, legH + colH / 2, 0]}>
+        <cylinderGeometry args={[0.13, 0.2, colH, 10]} />
+        <meshStandardMaterial color={body} roughness={0.35} metalness={0.1} />
+      </mesh>
+      {whips.map((a) => (
+        <mesh key={a} raycast={NO_RAYCAST} position={[Math.sin(a) * 0.3, legH + colH * 0.75, Math.cos(a) * 0.3]} rotation={[Math.cos(a) * 1.1, 0, -Math.sin(a) * 1.1]}>
+          <cylinderGeometry args={[0.012, 0.03, colH * 0.9, 5]} />
+          <meshStandardMaterial color={COLOURS.chitin} roughness={0.6} />
+        </mesh>
+      ))}
+      {!down && (
+        <mesh raycast={NO_RAYCAST} position={[0, legH + colH * 0.5, 0.17]}>
+          <sphereGeometry args={[0.08, 10, 8]} />
+          <meshStandardMaterial color={COLOURS.amber} emissive={COLOURS.amber} emissiveIntensity={1} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
 function Figure({ unit, selected }: { unit: Unit; selected: boolean }) {
   const group = useRef<THREE.Group>(null);
   const target = tileToWorld(unit);
@@ -146,7 +182,9 @@ function Figure({ unit, selected }: { unit: Unit; selected: boolean }) {
           <meshBasicMaterial color={COLOURS.agencyPlate} />
         </mesh>
       )}
-      <group position={[0, unit.down ? 0.12 : 0, 0]}>{kind === 'taker' ? <Taker down={unit.down} /> : <Humanoid kind={kind} down={unit.down} />}</group>
+      <group position={[0, unit.down ? 0.12 : 0, 0]}>
+        {kind === 'taker' ? <Taker down={unit.down} /> : kind === 'fighter' ? <Fighter down={unit.down} /> : <Humanoid kind={kind} down={unit.down} />}
+      </group>
       {!unit.down && <HpBar unit={unit} />}
     </group>
   );

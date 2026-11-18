@@ -43,6 +43,7 @@ export function App() {
       lastTap: () => s().lastTap,
       hash: () => s().hash(),
       screen: () => s().screen,
+      ai: () => s().ai,
       screenPointOfTile: (p) => worldToScreen(tileToWorld(p)),
       screenPointOfUnitHead: (id) => {
         const u = s().agency?.units.find((x) => x.id === id);
