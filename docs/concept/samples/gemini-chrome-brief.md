@@ -48,4 +48,9 @@ Owner's call after round 6: h2 is good but reads too much like a well-known armo
   - s1: about 3.6 heads, helmet 28%, shoulders 1.8x. Red and black only, no light, no antenna. Helmet passes. Body too tall and slender with a long neck and legs about 1.5 heads.
   - s2: about 3.6 heads, helmet 28%, shoulders 2.0x. Helmet passes. Short neck ring, slim plates, legs about 1.2 heads.
   - s3: about 3.2 heads, helmet 31%, shoulders 1.9x. Helmet passes. Stoutest of the three, legs about one head, closest to the 2.8 / 35% target. Shoulder plates a little larger than suit 2's but in proportion to the bigger head.
-- Open for the owner: s3 is the recommended tier 2 suit reference going forward. If the full 2.8-head target is still wanted, one more turn in the same chat asking for "two and three-quarter head-heights" should get there; the helmet is stable now.
+- The drafter recommended s3; the owner chose otherwise (next section).
+
+## Locked (2026-11-17): tier 2 suit reference
+
+The owner picked `chrome-suit-t2-h2.jpg` (sheet 9, REF 2) over the round 7 smooth-shell variants. It is now the tier 2 suit reference, recorded in `PLAN.md` D7: suit 2 body, rigid face-mask helmet with two upward-slanting almond lenses with sharp rims, a straight engraved mouth line and a thin crown fin, bright red and black, no chest light, no antenna. Its measured proportions are about 3.2 head-heights with the helmet about 31% of the height, which supersedes the 2.8 / 35% target for this suit. Later art prompts for tier 2 attach this image as the reference.
+
