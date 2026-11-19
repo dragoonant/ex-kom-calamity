@@ -7,7 +7,7 @@ import { Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { EveningLights, EVENING } from './board/Scene';
 import { CorePulse } from './board/Effects';
-import { FigureModel, GATES, HEAD, NO_RAYCAST, gateOf, humanoidRole, measureFigure, measureParts, type Measure } from './board/placeholders';
+import { FigureModel, GATES, HEAD, NO_RAYCAST, gateOf, humanoidRole, measureFigure, measureParts, type Drawn, type Measure } from './board/placeholders';
 import { FIGURE_H } from './board/world';
 import { FIGURE_ROLES, FIGURE_SLOTS, modelStateOf, type FigureRole } from './models';
 
@@ -16,6 +16,14 @@ const RULER_HEADS = 2.8;
 
 interface Row {
   role: FigureRole;
+  measure: Measure;
+}
+
+/** What a cell really draws, with its measure (a GLB is measured once it has mounted, not when its slot reads ready). */
+interface CellReport {
+  drawn: Drawn;
+  /** A glow sprite stands over the painted core (the three aliens' GLBs). */
+  glow: boolean;
   measure: Measure;
 }
 
@@ -47,18 +55,22 @@ function Ruler() {
   );
 }
 
-function Cell({ role, index, onMeasure }: { role: FigureRole; index: number; onMeasure: (role: FigureRole, m: Measure) => void }) {
+function Cell({ role, index, onMeasure }: { role: FigureRole; index: number; onMeasure: (role: FigureRole, r: CellReport) => void }) {
   const ref = useRef<THREE.Group>(null);
+  const [drawn, setDrawn] = useState<Drawn | null>(null);
   useLayoutEffect(() => {
-    // A placeholder is measured from its parts (each part's real geometry); a loaded GLB from its named nodes.
-    if (modelStateOf(role) === 'ready' && ref.current) onMeasure(role, measureFigure(ref.current));
-    else onMeasure(role, measureParts(role));
+    // A placeholder is measured from its parts (each part's real geometry); a GLB from its named nodes once it has
+    // mounted (a generated figure has none, so its render gate fills the ratios and the mesh gives the height).
+    if (drawn === null) return;
+    const glow = !!ref.current?.getObjectByName('glow');
+    if (drawn === 'glb' && ref.current) onMeasure(role, { drawn, glow, measure: measureFigure(ref.current, FIGURE_SLOTS[role].gate) });
+    else onMeasure(role, { drawn, glow, measure: measureParts(role) });
   });
   return (
     <group position={[(index - (FIGURE_ROLES.length - 1) / 2) * SPACING, 0, 0]}>
       <Ruler />
       <group ref={ref}>
-        <FigureModel role={role} />
+        <FigureModel role={role} detail="full" onDrawn={setDrawn} />
       </group>
     </group>
   );
@@ -75,16 +87,19 @@ function mark(ok: boolean | null): string {
 }
 
 export function Gallery() {
-  const [rows, setRows] = useState<Record<string, Measure>>({});
-  const onMeasure = (role: FigureRole, m: Measure) => {
+  const [rows, setRows] = useState<Record<string, CellReport>>({});
+  const onMeasure = (role: FigureRole, next: CellReport) => {
     setRows((r) => {
       const old = r[role];
-      if (old && Math.abs(old.height - m.height) < 1e-6 && old.headShare === m.headShare && old.shoulders === m.shoulders && old.legs === m.legs) return r;
-      return { ...r, [role]: m };
+      const m = next.measure;
+      if (old && old.drawn === next.drawn && old.glow === next.glow && Math.abs(old.measure.height - m.height) < 1e-6 && old.measure.headShare === m.headShare && old.measure.shoulders === m.shoulders && old.measure.legs === m.legs) return r;
+      return { ...r, [role]: next };
     });
   };
-  const list: Row[] = useMemo(() => FIGURE_ROLES.filter((r) => rows[r]).map((r) => ({ role: r, measure: rows[r]! })), [rows]);
-  const passes = list.filter((r) => humanoidRole(r.role) && gateOf(r.measure, r.role).pass).length;
+  const list: Row[] = useMemo(() => FIGURE_ROLES.filter((r) => rows[r]).map((r) => ({ role: r, measure: rows[r]!.measure })), [rows]);
+  const passes = list.filter((r) => humanoidRole(r.role) && gateOf(r.measure, r.role, FIGURE_SLOTS[r.role].gate).pass).length;
+  const generated = list.filter((r) => rows[r.role]!.drawn === 'glb').length;
+  const glows = list.filter((r) => rows[r.role]!.glow).length;
   return (
     <div className="gallery" data-testid="gallery">
       <div className="gallery-canvas">
@@ -107,9 +122,11 @@ export function Gallery() {
       </div>
       <div className="console gallery-console">
         <div className="console-bead" />
-        <div className="panel-title">FIGURE GALLERY: {FIGURE_ROLES.length} roles, measured {list.length}, humanoid gates passed {passes}/{FIGURE_ROLES.filter(humanoidRole).length}</div>
+        <div className="panel-title" data-testid="gallery-title">
+          FIGURE GALLERY: {FIGURE_ROLES.length} roles, measured {list.length}, generated models drawn {generated} with {glows} core glows, humanoid gates passed {passes}/{FIGURE_ROLES.filter(humanoidRole).length}
+        </div>
         <div className="hint">
-          Targets (docs/figures.md section 1): height about {RULER_HEADS} heads; head {GATES.headShare[0] * 100} to {GATES.headShare[1] * 100}% of height; shoulders {GATES.shoulders[0]} to {GATES.shoulders[1]} heads wide; legs at most {GATES.legsMax} heads. Aliens are measured and judged by eye against the D14 references. A GLB slot reads &quot;placeholder&quot; until the GPU pass fills it.
+          Targets (docs/figures.md section 1): height about {RULER_HEADS} heads; head {GATES.headShare[0] * 100} to {GATES.headShare[1] * 100}% of height; shoulders {GATES.shoulders[0]} to {GATES.shoulders[1]} heads wide; legs at most {GATES.legsMax} heads. Aliens are measured and judged by eye against the D14 references. A generated model is one mesh, so its ratios come from the pipeline&apos;s gate on its front render (docs/art/figure-models.md section 4) and the gate column names the ruling; a slot without a locked reference still draws its stand-in.
         </div>
         <table className="report-table num gallery-table" data-testid="gallery-table">
           <thead>
@@ -125,9 +142,10 @@ export function Gallery() {
           </thead>
           <tbody>
             {FIGURE_ROLES.map((role) => {
-              const m = rows[role];
-              const g = m ? gateOf(m, role) : null;
+              const report = rows[role];
+              const m = report?.measure;
               const slot = FIGURE_SLOTS[role];
+              const g = m ? gateOf(m, role, slot.gate) : null;
               const state = modelStateOf(role);
               return (
                 <tr key={role} data-testid={`gallery-row-${role}`} className={g && !g.pass ? 'gallery-fail' : ''}>
@@ -139,10 +157,11 @@ export function Gallery() {
                   <td>{m ? pct(m.headShare) + mark(g!.headShare) : ''}</td>
                   <td>{m ? heads(m.shoulders) + mark(g!.shoulders) : ''}</td>
                   <td>{m ? heads(m.legs) + mark(g!.legs) : ''}</td>
-                  <td data-testid={`gallery-gate-${role}`}>{g ? (humanoidRole(role) ? (g.pass ? 'PASS' : 'FAIL') : 'by eye') : ''}</td>
+                  <td data-testid={`gallery-gate-${role}`}>{g ? g.verdict : ''}</td>
                   <td data-testid={`gallery-model-${role}`}>
                     {state}
-                    {slot.url ? ` (${slot.url})` : ' (slot: public/models/' + role + '.glb)'}
+                    {report ? `, drawn: ${report.drawn === 'glb' ? 'GLB' : 'stand-in'}` : ''}
+                    {slot.url ? ` (${slot.url}${slot.lod ? ', LOD ' + slot.lod.split('/').pop() : ''})` : ` (no locked reference; slot: public/models/figures/${role}/textured.glb)`}
                   </td>
                 </tr>
               );

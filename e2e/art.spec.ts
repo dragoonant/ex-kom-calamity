@@ -163,3 +163,48 @@ test('phone size: street and cut-away shots at 390 x 844, no horizontal overflow
   expect(errors).toEqual([]);
   await ctx.close();
 });
+
+test('generated figures draw on the board (M4b): a hostile that comes into view is its GLB, with its core glow, never a stand-in', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openTitle(page);
+  await expect(page.getByTestId('start')).toHaveText('START RAID', { timeout: 30_000 }); // the eight GLBs preload first (KB rule 26)
+  await startRaid(page);
+  // At the start only agents and citizens are in the agency's view: every drawn figure is a stand-in, no GLB.
+  const before = await perf(page);
+  expect(before.figures.glb + before.figures.lod).toBe(0);
+  expect(before.figures.standIn).toBeGreaterThan(0);
+  // Advance until a taker, fighter or revealed host is in the view (the normal AI charges and ambushes within a minute
+  // or two of sim time on most seeds); the raid's seed is random, so the loop is bounded and says when it gave up.
+  const found = await page.evaluate(() => {
+    const h = window.__ekc!;
+    for (let i = 0; i < 18; i++) {
+      const v = h.getView() ?? h.getState();
+      const shown = v?.units.filter((u) => u.side === 'hostile' && !u.down && ['taker', 'fighter', 'host'].includes(u.template)) ?? [];
+      if (shown.length) return shown.map((u) => `${u.template}@${u.x},${u.y},${u.level}`);
+      if (v && v.over) return [];
+      h.advance(10);
+    }
+    return [];
+  });
+  test.info().annotations.push({ type: 'hostiles in view', description: found.join(' ') || 'none within 180 s of this seed' });
+  if (found.length === 0) return;
+  // Look at the first one at the cut-away level, close enough for the full model (under LOD_DISTANCE), then far.
+  const [template, at] = found[0]!.split('@');
+  const [x, y, level] = at!.split(',').map(Number);
+  await page.evaluate(({ x, y, level }) => {
+    const h = window.__ekc!;
+    h.setLevel(level);
+    h.setCamera({ yaw: 0.6, pitch: 0.8, distance: 8, target: { x: x + 0.5, z: y + 0.5 } });
+  }, { x: x!, y: y!, level: level! });
+  const near = await perf(page);
+  expect(near.figures.glb, `${template} at ${at} drawn as the full GLB`).toBeGreaterThanOrEqual(1);
+  expect(near.figures.glow).toBeGreaterThanOrEqual(1);
+  expect(near.drawCalls).toBeLessThanOrEqual(BUDGET.drawCalls);
+  expect(near.triangles).toBeLessThanOrEqual(BUDGET.triangles);
+  await page.screenshot({ path: 'docs/art/shots/m4-figure-board.png' });
+  await page.evaluate(() => window.__ekc!.setCamera({ distance: 30 }));
+  const far = await perf(page);
+  expect(far.figures.lod, 'the 8k LOD beyond LOD_DISTANCE').toBeGreaterThanOrEqual(1);
+  console.log(`figures: near ${JSON.stringify(near.figures)} (${near.drawCalls} draws / ${near.triangles} tris); far ${JSON.stringify(far.figures)}; hostiles ${found.join(' ')}`);
+  expect(errors).toEqual([]);
+});

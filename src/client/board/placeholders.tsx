@@ -7,9 +7,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useGLTF } from '@react-three/drei';
-import { CORE_MATERIAL } from './Effects';
-import { FIGURE_SLOTS, modelStateOf, type FigureRole } from '../models';
+import { Detailed, useGLTF } from '@react-three/drei';
+import { CORE_MATERIAL, coreGlowMaterial } from './Effects';
+import { FIGURE_SLOTS, LOD_DISTANCE, lodUrlOf, modelStateOf, type FigureRole, type RenderGate } from '../models';
 import { FIGURE_H } from './world';
 
 export const NO_RAYCAST = () => undefined;
@@ -268,33 +268,64 @@ class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode
   }
 }
 
-function Gltf({ url }: { url: string }) {
+export type Drawn = 'glb' | 'placeholder';
+
+function Gltf({ url, name, onDrawn }: { url: string; name: string; onDrawn?: (what: Drawn) => void }) {
   const gltf = useGLTF(url);
   const scene = useMemo(() => {
     const s = gltf.scene.clone(true);
+    s.name = name;
     s.traverse((o) => {
       o.raycast = NO_RAYCAST; // KB rule 25
     });
     return s;
-  }, [gltf]);
+  }, [gltf, name]);
+  useEffect(() => {
+    onDrawn?.('glb');
+  }, [onDrawn, scene]);
   return <primitive object={scene} />;
+}
+
+/** The pulsing glow over a generated figure's painted core (hidden when the figure is down, like the stand-ins' cores). */
+function CoreGlow({ role }: { role: FigureRole }) {
+  const glow = FIGURE_SLOTS[role].glow;
+  if (!glow) return null;
+  return <sprite name="glow" raycast={NO_RAYCAST} material={coreGlowMaterial()} position={[glow.x, glow.y, glow.z]} scale={[glow.size, glow.size, 1]} />;
+}
+
+function PlaceholderDrawn({ role, down, onDrawn }: { role: FigureRole; down: boolean; onDrawn?: (what: Drawn) => void }) {
+  useEffect(() => {
+    onDrawn?.('placeholder');
+  }, [onDrawn]);
+  return <Placeholder role={role} down={down} />;
 }
 
 /**
  * The figure for a role: the preloaded GLB when the manifest has one and it loaded (never shown while loading,
  * KB rule 26: `Suspense fallback={null}`), else the placeholder. A GLB that fails at render falls back too.
+ * `detail="auto"` (the board) draws the 8k LOD beyond LOD_DISTANCE when it loaded; `"full"` (the gallery) always
+ * draws the full model. `onDrawn` reports which of the two the cell really shows, for the gallery's table.
  */
-export function FigureModel({ role, down = false }: { role: FigureRole; down?: boolean }) {
+export function FigureModel({ role, down = false, detail = 'auto', onDrawn }: { role: FigureRole; down?: boolean; detail?: 'auto' | 'full'; onDrawn?: (what: Drawn) => void }) {
   const [state, setState] = useState(() => modelStateOf(role));
   useEffect(() => {
     setState(modelStateOf(role));
   }, [role]);
   const url = FIGURE_SLOTS[role].url;
-  if (!url || state !== 'ready') return <Placeholder role={role} down={down} />;
+  if (!url || state !== 'ready') return <PlaceholderDrawn role={role} down={down} onDrawn={onDrawn} />;
+  const lod = detail === 'auto' ? lodUrlOf(role) : null;
   return (
-    <ModelBoundary fallback={<Placeholder role={role} down={down} />}>
+    <ModelBoundary fallback={<PlaceholderDrawn role={role} down={down} onDrawn={onDrawn} />}>
       <Suspense fallback={null}>
-        <Gltf url={url} />
+        {lod ? (
+          <Detailed distances={[0, LOD_DISTANCE]} raycast={NO_RAYCAST}>
+            <Gltf url={url} name="glb" onDrawn={onDrawn} />
+            <Gltf url={lod} name="glb-lod" />
+          </Detailed>
+        ) : (
+          <Gltf url={url} name="glb" onDrawn={onDrawn} />
+        )}
+        {!down && <CoreGlow role={role} />}
       </Suspense>
     </ModelBoundary>
   );
@@ -372,11 +403,19 @@ function unionBox(root: THREE.Object3D, names: string[]): THREE.Box3 | null {
   return any ? box : null;
 }
 
-/** Measures a built object (a loaded GLB) by its named nodes. */
-export function measureFigure(root: THREE.Object3D): Measure {
+/**
+ * Measures a built object (a loaded GLB) by its named nodes. A generated figure is one unnamed mesh, so when the nodes
+ * are missing the pipeline's gate on the orthographic render (`FIGURE_SLOTS[role].gate`, docs/art/figure-models.md
+ * section 4) fills the ratios and `found` says so; the height is always the mesh's own.
+ */
+export function measureFigure(root: THREE.Object3D, gate: RenderGate | null = null): Measure {
   root.updateWorldMatrix(true, true);
   const all = new THREE.Box3().setFromObject(root);
-  return measure(all.max.y - all.min.y, unionBox(root, HEAD_NAMES), unionBox(root, TORSO_NAMES), unionBox(root, LEG_NAMES));
+  const m = measure(all.max.y - all.min.y, unionBox(root, HEAD_NAMES), unionBox(root, TORSO_NAMES), unionBox(root, LEG_NAMES));
+  if (m.found.length === 0 && gate) {
+    return { ...m, headShare: gate.headShare, shoulders: gate.shoulders, legs: gate.legs, found: ['render gate'] };
+  }
+  return m;
 }
 
 /** Which roles the section 1 table gates; aliens are measured but judged by eye against the D14 references. */
@@ -384,10 +423,38 @@ export function humanoidRole(role: FigureRole): boolean {
   return role !== 'taker' && role !== 'fighter';
 }
 
-export function gateOf(m: Measure, role: FigureRole): { headShare: boolean | null; shoulders: boolean | null; legs: boolean | null; pass: boolean } {
-  if (!humanoidRole(role)) return { headShare: null, shoulders: null, legs: null, pass: true };
+export interface Gate {
+  headShare: boolean | null;
+  shoulders: boolean | null;
+  legs: boolean | null;
+  pass: boolean;
+  /** What the gate column says: PASS, FAIL, by eye (creatures), or the ruling a generated figure passed under. */
+  verdict: string;
+}
+
+/**
+ * The gate for a measure. A placeholder is held to the section 1 bands; a generated figure measured by the render gate
+ * carries its own verdict and ruling (the host passes against its reference under RULING HOST-1, creatures are recorded
+ * under CREATURE-1), so the bands are shown but the pipeline's verdict decides.
+ */
+export function gateOf(m: Measure, role: FigureRole, gate: RenderGate | null = null): Gate {
+  if (gate && m.found.includes('render gate')) {
+    if (gate.mode === 'house') {
+      // RULING GATE-1: the bands are checked with 5% on their edges (29.9% and 2.03 heads pass).
+      const tol = 0.05;
+      const headShare = m.headShare === null ? null : m.headShare >= GATES.headShare[0] * (1 - tol) && m.headShare <= GATES.headShare[1] * (1 + tol);
+      const shoulders = m.shoulders === null ? null : m.shoulders >= GATES.shoulders[0] * (1 - tol) && m.shoulders <= GATES.shoulders[1] * (1 + tol);
+      const legs = m.legs === null ? null : m.legs <= GATES.legsMax * (1 + tol);
+      const pass = gate.verdict === 'pass' && headShare === true && shoulders === true && legs === true;
+      return { headShare, shoulders, legs, pass, verdict: `${pass ? 'PASS' : 'FAIL'} (render, ${gate.ruling})` };
+    }
+    if (gate.mode === 'reference') return { headShare: null, shoulders: null, legs: null, pass: gate.verdict === 'pass', verdict: `${gate.verdict === 'pass' ? 'PASS' : 'FAIL'} vs reference (${gate.ruling})` };
+    return { headShare: null, shoulders: null, legs: null, pass: true, verdict: `recorded, by eye (${gate.ruling})` };
+  }
+  if (!humanoidRole(role)) return { headShare: null, shoulders: null, legs: null, pass: true, verdict: 'by eye' };
   const headShare = m.headShare === null ? null : m.headShare >= GATES.headShare[0] && m.headShare <= GATES.headShare[1];
   const shoulders = m.shoulders === null ? null : m.shoulders >= GATES.shoulders[0] && m.shoulders <= GATES.shoulders[1];
   const legs = m.legs === null ? null : m.legs <= GATES.legsMax;
-  return { headShare, shoulders, legs, pass: headShare === true && shoulders === true && legs === true };
+  const pass = headShare === true && shoulders === true && legs === true;
+  return { headShare, shoulders, legs, pass, verdict: pass ? 'PASS' : 'FAIL' };
 }

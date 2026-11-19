@@ -1,36 +1,101 @@
 // KB rule 26: every model is loaded before anything is shown; the start button waits and says so.
-// The figure manifest (docs/figures.md sections 2 and 3): one slot per figure role. A slot with a url is preloaded
-// at startup and drawn by FigureModel (figures.tsx) in place of the procedural placeholder; a slot with null, or a
-// url that fails to load, draws the placeholder. The GPU pass drops rigged GLBs into public/models/<role>.glb and
-// fills the url here; nothing else changes.
+// The figure manifest (docs/figures.md sections 2 and 3; docs/art/figure-models.md): one slot per figure role. A
+// slot with a url is preloaded at startup and drawn by FigureModel (placeholders.tsx) in place of the procedural
+// placeholder; a slot with null, or a url that fails to load, draws the placeholder. The GPU pass (M4b) delivers
+// public/models/figures/<role>/{textured,textured-lod,rigged}.glb; the full model is drawn up close, the 8k LOD
+// beyond LOD_DISTANCE, and the rigged file waits for the animation pass (the client does not animate yet, PLAN D8).
 import { useGLTF } from '@react-three/drei';
 
 export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter';
 
 export const FIGURE_ROLES: FigureRole[] = ['agent-t1', 'agent-t2', 'citizen', 'host-hidden', 'host-revealed', 'taker', 'fighter'];
 
+/** Camera distance (world units) beyond which the 8k LOD is drawn instead of the 30k model. */
+export const LOD_DISTANCE = 12;
+
+/**
+ * The pipeline's gate on the model's orthographic front render (tools/figures/gate.py, recorded in job.json and
+ * docs/art/figure-models.md section 2): a Hunyuan GLB is one unnamed mesh, so the gallery cannot measure head,
+ * shoulders and legs from nodes and shows these instead, with the ruling that judged them.
+ */
+export interface RenderGate {
+  headShare: number | null;
+  shoulders: number | null;
+  legs: number | null;
+  /** 'house': the section 1 bands; 'reference': against the role's own locked reference (RULING HOST-1); 'recorded': creatures (RULING CREATURE-1). */
+  mode: 'house' | 'reference' | 'recorded';
+  verdict: 'pass' | 'recorded';
+  ruling: string;
+}
+
 export interface FigureSlot {
   role: FigureRole;
   /** docs/figures.md section 2 row. */
   label: string;
-  /** Where the rigged GLB goes once it exists; null until the GPU pass delivers it. */
+  /** The full textured model (30k triangles); null until the GPU pass delivers it. */
   url: string | null;
+  /** The 8k LOD drawn beyond LOD_DISTANCE; null draws the full model at every distance. */
+  lod: string | null;
+  /** The rigged LOD with `idle` and `walk` clips; listed, not yet drawn. */
+  rigged: string | null;
+  /** Where the glow sprite for the painted amber core sits on the model (figure units; front is +z). */
+  glow: { x: number; y: number; z: number; size: number } | null;
+  gate: RenderGate | null;
   /** Unit template(s) drawn with this role, for the gallery's notes. */
   templates: string[];
 }
 
+const figure = (folder: string) => ({
+  url: `models/figures/${folder}/textured.glb`,
+  lod: `models/figures/${folder}/textured-lod.glb`,
+  rigged: `models/figures/${folder}/rigged.glb`,
+});
+
+const none = { url: null, lod: null, rigged: null, glow: null, gate: null };
+
 export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
-  'agent-t1': { role: 'agent-t1', label: 'Agent, tier 1 (plain security gear)', url: null, templates: ['agent-t1'] },
-  'agent-t2': { role: 'agent-t2', label: 'Agent, tier 2 (moulded suit)', url: null, templates: ['agent-t2 (not yet in data)'] },
-  citizen: { role: 'citizen', label: 'Citizen', url: null, templates: ['citizen'] },
-  'host-hidden': { role: 'host-hidden', label: 'Host, passing as a citizen', url: null, templates: ['host (unrevealed: drawn as the citizen)'] },
-  'host-revealed': { role: 'host-revealed', label: 'Host, revealed', url: null, templates: ['host (revealed)'] },
-  taker: { role: 'taker', label: 'Taker', url: null, templates: ['taker'] },
-  fighter: { role: 'fighter', label: 'Fighter', url: null, templates: ['fighter'] },
+  'agent-t1': { role: 'agent-t1', label: 'Agent, tier 1 (plain security gear)', ...none, templates: ['agent-t1'] },
+  'agent-t2': {
+    role: 'agent-t2',
+    label: 'Agent, tier 2 (moulded suit)',
+    ...figure('agent'),
+    glow: null,
+    gate: { headShare: 0.299, shoulders: 2.03, legs: 1.02, mode: 'house', verdict: 'pass', ruling: 'GATE-1' },
+    templates: ['agent-t2 (not yet in data)'],
+  },
+  citizen: { role: 'citizen', label: 'Citizen', ...none, templates: ['citizen'] },
+  'host-hidden': { role: 'host-hidden', label: 'Host, passing as a citizen', ...none, templates: ['host (unrevealed: drawn as the citizen)'] },
+  'host-revealed': {
+    role: 'host-revealed',
+    label: 'Host, revealed',
+    ...figure('host'),
+    glow: { x: 0, y: 0.9, z: 0.09, size: 0.16 },
+    gate: { headShare: 0.22, shoulders: 1.6, legs: 1.85, mode: 'reference', verdict: 'pass', ruling: 'HOST-1' },
+    templates: ['host (revealed)'],
+  },
+  taker: {
+    role: 'taker',
+    label: 'Taker',
+    ...figure('taker'),
+    glow: { x: 0, y: 0.5, z: 0.34, size: 0.42 },
+    gate: { headShare: null, shoulders: null, legs: null, mode: 'recorded', verdict: 'recorded', ruling: 'CREATURE-1, TAKER-1' },
+    templates: ['taker'],
+  },
+  fighter: {
+    role: 'fighter',
+    label: 'Fighter',
+    ...figure('fighter'),
+    glow: { x: 0, y: 0.98, z: 0.24, size: 0.36 },
+    gate: { headShare: null, shoulders: null, legs: null, mode: 'recorded', verdict: 'recorded', ruling: 'CREATURE-1, FIGHTER-1' },
+    templates: ['fighter'],
+  },
 };
 
-/** Every url the manifest names; empty until the GPU pass. */
-export const MODEL_URLS: string[] = FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u);
+/** Every url the manifest names (full models first, then LODs), preloaded at startup. */
+export const MODEL_URLS: string[] = [
+  ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
+  ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].lod).filter((u): u is string => !!u),
+];
 
 export type ModelState = 'placeholder' | 'loading' | 'ready' | 'failed';
 const modelState = new Map<string, ModelState>();
@@ -40,6 +105,12 @@ export function modelStateOf(role: FigureRole): ModelState {
   const url = FIGURE_SLOTS[role].url;
   if (!url) return 'placeholder';
   return modelState.get(url) ?? 'loading';
+}
+
+/** The LOD url for a role when it loaded, else null (the full model is drawn at every distance). */
+export function lodUrlOf(role: FigureRole): string | null {
+  const lod = FIGURE_SLOTS[role].lod;
+  return lod && modelState.get(lod) === 'ready' ? lod : null;
 }
 
 export async function preloadModels(onProgress: (loaded: number, total: number) => void): Promise<void> {
