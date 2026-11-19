@@ -5,6 +5,7 @@
 // public/models/figures/<role>/{textured,textured-lod,rigged}.glb; the full model is drawn up close, the 8k LOD
 // beyond LOD_DISTANCE, and the rigged file waits for the animation pass (the client does not animate yet, PLAN D8).
 import { useGLTF } from '@react-three/drei';
+import { useSyncExternalStore } from 'react';
 
 export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter';
 
@@ -111,6 +112,25 @@ export const MODEL_URLS: string[] = [
 export type ModelState = 'placeholder' | 'loading' | 'ready' | 'failed';
 const modelState = new Map<string, ModelState>();
 
+// Figures mount before the preload ends (the gallery at once, the board after the start switch), so every change
+// of a slot's state is published: a figure that read 'loading' at mount re-reads it when the file lands. Without
+// this the gallery stayed on the stand-ins for good on a slow connection (owner's desktop, 2026-11-19).
+const listeners = new Set<() => void>();
+function setModelState(url: string, state: ModelState): void {
+  modelState.set(url, state);
+  for (const l of listeners) l();
+}
+export function subscribeModels(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+/** The slot's state for a React figure, re-read whenever the preload changes any slot. */
+export function useModelState(role: FigureRole): ModelState {
+  return useSyncExternalStore(subscribeModels, () => modelStateOf(role));
+}
+
 /** What the gallery and the figures read: 'ready' draws the GLB, anything else the placeholder (rule 26). */
 export function modelStateOf(role: FigureRole): ModelState {
   const url = FIGURE_SLOTS[role].url;
@@ -130,15 +150,17 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
   let loaded = 0;
   for (const url of MODEL_URLS) {
     try {
-      modelState.set(url, 'loading');
-      // Check the file is really there before handing it to the loader, so a missing GLB is a known failure.
+      setModelState(url, 'loading');
+      // Fetch the whole file first, so a missing GLB is a known failure and the start switch opens only once the
+      // bytes are really here (rule 26); the loader then reads them back from the HTTP cache.
       const r = await fetch(url, { cache: 'force-cache' });
       if (!r.ok) throw new Error(`${url}: ${r.status}`);
+      await r.arrayBuffer();
       useGLTF.preload(url);
-      modelState.set(url, 'ready');
+      setModelState(url, 'ready');
     } catch {
       // A failed load leaves the placeholder in place (rule 26); the count still advances so the button opens.
-      modelState.set(url, 'failed');
+      setModelState(url, 'failed');
     }
     loaded += 1;
     onProgress(loaded, total);
