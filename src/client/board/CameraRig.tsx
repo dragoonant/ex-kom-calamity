@@ -1,11 +1,30 @@
 // KB rule 27, the mouse map: wheel zooms towards the cursor, right-drag rotates and tilts, middle-drag pans,
 // left picks; left-drag pans until the first middle-button press shows the mouse has one (remembered in
 // localStorage `ekc-mouse`); preventDefault on a middle pointerdown (Windows autoscroll). Touch: one finger
-// pans, two twist and pinch. Picking itself lives on the tiles (rule 25), not here.
+// pans, two twist and pinch. WASD pans while held. A pan moves the view with the input: drag or press right
+// looks further right. Picking itself lives on the tiles (rule 25), not here.
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import { applyRig, clampRig, groundAtScreen, live, readMouseMode, rememberThreeButton, rig, LEVEL_H } from './world';
 import { useClient } from '../store';
+
+/** Moves the camera target by (right, back) in screen terms, in the camera's ground plane: +right is the camera's right, +back is towards the camera. */
+function panView(right: number, back: number): void {
+  const sy = Math.sin(rig.yaw);
+  const cy = Math.cos(rig.yaw);
+  rig.target.x += right * cy + back * sy;
+  rig.target.z += -right * sy + back * cy;
+  clampRig();
+}
+
+/** WASD pan speed in camera distances per second (the view crosses roughly its own height in about a second). */
+const KEY_PAN_RATE = 0.9;
+const PAN_KEYS: Record<string, [right: number, back: number]> = {
+  KeyW: [0, -1],
+  KeyS: [0, 1],
+  KeyA: [-1, 0],
+  KeyD: [1, 0],
+};
 
 interface Drag {
   mode: 'pan' | 'rotate' | 'none';
@@ -34,13 +53,8 @@ export function CameraRig() {
   useEffect(() => {
     const el = gl.domElement;
     const pan = (dx: number, dy: number) => {
-      // Pan in the camera's ground plane: screen right is +camera right, screen up moves away from the camera.
-      const k = rig.distance * 0.0016;
-      const sy = Math.sin(rig.yaw);
-      const cy = Math.cos(rig.yaw);
-      rig.target.x -= (dx * cy - dy * sy) * k;
-      rig.target.z -= (-dx * sy - dy * cy) * k;
-      clampRig();
+      // The view moves with the mouse: drag right looks further right, drag down looks further towards the camera.
+      panView(dx * rig.distance * 0.0016, dy * rig.distance * 0.0016);
     };
     const rotate = (dx: number, dy: number) => {
       rig.yaw -= dx * 0.006;
@@ -138,7 +152,41 @@ export function CameraRig() {
     };
   }, [gl, camera]);
 
-  useFrame(() => {
+  // WASD pans while held; the keys are read per frame so the move is smooth and scales with the frame time.
+  const held = useRef(new Set<string>());
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.code in PAN_KEYS)) return;
+      const t = e.target as HTMLElement | null;
+      if (t && ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName)) return;
+      held.current.add(e.code);
+    };
+    const onKeyUp = (e: KeyboardEvent) => held.current.delete(e.code);
+    const onBlur = () => held.current.clear();
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  useFrame((_, dt) => {
+    if (held.current.size > 0) {
+      let right = 0;
+      let back = 0;
+      for (const code of held.current) {
+        const [r, b] = PAN_KEYS[code]!;
+        right += r;
+        back += b;
+      }
+      if (right !== 0 || back !== 0) {
+        const step = rig.distance * KEY_PAN_RATE * Math.min(dt, 0.1);
+        panView(right * step, back * step);
+      }
+    }
     live.levelY = level * LEVEL_H;
     applyRig(camera, live.levelY);
   });
