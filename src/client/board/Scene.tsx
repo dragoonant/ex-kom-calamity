@@ -1,12 +1,27 @@
 // One Canvas for the session. The LoopDriver turns frame time into ticks through the store's advance()
 // (TIME-6); drawing and the sim are separate concerns sharing nothing but the state.
-import { Canvas, useFrame } from '@react-three/fiber';
+// Lighting (docs/art/tile-set.md section 4): a fixed early-evening rig in the D11 register, warm low sun from the
+// west, a cool sky fill, no shadow maps (an integrated GPU keeps 60 fps), window and lamp glow by emissive
+// instances, the alien cores pulsing through one shared material.
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Suspense, useEffect, useRef } from 'react';
 import { feed, makeAccumulator } from '../loop';
 import { useClient } from '../store';
 import { CameraRig } from './CameraRig';
+import { CorePulse, Effects, FrameTimes } from './Effects';
 import { Figures } from './Figures';
+import { Props } from './Props';
 import { Tiles, useBoardDerived } from './Tiles';
+import { live } from './world';
+
+/** The evening palette the scene clears to and lights with; also read by the gallery. */
+export const EVENING = {
+  clear: '#c7bfb2',
+  sky: '#9fb8c9',
+  ground: '#6b5a4a',
+  sun: '#ffb774',
+  fill: '#7fa7b8',
+};
 
 function LoopDriver() {
   const acc = useRef(makeAccumulator());
@@ -20,6 +35,27 @@ function LoopDriver() {
   return null;
 }
 
+function RendererHandle() {
+  const gl = useThree((s) => s.gl);
+  useEffect(() => {
+    live.renderer = gl;
+    return () => {
+      if (live.renderer === gl) live.renderer = null;
+    };
+  }, [gl]);
+  return null;
+}
+
+export function EveningLights() {
+  return (
+    <>
+      <hemisphereLight args={[EVENING.sky, EVENING.ground, 0.95]} />
+      <directionalLight position={[-28, 16, 12]} intensity={1.5} color={EVENING.sun} />
+      <directionalLight position={[18, 10, -22]} intensity={0.35} color={EVENING.fill} />
+    </>
+  );
+}
+
 function Board() {
   const agency = useClient((s) => s.agency);
   const selected = useClient((s) => s.selected);
@@ -30,7 +66,9 @@ function Board() {
   return (
     <>
       <Tiles state={agency} derived={derived} />
+      <Props state={agency} />
       <Figures state={agency} />
+      <Effects />
     </>
   );
 }
@@ -46,14 +84,15 @@ export function Scene() {
       gl={{ antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance' }}
       camera={{ fov: 42, near: 0.1, far: 400, position: [20, 16, 20] }}
       onCreated={({ gl }) => {
-        gl.setClearColor('#cfd8d3');
+        gl.setClearColor(EVENING.clear);
       }}
     >
-      <ambientLight intensity={0.85} />
-      <directionalLight position={[12, 20, 6]} intensity={1.6} />
-      <directionalLight position={[-10, 8, -14]} intensity={0.4} />
+      <EveningLights />
+      <RendererHandle />
       <CameraRig />
       <LoopDriver />
+      <CorePulse />
+      <FrameTimes />
       {/* KB rule 26: nothing stands in for a model while it loads. */}
       <Suspense fallback={null}>
         <Board />

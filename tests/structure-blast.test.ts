@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, legalActions, query, step, tileAt, tileIndex, view, type GameEvent, type Pos, type State, type Tile } from '../src/engine';
-import { BATTLES, MAPS, MATERIALS, TUNING } from '../src/data';
+import { createGame, legalActions, parseMap, query, step, tileAt, tileIndex, view, type GameEvent, type Pos, type State, type Tile } from '../src/engine';
+import { BATTLES, MAPS, MATERIALS, PROP_KINDS, TUNING } from '../src/data';
 import { checkInvariants } from '../src/sim/invariants';
 import { NEVER_HIT, clone, expectReject, game, only, order, patch, place, pos, tick, unit } from './helpers';
 
@@ -58,6 +58,31 @@ describe('2. Map, the city block (MAP)', () => {
     expect(JSON.stringify(m)).not.toMatch(/kom|calamity/i);
     // The M1 map has no grid and still parses (defaults).
     expect(MAPS['civic-savings-branch']!.levels[0]!.materials).toBeUndefined();
+  });
+
+  it('MAP-9 styles and props are set dressing: present in the block file, on floor or ground tiles, and invisible to the rules', () => {
+    const m = MAPS['halcyon-block']!;
+    expect(m.buildings!.map((b) => b.style)).toEqual(['residential', 'office', 'automat', 'depot', 'bank']);
+    expect(m.props!.length).toBeGreaterThan(300);
+    const seen = new Set<string>();
+    for (const p of m.props!) {
+      expect(PROP_KINDS).toContain(p.kind);
+      expect(['.', ',']).toContain(m.levels[p.level]!.rows[p.y]![p.x]);
+      if (p.yaw !== undefined) expect([1, 2, 3]).toContain(p.yaw);
+      const key = `${p.x},${p.y},${p.level}`;
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    }
+    for (const kind of PROP_KINDS) expect(m.props!.some((p) => p.kind === kind)).toBe(true);
+    // The rules never read them: the same tiles, the same game, with or without the dressing.
+    const bare = { ...m, buildings: m.buildings!.map(({ style: _style, ...b }) => b), props: undefined };
+    expect(parseMap(bare)).toEqual(parseMap(m));
+    const g = createGame({ battleId: 'block-raid', seed: 3 });
+    expect(JSON.stringify(g)).not.toMatch(/"props"|"style"/);
+    // No prop stands where a unit of block-raid spawns.
+    for (const e of [...BATTLES['block-raid']!.squad, ...BATTLES['block-raid']!.others]) expect(seen.has(`${e.at.x},${e.at.y},${e.at.level}`)).toBe(false);
+    // The M1 map carries neither and still parses.
+    expect(MAPS['civic-savings-branch']!.props).toBeUndefined();
   });
 });
 

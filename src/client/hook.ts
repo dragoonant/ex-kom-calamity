@@ -2,6 +2,9 @@
 // throttles requestAnimationFrame to about 1 fps, so tests advance time here instead of waiting on the clock.
 import type { Action, GameEvent, Pos, State } from '../engine';
 import type { TapResult } from './store';
+import type { PerfReport } from './board/world';
+import type { Fx } from './fx';
+import type { AudioReport } from './audio/director';
 
 export interface CameraPose {
   yaw: number;
@@ -38,6 +41,13 @@ export interface EkcHook {
   camera(): CameraPose | null;
   setCamera(pose: Partial<CameraPose>): void;
   mouseMode(): 'two-button' | 'three-button';
+  /** M4: draw calls, triangles, instance counts and frame times of the board (the e2e frame budget). */
+  perf(): PerfReport | null;
+  /** M4: the effects queued from engine events (fx.ts). */
+  fx(): Fx[];
+  /** M4: what the audio director has played, its settings and whether the context is unlocked. */
+  audio(): AudioReport | null;
+  setAudio(s: { volume?: number; muted?: boolean }): void;
 }
 
 declare global {

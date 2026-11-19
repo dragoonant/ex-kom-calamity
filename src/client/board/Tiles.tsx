@@ -1,37 +1,22 @@
-// The battlefield tiles: one instanced mesh per level (KB recipe: instancing from the start; a city block is
+// The battlefield tiles: one instanced pick mesh per level (KB recipe: instancing from the start; a city block is
 // 3,600 tiles a level), and the ONLY objects with pointer handlers (KB rule 25). Every tile carries a level
 // (MAP-1); levels above the active one are not drawn (the cut-away), levels below are dimmed.
-// Colours: visibility from query.visibleTiles, the hover path from query.path, the charge footprint from
-// query.blastPreview; damage darkens a tile by its hp against its material's.
-import { useLayoutEffect, useMemo, useRef } from 'react';
+// The pick mesh is also the structural body of every tile (wall, slab, sill, frame, tread, rubble bed) coloured by
+// the building's style; the dressing on top (cornices, panes, leaves, steps, chunks, scorch) is the tile set's
+// instanced layers (tileset.ts), which carry no handlers and no raycast.
+// Overlays: visibility from query.visibleTiles, the hover path from query.path, the charge footprint from
+// query.blastPreview; damage darkens a tile by its hp against its material's (STR-3).
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import type { ThreeEvent } from '@react-three/fiber';
 import * as THREE from 'three';
-import { MATERIALS } from '../../data';
+import { MAPS, MATERIALS } from '../../data';
 import { query, tileIndex, type Pos, type State, type Tile } from '../../engine';
 import { useClient } from '../store';
 import { LEVEL_H, live } from './world';
+import { OVERLAY, WALL_H_ACTIVE, baseColour, buildingIndex, fillLayers, layerCapacity, makeLayers, styleAt, type Layer, type LayerKind } from './tileset';
 
-const PALETTE = {
-  ground: new THREE.Color('#aab3a8'),
-  floor: new THREE.Color('#e6dcc6'),
-  wall: new THREE.Color('#a8624a'),
-  door: new THREE.Color('#b8743a'),
-  doorOpen: new THREE.Color('#d7b07a'),
-  stair: new THREE.Color('#d9a62e'),
-  window: new THREE.Color('#a9d6e2'),
-  rubble: new THREE.Color('#8a7f73'),
-  void: new THREE.Color('#000000'),
-  path: new THREE.Color('#e4b43a'),
-  blast: new THREE.Color('#d9533f'),
-  hover: new THREE.Color('#ffffff'),
-  hidden: new THREE.Color('#3a4446'),
-  scorch: new THREE.Color('#2b2f33'),
-};
-const WALL_BRICK = new THREE.Color('#a8624a');
-const WALL_PLASTER = new THREE.Color('#d9d2c0');
-const WALL_STEEL = new THREE.Color('#7d8a94');
-const WALL_H_ACTIVE = 0.9;
 const BOX = new THREE.BoxGeometry(1, 1, 1);
+const NO_RAYCAST = () => undefined;
 
 export interface Derived {
   visible: Set<number>;
@@ -78,6 +63,8 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
   const tiles = state.tiles;
   const tilesRef = useRef(tiles);
   tilesRef.current = tiles;
+  const map = MAPS[state.mapId];
+  const bIndex = useMemo(() => (map ? buildingIndex(map) : null), [map]);
 
   const tileOf = (instanceId: number): Pos | null => {
     const t = tilesRef.current[base + instanceId];
@@ -100,26 +87,28 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
           m.compose(V.set(cx, -1000, cz), Q, S.set(0.001, 0.001, 0.001));
           break;
         case 'ground':
-          m.compose(V.set(cx, y0 - 0.06, cz), Q, S.set(0.98, 0.12, 0.98));
+          m.compose(V.set(cx, y0 - 0.06, cz), Q, S.set(1, 0.12, 1));
           break;
         case 'floor':
-          m.compose(V.set(cx, y0 - 0.07, cz), Q, S.set(0.97, 0.14, 0.97));
+          m.compose(V.set(cx, y0 - 0.07, cz), Q, S.set(1, 0.14, 1));
           break;
         case 'wall':
           m.compose(V.set(cx, y0 + wallH / 2 - 0.07, cz), Q, S.set(1, wallH, 1));
           break;
         case 'window':
-          m.compose(V.set(cx, y0 + wallH * 0.3 - 0.07, cz), Q, S.set(1, wallH * 0.6, 1));
+          // The sill and spandrel under the pane; the pane itself is the glass layer.
+          m.compose(V.set(cx, y0 + wallH * 0.17 - 0.07, cz), Q, S.set(1, wallH * 0.34, 1));
           break;
         case 'door':
+          // The frame: a full-height jamb pair drawn as one thinner box; the leaf is a layer.
           if (t.open) m.compose(V.set(cx, y0 - 0.05, cz), Q, S.set(0.9, 0.1, 0.9));
-          else m.compose(V.set(cx, y0 + wallH * 0.4 - 0.07, cz), Q, S.set(0.72, wallH * 0.8, 0.72));
+          else m.compose(V.set(cx, y0 + wallH * 0.44 - 0.07, cz), Q, S.set(0.92, wallH * 0.88, 0.3));
           break;
         case 'stair':
-          m.compose(V.set(cx, y0 + 0.12, cz), Q, S.set(0.9, 0.38, 0.9));
+          m.compose(V.set(cx, y0 + 0.01, cz), Q, S.set(0.96, 0.16, 0.96));
           break;
         case 'rubble':
-          m.compose(V.set(cx, y0 + 0.02, cz), Q, S.set(0.86, 0.22, 0.86));
+          m.compose(V.set(cx, y0 - 0.02, cz), Q, S.set(0.96, 0.1, 0.96));
           break;
       }
       mesh.setMatrixAt(i, m);
@@ -132,29 +121,28 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
     const mesh = ref.current;
     if (!mesh) return;
     const c = new THREE.Color();
-    const dim = level < active ? 0.8 : 1;
+    const dim = level < active ? 0.82 : 1;
     for (let i = 0; i < count; i++) {
       const t = tiles[base + i]!;
       const idx = base + i;
       if (t.kind === 'void') {
-        mesh.setColorAt(i, PALETTE.void);
+        mesh.setColorAt(i, c.set('#000000'));
         continue;
       }
-      if (t.kind === 'wall') c.copy(t.material === 'plaster' ? WALL_PLASTER : t.material === 'steel' ? WALL_STEEL : WALL_BRICK);
-      else if (t.kind === 'door') c.copy(t.open ? PALETTE.doorOpen : PALETTE.door);
-      else c.copy(PALETTE[t.kind]);
+      const where = bIndex ? styleAt(bIndex, state.width, t.x, t.y) : { style: 'street' as const, building: null };
+      baseColour(t, where.style, !!where.building && level === where.building.floors, c);
       // Damage shows: a tile darkens as its hp falls below its material's (STR-3).
       const max = MATERIALS[t.material]?.hp ?? 0;
-      if (max > 0 && t.hp < max) c.lerp(PALETTE.scorch, 0.55 * (1 - t.hp / max));
-      if (!derived.visible.has(idx)) c.lerp(PALETTE.hidden, 0.42);
-      if (derived.path.has(idx)) c.lerp(PALETTE.path, 0.7);
-      if (derived.blast.has(idx)) c.lerp(PALETTE.blast, 0.65);
-      if (hover && hover.level === t.level && hover.x === t.x && hover.y === t.y) c.lerp(PALETTE.hover, 0.55);
+      if (max > 0 && t.hp < max) c.lerp(OVERLAY.scorch, 0.55 * (1 - t.hp / max));
+      if (!derived.visible.has(idx)) c.lerp(OVERLAY.hidden, 0.42);
+      if (derived.path.has(idx)) c.lerp(OVERLAY.path, 0.7);
+      if (derived.blast.has(idx)) c.lerp(OVERLAY.blast, 0.65);
+      if (hover && hover.level === t.level && hover.x === t.x && hover.y === t.y) c.lerp(OVERLAY.hover, 0.55);
       c.multiplyScalar(dim);
       mesh.setColorAt(i, c);
     }
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [tiles, base, count, level, active, derived, hover]);
+  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width]);
 
   useLayoutEffect(() => {
     const mesh = ref.current;
@@ -207,6 +195,55 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
   );
 }
 
+/** One instanced mesh per tile-set layer, refilled when the tiles or the cut-away change (never per frame). */
+function DressingLayer({ layer }: { layer: Layer }) {
+  const ref = useRef<THREE.InstancedMesh>(null);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    mesh.count = layer.count;
+    mesh.instanceMatrix.needsUpdate = true;
+    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    mesh.computeBoundingSphere();
+  });
+  // The buffers are the layer's own arrays: filling them in place and flagging needsUpdate is the whole upload.
+  const matrixAttr = useMemo(() => new THREE.InstancedBufferAttribute(layer.matrices, 16), [layer]);
+  const colourAttr = useMemo(() => new THREE.InstancedBufferAttribute(layer.colours, 3), [layer]);
+  useLayoutEffect(() => {
+    const mesh = ref.current;
+    if (!mesh) return;
+    mesh.instanceMatrix = matrixAttr;
+    mesh.instanceColor = colourAttr;
+  }, [matrixAttr, colourAttr]);
+  return <instancedMesh ref={ref} args={[layer.geometry, layer.material, layer.capacity]} raycast={NO_RAYCAST} frustumCulled={false} />;
+}
+
+function Dressing({ state, active }: { state: State; active: number }) {
+  const map = MAPS[state.mapId];
+  // Capacity is a property of the map, so the buffers live for the whole battle.
+  const layers = useMemo(() => makeLayers(layerCapacity(state)), [state.mapId, state.width, state.depth, state.levels]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Filled during render, before the layer meshes commit, so each mesh reads its final count; the fill is a pure
+  // function of (tiles, active) into the layer's own buffers, so repeating it is harmless.
+  useMemo(() => {
+    if (!map) return;
+    fillLayers(layers, { state, map, active });
+    live.dressing = { layers: Object.values(layers), active };
+  }, [layers, map, state.tiles, active]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(
+    () => () => {
+      live.dressing = null;
+    },
+    [],
+  );
+  return (
+    <group>
+      {(Object.keys(layers) as LayerKind[]).map((k) => (
+        <DressingLayer key={k} layer={layers[k]} />
+      ))}
+    </group>
+  );
+}
+
 export function Tiles({ state, derived }: { state: State; derived: Derived }) {
   const active = useClient((s) => s.level);
   const hover = useClient((s) => s.hover);
@@ -217,6 +254,7 @@ export function Tiles({ state, derived }: { state: State; derived: Derived }) {
       {levels.map((l) => (
         <LevelTiles key={l} state={state} level={l} active={active} derived={derived} hover={hover} />
       ))}
+      <Dressing state={state} active={active} />
     </group>
   );
 }

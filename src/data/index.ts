@@ -73,7 +73,11 @@ export interface Pos {
   level: number;
 }
 
-/** MAP-8 */
+/** MAP-9: the building styles the tile set draws (docs/art/tile-set.md). */
+export type BuildingStyle = 'residential' | 'office' | 'bank' | 'depot' | 'automat';
+export const BUILDING_STYLES: BuildingStyle[] = ['residential', 'office', 'bank', 'depot', 'automat'];
+
+/** MAP-8; `style` is MAP-9 (the client's tile set reads it; the rules do not). */
 export interface BuildingDef {
   id: string;
   name: string;
@@ -82,6 +86,35 @@ export interface BuildingDef {
   w: number;
   d: number;
   floors: number;
+  style?: BuildingStyle;
+}
+
+/** MAP-9: prop kinds (docs/art/tile-set.md section 3). Props are set dressing: the rules never read them. */
+export type PropKind =
+  | 'desk'
+  | 'counter'
+  | 'shelf'
+  | 'bed'
+  | 'locker'
+  | 'machine'
+  | 'lamp'
+  | 'kiosk-sign'
+  | 'bench'
+  | 'vehicle'
+  | 'planter'
+  | 'tank'
+  | 'vent'
+  | 'mast'
+  | 'crate';
+export const PROP_KINDS: PropKind[] = ['desk', 'counter', 'shelf', 'bed', 'locker', 'machine', 'lamp', 'kiosk-sign', 'bench', 'vehicle', 'planter', 'tank', 'vent', 'mast', 'crate'];
+
+/** MAP-9: one prop on one passable tile; `yaw` turns it in quarter turns (0 faces south). */
+export interface PropDef {
+  kind: PropKind;
+  x: number;
+  y: number;
+  level: number;
+  yaw?: 0 | 1 | 2 | 3;
 }
 
 export interface MapDef {
@@ -92,6 +125,8 @@ export interface MapDef {
   levels: { level: number; rows: string[]; materials?: string[] }[];
   materialKey?: Record<string, string>;
   buildings?: BuildingDef[];
+  /** MAP-9: set dressing placed from map data; never read by the rules. */
+  props?: PropDef[];
 }
 
 export interface SquadEntry {
