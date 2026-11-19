@@ -169,10 +169,12 @@ test('generated figures draw on the board (M4b): a hostile that comes into view 
   await openTitle(page);
   await expect(page.getByTestId('start')).toHaveText('START RAID', { timeout: 30_000 }); // the eight GLBs preload first (KB rule 26)
   await startRaid(page);
-  // At the start only agents and citizens are in the agency's view: every drawn figure is a stand-in, no GLB.
+  // At the start only agents and citizens are in the agency's view: the squad wears the generated suit (RULING
+  // AGENT-1, at the LOD level from the opening camera), the citizens are stand-ins, and no alien GLB is in view yet.
   const before = await perf(page);
-  expect(before.figures.glb + before.figures.lod).toBe(0);
+  expect(before.figures.glb + before.figures.lod).toBeGreaterThanOrEqual(1);
   expect(before.figures.standIn).toBeGreaterThan(0);
+  expect(before.figures.glow).toBe(0);
   // Advance until a taker, fighter or revealed host is in the view (the normal AI charges and ambushes within a minute
   // or two of sim time on most seeds); the raid's seed is random, so the loop is bounded and says when it gave up.
   const found = await page.evaluate(() => {

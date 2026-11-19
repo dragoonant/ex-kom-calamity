@@ -54,7 +54,16 @@ const figure = (folder: string) => ({
 const none = { url: null, lod: null, rigged: null, glow: null, gate: null };
 
 export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
-  'agent-t1': { role: 'agent-t1', label: 'Agent, tier 1 (plain security gear)', ...none, templates: ['agent-t1'] },
+  'agent-t1': {
+    role: 'agent-t1',
+    label: 'Agent, tier 1 (plain security gear)',
+    // RULING AGENT-1: the tier 1 agent has no locked reference, so the squad wears the generated tier 2 suit until
+    // its own concept round (owner, 2026-11-19: "Yes, use it", so the playable shows models from the first frame).
+    ...figure('agent'),
+    glow: null,
+    gate: { headShare: 0.299, shoulders: 2.03, legs: 1.02, mode: 'house', verdict: 'pass', ruling: 'GATE-1, AGENT-1' },
+    templates: ['agent-t1 (drawn with the tier 2 model until a tier 1 reference is locked, RULING AGENT-1)'],
+  },
   'agent-t2': {
     role: 'agent-t2',
     label: 'Agent, tier 2 (moulded suit)',
@@ -93,8 +102,10 @@ export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
 
 /** Every url the manifest names (full models first, then LODs), preloaded at startup. */
 export const MODEL_URLS: string[] = [
-  ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
-  ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].lod).filter((u): u is string => !!u),
+  ...new Set([
+    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
+    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].lod).filter((u): u is string => !!u),
+  ]),
 ];
 
 export type ModelState = 'placeholder' | 'loading' | 'ready' | 'failed';
