@@ -333,9 +333,36 @@ export function Effects() {
 /** The amber core pulse shared by every alien figure: one material, one uniform change per frame. */
 export const CORE_MATERIAL = new THREE.MeshStandardMaterial({ color: '#e0a030', emissive: new THREE.Color('#e0a030'), emissiveIntensity: 1, roughness: 0.3 });
 
+/**
+ * The glow sprite over a generated figure's painted core (docs/art/figure-models.md section 5: the GLB materials carry
+ * no emissive, so the stand-ins' pulse is kept as one additive sprite per alien). The texture is a canvas radial
+ * gradient made on first use, so this module still loads under vitest without a DOM.
+ */
+let glowMaterial: THREE.SpriteMaterial | null = null;
+export function coreGlowMaterial(): THREE.SpriteMaterial {
+  if (glowMaterial) return glowMaterial;
+  const size = 64;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(255,220,140,1)');
+  g.addColorStop(0.35, 'rgba(224,160,48,0.55)');
+  g.addColorStop(1, 'rgba(224,160,48,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const map = new THREE.CanvasTexture(canvas);
+  map.colorSpace = THREE.SRGBColorSpace;
+  glowMaterial = new THREE.SpriteMaterial({ map, color: '#e0a030', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.8 });
+  return glowMaterial;
+}
+
 export function CorePulse() {
   useFrame(({ clock }) => {
-    CORE_MATERIAL.emissiveIntensity = 0.75 + 0.45 * Math.sin(clock.elapsedTime * 3.1);
+    const k = 0.75 + 0.45 * Math.sin(clock.elapsedTime * 3.1);
+    CORE_MATERIAL.emissiveIntensity = k;
+    if (glowMaterial) glowMaterial.opacity = 0.45 + 0.35 * k;
   });
   return null;
 }

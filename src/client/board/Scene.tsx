@@ -37,12 +37,15 @@ function LoopDriver() {
 
 function RendererHandle() {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
   useEffect(() => {
     live.renderer = gl;
+    live.scene = scene;
     return () => {
       if (live.renderer === gl) live.renderer = null;
+      if (live.scene === scene) live.scene = null;
     };
-  }, [gl]);
+  }, [gl, scene]);
   return null;
 }
 

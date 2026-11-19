@@ -63,7 +63,9 @@ export const live: {
   dressing: { layers: { kind: string; count: number; capacity: number }[]; active: number } | null;
   /** The last 120 frame times in ms, newest last (useFrame dt), for the perf hook. */
   frameMs: number[];
-} = { camera: null, canvas: null, renderer: null, tileMeshes: [], tileOfInstance: new Map(), levelY: 0, dressing: null, frameMs: [] };
+  /** The board's scene, for the perf hook's figure count. */
+  scene: THREE.Scene | null;
+} = { camera: null, canvas: null, renderer: null, tileMeshes: [], tileOfInstance: new Map(), levelY: 0, dressing: null, frameMs: [], scene: null };
 
 /** What window.__ekc.perf() reports: draw calls and triangles of the last frame, instance counts, frame times. */
 export interface PerfReport {
@@ -75,6 +77,8 @@ export interface PerfReport {
   /** Instances per dressing layer as last filled. */
   layers: Record<string, number>;
   tileInstances: number;
+  /** Figures as drawn this frame (M4b): generated GLBs at full detail, at the LOD level, their core glow sprites, and stand-ins. */
+  figures: { glb: number; lod: number; glow: number; standIn: number };
   /** Mean and worst of the last frames, ms; 0 when no frame has run. */
   frameMsMean: number;
   frameMsMax: number;
@@ -88,6 +92,14 @@ export function perfReport(): PerfReport | null {
   for (const l of live.dressing?.layers ?? []) layers[l.kind] = l.count;
   const f = live.frameMs;
   const mean = f.length ? f.reduce((a, b) => a + b, 0) / f.length : 0;
+  const figures = { glb: 0, lod: 0, glow: 0, standIn: 0 };
+  live.scene?.traverse((o) => {
+    if (!o.visible) return;
+    if (o.name === 'glb') figures.glb += 1;
+    else if (o.name === 'glb-lod') figures.lod += 1;
+    else if (o.name === 'glow') figures.glow += 1;
+    else if (o.name === 'body') figures.standIn += 1;
+  });
   return {
     drawCalls: r.info.render.calls,
     triangles: r.info.render.triangles,
@@ -96,6 +108,7 @@ export function perfReport(): PerfReport | null {
     textures: r.info.memory.textures,
     layers,
     tileInstances: live.tileMeshes.reduce((a, m) => a + m.count, 0),
+    figures,
     frameMsMean: mean,
     frameMsMax: f.length ? Math.max(...f) : 0,
     frames: f.length,
