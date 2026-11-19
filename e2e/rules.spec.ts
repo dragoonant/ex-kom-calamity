@@ -119,7 +119,13 @@ test('rule 27: left-drag pans until a middle button is seen, right-drag turns an
   const c4 = await cam();
   expect(c4.target).toEqual(c3.target);
 
-  // 5. The wheel zooms towards the cursor: closer, and the tile under the cursor stays under it.
+  // 5. The wheel zooms towards the cursor: closer, and the tile under the cursor stays under it. Look back at the
+  // squad first, since the pans above may have carried the cursor off the block.
+  await page.evaluate(() => {
+    const a = window.__ekc!.getState()!.units.find((u) => u.side === 'agency')!;
+    window.__ekc!.setCamera({ target: { x: a.x + 0.5, z: a.y + 0.5 } });
+  });
+  await page.waitForTimeout(300);
   const under0 = await page.evaluate(([x, y]) => window.__ekc!.tileAtScreen(x!, y!), [cx, cy]);
   await page.mouse.move(cx, cy);
   await page.mouse.wheel(0, -400);
@@ -133,5 +139,47 @@ test('rule 27: left-drag pans until a middle button is seen, right-drag turns an
   // The remembered mode survives a reload.
   await page.reload();
   expect(await page.evaluate(() => window.__ekc!.mouseMode())).toBe('three-button');
+  expect(errors).toEqual([]);
+});
+
+test('keys: a number selects its agent and centres only on the second press; WASD pans the view with the key', async ({ page }) => {
+  const errors = watchErrors(page);
+  await openTitle(page);
+  await startRaid(page);
+  const cam = () => page.evaluate(() => window.__ekc!.camera()!);
+  const first = await page.evaluate(() => window.__ekc!.getState()!.units.filter((u) => u.side === 'agency')[0]!);
+  // Clear the raid's starting selection and look away from the squad, so both the select and the centring show.
+  await page.evaluate(() => {
+    window.__ekc!.select(null);
+    window.__ekc!.setCamera({ target: { x: -4, z: -4 } });
+  });
+  await expect(page.getByTestId(`agent-${first.id}`)).toHaveAttribute('aria-pressed', 'false');
+  const c0 = await cam();
+  await page.keyboard.press('Digit1');
+  await expect(page.getByTestId(`agent-${first.id}`)).toHaveAttribute('aria-pressed', 'true');
+  expect((await cam()).target).toEqual(c0.target);
+  await page.keyboard.press('Digit1');
+  await page.waitForFunction(([x, z]) => {
+    const t = window.__ekc!.camera()!.target;
+    return Math.abs(t.x - x!) < 0.01 && Math.abs(t.z - z!) < 0.01;
+  }, [first.x + 0.5, first.y + 0.5]);
+  await expect(page.getByTestId(`agent-${first.id}`)).toHaveAttribute('aria-pressed', 'true');
+
+  // WASD: with the camera looking north (yaw 0), D moves the target east and W moves it north (-z).
+  await page.evaluate(() => window.__ekc!.setCamera({ yaw: 0, target: { x: 8, z: 6 } }));
+  const c1 = await cam();
+  await page.keyboard.down('KeyD');
+  await page.waitForFunction((x) => window.__ekc!.camera()!.target.x > x! + 1, c1.target.x);
+  await page.keyboard.up('KeyD');
+  const c2 = await cam();
+  expect(Math.abs(c2.target.z - c1.target.z)).toBeLessThan(0.01);
+  await page.keyboard.down('KeyW');
+  await page.waitForFunction((z) => window.__ekc!.camera()!.target.z < z! - 1, c2.target.z);
+  await page.keyboard.up('KeyW');
+  const c3 = await cam();
+  expect(Math.abs(c3.target.x - c2.target.x)).toBeLessThan(0.01);
+  // Released keys stop the pan.
+  await page.waitForTimeout(200);
+  expect((await cam()).target).toEqual(c3.target);
   expect(errors).toEqual([]);
 });

@@ -71,9 +71,10 @@ export function Hud() {
         const n = Number(e.code.slice(5)) - 1;
         const agents = s.agency?.units.filter((u) => u.side === 'agency') ?? [];
         const u = agents[n];
+        // First press selects; pressing the same number again centres the camera on that agent.
         if (u && !u.down) {
-          s.select(u.id);
-          s.focusUnit(u.id);
+          if (s.selected === u.id) s.focusUnit(u.id);
+          else s.select(u.id);
         }
       } else if (e.code === 'Escape') {
         if (s.mode === 'blast') s.setMode('normal');
