@@ -10,8 +10,16 @@ const GENERATED: Record<string, string> = { 'agent-t1': 'agent', 'agent-t2': 'ag
 
 test('the gallery lists every figure role, measures it within the gates, and draws the generated GLBs in five cells', async ({ page }) => {
   const errors = watchErrors(page);
+  // A slow connection: every GLB arrives a second late, so the cells mount before the preload ends, as on the
+  // owner's desktop (2026-11-19), and must still pick the model up when it lands (useModelState).
+  await page.route('**/*.glb', async (route) => {
+    await new Promise((r) => setTimeout(r, 1000));
+    await route.continue();
+  });
   await page.goto('./?gallery');
   await expect(page.getByTestId('gallery')).toBeVisible();
+  // Before the files land the cells say so and draw the stand-ins, never a broken GLB.
+  await expect(page.getByTestId('gallery-model-agent-t1')).toContainText('loading, drawn: stand-in');
   for (const role of ROLES) await expect(page.getByTestId(`gallery-row-${role}`)).toBeVisible();
   // The four GLBs load and are drawn (not their stand-ins): the slot reads ready and the cell reports the GLB mounted.
   for (const [role, folder] of Object.entries(GENERATED)) {
