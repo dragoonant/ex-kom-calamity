@@ -1,0 +1,109 @@
+{
+ "role": "fighter",
+ "reference": "docs/concept/samples/gemini-alien-fighter-a.jpg",
+ "attempt": {
+  "role": "fighter",
+  "reference": "docs/concept/samples/gemini-alien-fighter-a.jpg",
+  "seed": 1234,
+  "preset": "high",
+  "octree": 512,
+  "steps": 50,
+  "guidance": 5.0,
+  "faces": 30000,
+  "texture": 2048,
+  "cutBase": false,
+  "stages": {
+   "cutout": {
+    "seconds": 0,
+    "ok": true,
+    "tail": [
+     "cached"
+    ]
+   },
+   "shape": {
+    "seconds": 181,
+    "ok": true,
+    "tail": [
+     "Diffusion Sampling::   6%|\u258c         | 3/50 [00:09<01:48,  2.30s/it]",
+     "Diffusion Sampling::   8%|\u258a         | 4/50 [00:10<01:12,  1.59s/it]",
+     "Diffusion Sampling::  10%|\u2588         | 5/50 [00:10<00:53,  1.19s/it]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:32<00:00,  2.03it/s]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:32<00:00,  1.52it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16797/16876 [01:24<00:00, 197.46it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16818/16876 [01:24<00:00, 195.95it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16840/16876 [01:24<00:00, 197.70it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16861/16876 [01:24<00:00, 196.85it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:24<00:00, 199.22it/s]",
+     "generated in 127s: 748776 raw faces",
+     "shape: 30000 faces, 178s total"
+    ]
+   },
+   "paint": {
+    "seconds": 63,
+    "ok": true,
+    "tail": [
+     "loading Hunyuan3D 2.0 paint model",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.82it/s]",
+     "Loading pipeline components...:  67%|\u2588\u2588\u2588\u2588\u2588\u2588\u258b   | 4/6 [00:07<00:04,  2.16s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.28s/it]",
+     "loaded in 24s; painting at 2048",
+     "textured: 4.2 MB, 60s total"
+    ]
+   }
+  },
+  "started": "2026-11-18 13:43:36",
+  "finished": "2026-11-18 13:47:40",
+  "gpuSeconds": 244
+ },
+ "finalize": {
+  "landmarks": {
+   "chin_frac": 0.28,
+   "crotch_frac": 0.775
+  },
+  "full": {
+   "triangles": 30000,
+   "bytes": 7492396,
+   "texture": "as painted"
+  },
+  "lod": {
+   "triangles": 8000,
+   "bytes": 2164676,
+   "texture": 1024
+  },
+  "dimensions": {
+   "width": 0.895,
+   "depth": 0.56,
+   "height": 1.5
+  },
+  "yaw": 0.0,
+  "roughness": 0.9,
+  "regrade": true
+ },
+ "gate": {
+  "verdict": "recorded",
+  "fails": [],
+  "model": {
+   "head_share": 0.28,
+   "shoulders_in_heads": 1.73,
+   "legs_in_heads": 0.97,
+   "aspect": 0.596,
+   "chin_source": "given"
+  },
+  "reference": {
+   "head_share": 0.173,
+   "shoulders_in_heads": 1.6,
+   "legs_in_heads": 2.69,
+   "aspect": 0.517,
+   "chin_source": "neck minimum"
+  }
+ },
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\fighter\\s1234-high",
+ "files": [
+  "cutout.png",
+  "shape.glb",
+  "textured-lod.glb",
+  "textured.glb",
+  "turnaround-lod.jpg",
+  "turnaround.jpg"
+ ]
+}
