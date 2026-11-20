@@ -70,3 +70,7 @@ The owner asked for the tier 1 agent and citizen references after M4 (both roles
   - citizen-1: head 24%, shoulders 2.3 heads at the coat, legs 0.9 below the hem; the same build as `chrome-host-2` (25%, 2.0, 0.8), as a citizen must be, since a hidden host is drawn as a citizen (HIDE-1). Long double-breasted coat in a tan cream, warmer than the roster's enamel cream `#e7dcc1`; graphite shirt and tie; briefcase; stern adult face.
   - citizen-2: head 27%, shoulders 2.15, legs 0.6 below the hem. The same coat on a woman, hair in a low bun, graphite dress, handbag; stern adult face.
 - Open for the owner: pick a tier 1 agent (the drafter recommends suit-t1-1: it passes the gate and keeps the single visor of D7) and a citizen (both pass as the host's body; the drafter recommends citizen-1 as the reference and citizen-2 as the second citizen body for variety). The coat colour can be pulled toward `#e7dcc1` at the paint stage.
+
+## Locked (2026-11-20): tier 1 agent and citizens
+
+The owner picked `chrome-suit-t1-1.jpg` as the tier 1 agent reference (PLAN D7) and both citizens, `chrome-citizen-1.jpg` and `chrome-citizen-2.jpg`, as two citizen bodies (PLAN D22): "use suit 1 and both citizens". `chrome-suit-t1-2` is not used. Next: the three go through `tools/figures/` on the owner's GPU like the M4b figures (`figures.json` carries their entries), and the `agent-t1`, `citizen` and `host-hidden` slots in `src/client/models.ts` get their models; RULING AGENT-1 (the squad in the tier 2 suit) ends when the tier 1 model lands.
