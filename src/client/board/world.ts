@@ -78,7 +78,7 @@ export interface PerfReport {
   layers: Record<string, number>;
   tileInstances: number;
   /** Figures as drawn this frame (M4b): generated GLBs at full detail, at the LOD level, their core glow sprites, and stand-ins. */
-  figures: { glb: number; lod: number; glow: number; standIn: number };
+  figures: { glb: number; lod: number; rigged: number; glow: number; standIn: number };
   /** Mean and worst of the last frames, ms; 0 when no frame has run. */
   frameMsMean: number;
   frameMsMax: number;
@@ -92,11 +92,12 @@ export function perfReport(): PerfReport | null {
   for (const l of live.dressing?.layers ?? []) layers[l.kind] = l.count;
   const f = live.frameMs;
   const mean = f.length ? f.reduce((a, b) => a + b, 0) / f.length : 0;
-  const figures = { glb: 0, lod: 0, glow: 0, standIn: 0 };
+  const figures = { glb: 0, lod: 0, rigged: 0, glow: 0, standIn: 0 };
   live.scene?.traverse((o) => {
     if (!o.visible) return;
     if (o.name === 'glb') figures.glb += 1;
     else if (o.name === 'glb-lod') figures.lod += 1;
+    else if (o.name === 'glb-rigged') figures.rigged += 1;
     else if (o.name === 'glow') figures.glow += 1;
     else if (o.name === 'body') figures.standIn += 1;
   });

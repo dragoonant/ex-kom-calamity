@@ -29,6 +29,10 @@ export interface Fx {
   side?: Unit['side'];
   /** Rounds that missed still flash; the hit spark is its own fx. */
   hit?: boolean;
+  /** The unit the effect belongs to (shooter, unit hit, unit down, thrower, revealed host), for the figure's animation. */
+  unit?: string;
+  /** For a taking: the taker that bit. */
+  by?: string;
 }
 
 let fxSeq = 0;
@@ -54,23 +58,23 @@ export function fxFor(events: GameEvent[], before: State, after: State): Fx[] {
         const at = unitPos(after, e.shooter) ?? unitPos(before, e.shooter);
         const to = unitPos(after, e.target) ?? unitPos(before, e.target);
         if (!at) break;
-        push({ kind: 'muzzle', tick: e.tick, at, to: to ?? undefined, weapon: e.weapon, side: after.units.find((u) => u.id === e.shooter)?.side, hit: e.hit });
+        push({ kind: 'muzzle', tick: e.tick, at, to: to ?? undefined, weapon: e.weapon, side: after.units.find((u) => u.id === e.shooter)?.side, hit: e.hit, unit: e.shooter });
         break;
       }
       case 'damaged': {
         if (!visible(e.unit)) break;
         const at = unitPos(after, e.unit);
-        if (at) push({ kind: 'hit', tick: e.tick, at, side: after.units.find((u) => u.id === e.unit)?.side });
+        if (at) push({ kind: 'hit', tick: e.tick, at, side: after.units.find((u) => u.id === e.unit)?.side, unit: e.unit });
         break;
       }
       case 'down': {
         if (!visible(e.unit)) break;
         const at = unitPos(after, e.unit);
-        if (at) push({ kind: 'down', tick: e.tick, at, side: after.units.find((u) => u.id === e.unit)?.side });
+        if (at) push({ kind: 'down', tick: e.tick, at, side: after.units.find((u) => u.id === e.unit)?.side, unit: e.unit });
         break;
       }
       case 'blast':
-        push({ kind: 'blast', tick: e.tick, at: e.at });
+        push({ kind: 'blast', tick: e.tick, at: e.at, unit: e.unit });
         break;
       case 'tileDestroyed': {
         const was = before.tiles.find((t) => t.x === e.at.x && t.y === e.at.y && t.level === e.at.level);
@@ -84,13 +88,13 @@ export function fxFor(events: GameEvent[], before: State, after: State): Fx[] {
       }
       case 'revealed': {
         const at = unitPos(after, e.unit);
-        if (at) push({ kind: 'revealed', tick: e.tick, at });
+        if (at) push({ kind: 'revealed', tick: e.tick, at, unit: e.unit });
         break;
       }
       case 'taken': {
         if (!e.seen) break;
         const at = unitPos(after, e.unit);
-        if (at) push({ kind: 'taken', tick: e.tick, at });
+        if (at) push({ kind: 'taken', tick: e.tick, at, unit: e.unit, by: e.by });
         break;
       }
       default:

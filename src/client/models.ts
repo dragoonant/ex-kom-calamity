@@ -2,8 +2,9 @@
 // The figure manifest (docs/figures.md sections 2 and 3; docs/art/figure-models.md): one slot per figure role. A
 // slot with a url is preloaded at startup and drawn by FigureModel (placeholders.tsx) in place of the procedural
 // placeholder; a slot with null, or a url that fails to load, draws the placeholder. The GPU pass (M4b) delivers
-// public/models/figures/<role>/{textured,textured-lod,rigged}.glb; the full model is drawn up close, the 8k LOD
-// beyond LOD_DISTANCE, and the rigged file waits for the animation pass (the client does not animate yet, PLAN D8).
+// public/models/figures/<role>/{textured,textured-lod,rigged}.glb. Since D21 the board draws the rigged file (the 8k
+// mesh with its `idle` and `walk` clips) at every distance, so figures move; the gallery keeps the full model.
+// The LOD file is no longer drawn or preloaded.
 import { useGLTF } from '@react-three/drei';
 import { useSyncExternalStore } from 'react';
 
@@ -37,7 +38,7 @@ export interface FigureSlot {
   url: string | null;
   /** The 8k LOD drawn beyond LOD_DISTANCE; null draws the full model at every distance. */
   lod: string | null;
-  /** The rigged LOD with `idle` and `walk` clips; listed, not yet drawn. */
+  /** The rigged LOD with `idle` and `walk` clips: what the board draws (D21). */
   rigged: string | null;
   /** Where the glow sprite for the painted amber core sits on the model (figure units; front is +z). */
   glow: { x: number; y: number; z: number; size: number } | null;
@@ -101,11 +102,11 @@ export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
   },
 };
 
-/** Every url the manifest names (full models first, then LODs), preloaded at startup. */
+/** Every url preloaded at startup: the rigged files the board draws first, then the full models for the gallery. */
 export const MODEL_URLS: string[] = [
   ...new Set([
+    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].rigged).filter((u): u is string => !!u),
     ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
-    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].lod).filter((u): u is string => !!u),
   ]),
 ];
 
@@ -136,6 +137,17 @@ export function modelStateOf(role: FigureRole): ModelState {
   const url = FIGURE_SLOTS[role].url;
   if (!url) return 'placeholder';
   return modelState.get(url) ?? 'loading';
+}
+
+/** The rigged url for a role when it loaded, else null (the board then draws the full model or the stand-in). */
+export function riggedUrlOf(role: FigureRole): string | null {
+  const r = FIGURE_SLOTS[role].rigged;
+  return r && modelState.get(r) === 'ready' ? r : null;
+}
+
+/** The rigged url for a React figure, re-read whenever the preload changes any slot. */
+export function useRiggedUrl(role: FigureRole): string | null {
+  return useSyncExternalStore(subscribeModels, () => riggedUrlOf(role));
 }
 
 /** The LOD url for a role when it loaded, else null (the full model is drawn at every distance). */

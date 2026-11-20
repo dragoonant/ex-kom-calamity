@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type * as THREE from 'three';
 import { Gallery } from './Gallery';
+import { Moves } from './Moves';
 import { Hud } from './Hud';
 import { Report } from './Report';
 import { Title } from './Title';
@@ -19,6 +20,11 @@ export const director = new Director(browserStorage());
 /** `?gallery` on the page opens the figure gallery instead of the console (KB recipe step 7). */
 export function isGalleryPage(search: string | undefined): boolean {
   return !!search && new URLSearchParams(search).has('gallery');
+}
+
+/** ?moves: every animated figure doing every motion (PLAN D21). */
+export function isMovesPage(search: string | undefined): boolean {
+  return !!search && new URLSearchParams(search).has('moves');
 }
 
 function Battle() {
@@ -83,6 +89,7 @@ export function App() {
   }, []);
 
   if (isGalleryPage((globalThis as { location?: { search?: string } }).location?.search)) return <Gallery />;
+  if (isMovesPage((globalThis as { location?: { search?: string } }).location?.search)) return <Moves />;
   if (screen === 'battle') return <Battle />;
   if (screen === 'report') return <Report />;
   return <Title />;
