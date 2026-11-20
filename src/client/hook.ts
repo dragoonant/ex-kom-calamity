@@ -47,7 +47,7 @@ export interface EkcHook {
   fx(): Fx[];
   /** M4: what the audio director has played, its settings and whether the context is unlocked. */
   audio(): AudioReport | null;
-  setAudio(s: { volume?: number; muted?: boolean }): void;
+  setAudio(s: { volume?: number; muted?: boolean; music?: number; source?: 'auto' | 'synth' }): void;
 }
 
 declare global {

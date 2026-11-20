@@ -5,3 +5,5 @@ dist-artifact
 e2e/out/
 playwright-report/
 test-results/
+.env.local
+.env

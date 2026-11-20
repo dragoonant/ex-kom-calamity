@@ -6,7 +6,9 @@
 /** hashState of the snapshot on its map's pristine tiles (the save's tile diff is empty at the start). */
 function hashOf(snapshot: State): string {
   const code = "import { hashState, parseMap } from './src/engine'; import { MAPS } from './src/data'; let t = ''; process.stdin.on('data', (d) => (t += d)); process.stdin.on('end', () => { const s = JSON.parse(t); process.stdout.write(hashState({ ...s, tiles: parseMap(MAPS[s.mapId]) })); });";
-  return execFileSync('npx', ['tsx', '--eval', code], { input: JSON.stringify(snapshot) }).toString().trim();
+  // Windows cannot spawn the npx shim without a shell (ENOENT); the code is ours, so a shell is safe.
+  const shell = process.platform === 'win32';
+  return execFileSync('npx', ['tsx', '--eval', shell ? JSON.stringify(code) : code], { input: JSON.stringify(snapshot), shell }).toString().trim();
 }
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
