@@ -186,6 +186,7 @@ export const FIGURE_PARTS: Record<FigureRole, FigurePart[]> = {
   'agent-t1': humanoid('agent-t1'),
   'agent-t2': humanoid('agent-t2'),
   citizen: humanoid('citizen'),
+  'citizen-2': humanoid('citizen'),
   'host-hidden': humanoid('citizen'),
   'host-revealed': humanoid('host-revealed'),
   taker: taker(),

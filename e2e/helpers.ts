@@ -10,7 +10,8 @@ declare global {
 export function watchErrors(page: Page): string[] {
   const errors: string[] = [];
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text());
+    // A failed resource names its url, so a failing GLB or sound can be told from a page error.
+    if (m.type() === 'error') errors.push(m.location().url ? `${m.text()} (${m.location().url})` : m.text());
   });
   page.on('pageerror', (e) => errors.push(String(e)));
   return errors;
