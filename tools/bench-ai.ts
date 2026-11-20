@@ -7,6 +7,7 @@ import { hashState, query } from '../src/engine';
 import { makeAi, type Difficulty } from '../src/ai';
 import { aiPolicy } from '../src/sim/policies';
 import { runBattle } from '../src/sim/run';
+import { RAID_SITES } from '../src/data';
 
 const args = new Map<string, string>();
 for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i]!.replace(/^--/, ''), process.argv[i + 1] ?? '');
@@ -15,6 +16,8 @@ const seed0 = Number(args.get('seed') ?? 1);
 const battleId = args.get('battle') ?? 'bench-raid';
 const gate = Number(args.get('gate') ?? 95);
 const blockBattles = Number(args.get('block') ?? 0);
+// MAP-10: the playable raid sites, each benched like the main battle (--sites N, 0 skips).
+const siteBattles = Number(args.get('sites') ?? 20);
 
 interface Seat {
   name: string;
@@ -123,6 +126,9 @@ let failed = main.failed || !same;
 if (blockBattles > 0) {
   const b = bench('block-raid', blockBattles, true);
   failed = failed || b.failed;
+}
+if (siteBattles > 0) {
+  for (const id of RAID_SITES) failed = bench(id, siteBattles, true).failed || failed;
 }
 const pass = main.rate >= gate;
 console.log(`\n${failed ? 'INVARIANT OR DETERMINISM FAILURE' : 'all invariants held'}; gate ${gate}%: ${pass ? 'PASS' : 'FAIL'} (${main.rate.toFixed(1)}%)`);

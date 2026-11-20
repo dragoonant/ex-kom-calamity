@@ -1,4 +1,4 @@
-// The hostile AI in the playable (docs/spec/10-rules.md AI-2, AI-9): opponents act on the block, their orders ride in
+// The hostile AI in the playable (docs/spec/10-rules.md AI-2, AI-9): opponents act on the raid site, their orders ride in
 // the log, pause gives them no turn, the tray never prints their orders, and ?ai=none switches them off.
 import { expect, test } from '@playwright/test';
 import { openTitle, startRaid, sweepText, watchErrors } from './helpers';

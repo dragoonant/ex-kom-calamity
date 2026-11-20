@@ -4,6 +4,7 @@
 import { query } from '../src/engine';
 import { demolitionPolicy, randomPolicy, standPolicy, sweepPolicy } from '../src/sim/policies';
 import { runBattle } from '../src/sim/run';
+import { RAID_SITES } from '../src/data';
 
 const args = new Map<string, string>();
 for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i]!.replace(/^--/, ''), process.argv[i + 1] ?? '');
@@ -82,7 +83,8 @@ for (const pair of pairs) {
 // charges and collapses under the invariants. Capped in ticks: it is a smoke test, not a balance figure.
 const blockBattles = Number(args.get('block') ?? 4);
 const blockTicks = Number(args.get('blockticks') ?? 500);
-if (blockBattles > 0) {
+// MAP-10: the same sweep over the block and every playable raid site.
+for (const sweepId of blockBattles > 0 ? ['block-raid', ...RAID_SITES] : []) {
   const rows: Record<string, unknown>[] = [];
   for (let i = 0; i < blockBattles; i++) {
     const seed = seed0 + i;
@@ -91,7 +93,7 @@ if (blockBattles > 0) {
     let fell = 0;
     let levelSteps = 0;
     const r = runBattle({
-      setup: { battleId: 'block-raid', seed },
+      setup: { battleId: sweepId, seed },
       agency: demolitionPolicy(0.05),
       hostile: standPolicy(),
       maxTicks: blockTicks,
@@ -106,12 +108,12 @@ if (blockBattles > 0) {
     });
     if (r.broken.length) {
       failed = true;
-      console.error(`[block-raid] seed ${seed}: ${r.broken.slice(0, 5).join('; ')}`);
+      console.error(`[${sweepId}] seed ${seed}: ${r.broken.slice(0, 5).join('; ')}`);
     }
     const o = query.outcome(r.state);
     rows.push({ seed, ticks: r.ticks, orders: r.orders, blasts, 'tiles destroyed': destroyed, falls: fell, 'level steps': levelSteps, shots: o.score.shotsFired, 'hostiles down': o.score.hostilesDown, 'agents down': o.score.agentsDown, over: o.over ? o.over.reason : 'cap' });
   }
-  console.log(`\nblock-raid demolition sweep (${blockBattles} battles of at most ${blockTicks} ticks, map halcyon-block)`);
+  console.log(`\n${sweepId} demolition sweep (${blockBattles} battles of at most ${blockTicks} ticks)`);
   console.table(rows);
 }
 console.log(`\n${failed ? 'INVARIANT FAILURES (see above)' : 'all invariants held'}; ${((Date.now() - t0) / 1000).toFixed(1)} s`);

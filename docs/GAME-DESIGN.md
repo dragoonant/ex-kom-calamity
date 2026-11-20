@@ -17,7 +17,7 @@ Inspiration, stated openly (KB rule 3): X-COM Apocalypse. The owner, 2026-11-17:
 | 5 | **Bright surface, rot underneath.** A city of tomorrow that is proud of itself | D5 |
 
 ## 3. The battle half (built first, D3)
-- Squad of 6 *(tune, Q3)* on a city block (D16): several buildings around a street or courtyard, about 60 by 60 tiles, each building with its own floors up to 6 plus roofs, rooms, doors, stairs and lifts. Walls, floors and furniture are destructible from the first playable; tiles carry health and heavy fire or explosions open walls and collapse floors. The owner wants the maps large, multi-level and detailed, as X-COM Apocalypse's were; full 3D graphics with interiors and props are the end state, placeholder meshes on real map data are allowed only until the art pass.
+- Squad of 6 *(tune, Q3)* raids **one building** in its street (D20, superseding the city block of D16): 1 to 3 floors plus a roof that vary by building, rooms, doors and stairs, the squad landing in the street and breaching in, as the inspiration fought each battle in one building. Walls, floors and furniture are destructible from the first playable; tiles carry health and heavy fire or explosions open walls and collapse floors. When only a couple of hostiles are left, the agency is shown where they are, so a raid never ends in a search (**proposal**, D20). The multi-building block stays in the data for the open-war street fights later.
 - Time runs in fixed ticks. The player pauses at will, gives orders to one agent or several, and unpauses. Agents left alone defend themselves by stance (**proposal**).
 - Enemy: hosts (taken-over citizens who look ordinary until close), the organisms that take hosts, and later purpose-grown fighters (**proposal**, from D6).
 - Civilians and property count: the building belongs to an organisation, and damage is billed to your standing with it (**proposal**, from pillars 1 and 3).
@@ -45,3 +45,4 @@ The codename "ex-kom-calamity" sounds like the inspiration's title, so it stays 
 ## Changelog
 - Draft 1, 2026-11-17: kickoff, from the owner's messages and two question batches.
 - 2026-11-17: section 3 maps widened to a city block, 6 floors, destructible from M2 (D16).
+- 2026-11-20: section 3 back to one building per raid, 1 to 3 floors, with the last hostiles marked (D20).

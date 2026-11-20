@@ -112,6 +112,8 @@ export interface State {
   score: Score;
   over: Over | null;
   log: LogEntry[];
+  /** VIEW-5: only on `view(state, 'agency')`, never on the true state: where the last few hostiles are. */
+  marks?: Pos[];
 }
 
 export interface ShotBreakdown {

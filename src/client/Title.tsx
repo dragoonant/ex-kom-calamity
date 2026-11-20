@@ -3,7 +3,14 @@
 // reopens (SAV-4); an unreadable save says why and offers Discard (SAV-6); the start switch waits for the
 // model preload and says so (KB rule 26).
 import { useEffect, useState } from 'react';
+import { BATTLES, MAPS, RAID_SITES } from '../data';
 import { useClient } from './store';
+
+/** MAP-10: the title offers each raid site with its building and floor count (M7 will pick from the alert). */
+const SITES = RAID_SITES.map((id) => {
+  const b = MAPS[BATTLES[id]!.map]!.buildings![0]!;
+  return { id, building: b.name.toUpperCase(), floors: b.floors };
+});
 
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
@@ -40,9 +47,20 @@ export function Title() {
           <div className="title-sub">(working title) · Civil Defence switchboard</div>
         </div>
         <div className="title-switches">
-          <button type="button" className="toggle toggle-big" data-testid="start" disabled={!modelsReady} onClick={() => newBattle()}>
-            {modelsReady ? 'START RAID' : `LOADING MODELS ${modelsLoaded}/${modelsTotal}`}
-          </button>
+          {modelsReady ? (
+            <div className="site-switches" role="group" aria-label="Raid site" data-testid="sites">
+              {SITES.map((site) => (
+                <button type="button" key={site.id} className="toggle toggle-big site-switch" data-testid={`start-${site.id}`} onClick={() => newBattle(site.id)}>
+                  <span>RAID {site.building}</span>
+                  <span className="site-floors num">{site.floors} {site.floors === 1 ? 'FLOOR' : 'FLOORS'} + ROOF</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <button type="button" className="toggle toggle-big" data-testid="loading" disabled>
+              LOADING MODELS {modelsLoaded}/{modelsTotal}
+            </button>
+          )}
           {summary && (
             <div className="continue-box" data-testid="continue-box">
               <button type="button" className="toggle toggle-big toggle-on" data-testid="continue" onClick={() => continueBattle()}>
@@ -77,7 +95,7 @@ export function Title() {
           )}
         </div>
         <div className="title-foot">
-          Real time with pause. Space pauses, 1 to 6 pick an agent and again centre on them, B arms a charge, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag or WASD pans. Hostiles fight back: hosts ambush, takers hunt, fighters breach. Early build M4: generated figures for the moulded suit, the revealed host, the taker and the fighter; the rest are stand-ins.
+          Real time with pause. Space pauses, 1 to 6 pick an agent and again centre on them, B arms a charge, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag or WASD pans. Hostiles fight back: hosts ambush, takers hunt, fighters breach. Each raid is one building; when two hostiles are left, the switchboard marks where they are. Early build M4: generated figures for the moulded suit, the revealed host, the taker and the fighter; the rest are stand-ins.
         </div>
       </div>
     </div>
