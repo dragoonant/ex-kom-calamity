@@ -9,8 +9,8 @@ export function game(seed = 1, tuning?: Partial<Tuning>): State {
 }
 
 /** Forced outcomes through tuning (FIRE-5 clamps to the range). */
-export const ALWAYS_HIT: Partial<Tuning> = { fire: { minHitChance: 100, maxHitChance: 100, movingTargetPenalty: 15, retaliateMemoryTicks: 50 } };
-export const NEVER_HIT: Partial<Tuning> = { fire: { minHitChance: 0, maxHitChance: 0, movingTargetPenalty: 15, retaliateMemoryTicks: 50 } };
+export const ALWAYS_HIT: Partial<Tuning> = { fire: { minHitChance: 100, maxHitChance: 100, movingTargetPenalty: 15, retaliateMemoryTicks: 50, crouchTargetPenalty: 15, crouchAimBonus: 5, runningShooterPenalty: 20, runSettleTicks: 10 } };
+export const NEVER_HIT: Partial<Tuning> = { fire: { minHitChance: 0, maxHitChance: 0, movingTargetPenalty: 15, retaliateMemoryTicks: 50, crouchTargetPenalty: 15, crouchAimBonus: 5, runningShooterPenalty: 20, runSettleTicks: 10 } };
 
 export function clone<T>(x: T): T {
   return JSON.parse(JSON.stringify(x)) as T;

@@ -3,7 +3,7 @@
 // output is a Pose of weights and phases; Rigged.tsx plays the GLB's `idle` and `walk` clips by those weights and
 // lays the rest (crouch, aim, recoil, flinch, throw, lunge, fall, reveal pop) onto the bones. No three.js here, so the
 // rules of motion are unit-tested (tests/client-anim.test.ts). Nothing here reads the true state: a hidden unit's
-// order and stance are redacted, so only the agency's own units crouch by stance or aim by their fire target.
+// order is redacted, so only the agency's own units aim by their fire target or run by their order; a crouch is seen.
 import type { Unit } from '../../engine';
 
 /** One-shot motions started by an event; each runs for its own duration from the start time. */
@@ -15,9 +15,8 @@ export const TRIGGER_SECONDS: Record<Trigger, number> = { recoil: 0.16, flinch: 
 /** Seconds a death fall takes, from standing to lying. */
 export const FALL_SECONDS = 0.55;
 
-/** Tiles per second above which a moving figure runs instead of walking; and a path this long always runs. */
+/** Tiles per second above which a moving figure the view shows no order for runs instead of walking. */
 export const RUN_SPEED = 2.4;
-export const RUN_PATH = 6;
 
 /** The walk clip's stride: tiles covered in one cycle at timeScale 1 (the clip is 1 s long). */
 export const WALK_STRIDE = 1.15;
@@ -86,11 +85,13 @@ export function phaseOf(input: AnimInput, t: Trigger): number | null {
   return p >= 0 && p < 1 ? p : null;
 }
 
-/** Whether the unit wants a long run: its own path (agency only, VIEW-2) is long, or it is drawn fast. */
+/**
+ * Whether the figure runs: a running move order (POSE-3; the order is the agency's own, VIEW-2), or, for a unit
+ * whose order the view hides, a drawn speed only a run reaches.
+ */
 export function isRunning(unit: Unit, speed: number): boolean {
   if (speed < 0.2) return false;
-  const left = unit.order?.path.length ?? 0;
-  return left >= RUN_PATH || speed >= RUN_SPEED;
+  return unit.order?.run === true || speed >= RUN_SPEED;
 }
 
 /** Whether the unit holds its weapon up: an own unit with a fire target, or anyone seen firing in the last 2 s. */
@@ -101,15 +102,9 @@ export function isAiming(input: AnimInput): boolean {
   return input.lastShot !== null && input.now - input.lastShot < 2;
 }
 
-/**
- * Whether the figure crouches: an own unit holding its ground (HOLD stance, redacted for every other side) or aiming
- * while standing still. Crouch is a look only until the rules slice (D21 c).
- */
+/** Whether the figure crouches: its posture (POSE-1), which every side sees (VIEW-2). It moves crouched too. */
 export function isCrouching(input: AnimInput): boolean {
-  const u = input.unit;
-  if (u.down || input.speed > 0.2) return false;
-  if (u.side === 'agency' && u.stance === 'hold') return true;
-  return u.side === 'agency' && isAiming(input);
+  return !input.unit.down && input.unit.posture === 'crouch';
 }
 
 /** The next pose from the last one: continuous parts ease, one-shots follow their phase. */

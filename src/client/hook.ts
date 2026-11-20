@@ -26,7 +26,7 @@ export interface EkcHook {
   setMode(mode: 'normal' | 'blast'): void;
   setLevel(level: number): void;
   level(): number;
-  tapTile(p: Pos): TapResult;
+  tapTile(p: Pos, opts?: { shift?: boolean }): TapResult;
   lastTap(): TapResult | null;
   hash(): string | null;
   screen(): string;

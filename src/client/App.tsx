@@ -56,7 +56,7 @@ export function App() {
       setMode: (m) => s().setMode(m),
       setLevel: (l) => s().setLevel(l),
       level: () => s().level,
-      tapTile: (p) => s().tapTile(p),
+      tapTile: (p, opts) => s().tapTile(p, opts),
       lastTap: () => s().lastTap,
       hash: () => s().hash(),
       screen: () => s().screen,

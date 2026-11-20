@@ -16,8 +16,8 @@ and `?moves&row=<role>` (one figure up close: `agent-t1`, `host-revealed`, `take
 |---|---|---|
 | Idle | generated clip `idle` (2.5 s) | standing still |
 | Walk | generated clip `walk` (1 s), timeScale from drawn speed (stride 1.15 tiles per cycle) | moving |
-| Run | the walk clip faster, with a forward lean | moving with 6 or more path tiles left (own units) or drawn faster than 2.4 tiles/s |
-| Crouch | code: hips down 0.13, thighs forward, shins back, chest forward | own unit on HOLD, or own unit aiming while still (a look until the rules slice, D21 c) |
+| Run | the walk clip faster, with a forward lean | a running move order (POSE-3; own units, whose orders the view shows) or drawn faster than 2.4 tiles/s |
+| Crouch | code: hips down 0.13, thighs forward, shins back, chest forward | the unit's posture (POSE-1), any side, standing or moving |
 | Aim | code: both arms raised to the shoulder, figure turns to the target | own unit with a fire target, or any figure seen firing in the last 2 s |
 | Fire recoil | code: arms and chest kick, 0.16 s | each visible shot (fx `muzzle`) |
 | Hit flinch | code: chest stagger, 0.35 s | each visible hit (fx `hit`) |
@@ -31,11 +31,11 @@ lunge move the root (dip, tilt, wobble); the legs play the clips.
 
 ## 3. Rules the code keeps
 - **Nothing reads the true state.** Motions come from `view(state, 'agency')` and the fx queue, which already hide a
-  hidden shooter (VIEW-2). Stance is redacted to `hold` for every other side, so only the agency's own units crouch.
+  hidden shooter (VIEW-2). A crouch is seen (posture is shown as it is); a stance is redacted, so it never crouches a figure.
 - **Bones are restored to their rest pose every frame** before the clips play: the mixer leaves a bone alone when the
   clip holds it still, so code-built turns would otherwise pile up frame on frame (found on `?moves`, 2026-11-20).
-- **Figures glide at the unit's own pace** (`1.15 * ticksPerSecond / moveTicks` tiles per second) instead of easing
-  into each tile, so the walk reads; a jump of more than 3 tiles snaps.
+- **Figures glide at the unit's own pace** (`1.15 * ticksPerSecond / moveTicks` tiles per second, scaled by the run and
+  crouch costs of POSE-3) instead of easing into each tile, so the walk reads; a jump of more than 3 tiles snaps.
 - No raycast on any figure part (KB rule 25); a figure lying down stops its mixer.
 
 ## 4. Known limits

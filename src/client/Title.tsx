@@ -95,7 +95,7 @@ export function Title() {
           )}
         </div>
         <div className="title-foot">
-          Real time with pause. Space pauses, 1 to 6 pick an agent and again centre on them, B arms a charge, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag or WASD pans. Hostiles fight back: hosts ambush, takers hunt, fighters breach. Each raid is one building; when two hostiles are left, the switchboard marks where they are. Early build M4: generated figures for the moulded suit, the revealed host, the taker and the fighter; the rest are stand-ins.
+          Real time with pause. Space pauses, 1 to 6 pick an agent and again centre on them, B arms a charge, C crouches, R or Shift-click runs, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag or WASD pans. Hostiles fight back: hosts ambush, takers hunt, fighters breach. Each raid is one building; when two hostiles are left, the switchboard marks where they are. Early build M4: generated figures for the moulded suit, the revealed host, the taker and the fighter; the rest are stand-ins.
         </div>
       </div>
     </div>

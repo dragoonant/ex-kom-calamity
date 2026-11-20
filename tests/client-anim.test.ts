@@ -3,7 +3,7 @@
 // aims, recoils, flinches, throws, lunges, pops and falls, and that a hidden unit's redacted fields never drive them.
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { FALL_SECONDS, REST_POSE, RUN_PATH, TRIGGER_SECONDS, isAiming, isCrouching, isRunning, nextPose, phaseOf, throwArmAngle, type AnimInput, type Pose } from '../src/client/board/anim';
+import { FALL_SECONDS, REST_POSE, TRIGGER_SECONDS, isAiming, isCrouching, isRunning, nextPose, phaseOf, throwArmAngle, type AnimInput, type Pose } from '../src/client/board/anim';
 import { turnBone } from '../src/client/board/Rigged';
 import { createGame, view } from '../src/engine';
 
@@ -21,23 +21,25 @@ function settle(inp: AnimInput, seconds = 2, from: Pose = REST_POSE): Pose {
 }
 
 describe('D21 figure animation (anim.ts)', () => {
-  it('stands idle when still, walks when moving, runs on a long path or at speed; the walk clip keeps pace', () => {
+  it('stands idle when still, walks when moving, runs on a running order (POSE-3) or at speed; the walk clip keeps pace', () => {
     expect(settle(input())).toMatchObject({ idle: 1, walk: 0, run: 0 });
     const walk = settle(input({ speed: 1.2 }));
     expect(walk.walk).toBe(1);
     expect(walk.run).toBe(0);
     expect(walk.rate).toBeCloseTo(1.2 / 1.15, 2);
     expect(settle(input({ speed: 3 })).run).toBe(1);
-    const longPath = { ...agent, order: { to: { x: 0, y: 0, level: 0 }, path: Array.from({ length: RUN_PATH }, () => ({ x: 0, y: 0, level: 0 })) } };
-    expect(isRunning(longPath as typeof agent, 1.2)).toBe(true);
-    expect(isRunning(longPath as typeof agent, 0)).toBe(false);
+    const running = { ...agent, order: { to: { x: 0, y: 0, level: 0 }, path: [], progress: 0, blockedTicks: 0, run: true } };
+    expect(isRunning(running, 1.2)).toBe(true);
+    expect(isRunning(running, 0)).toBe(false);
+    expect(isRunning({ ...running, order: { ...running.order, run: false } }, 1.2)).toBe(false);
   });
 
-  it('crouches only an own unit on HOLD or aiming while still (stance is redacted for every other side, VIEW-2)', () => {
-    const hold = { ...agent, stance: 'hold' as const };
-    expect(isCrouching(input({ unit: hold }))).toBe(true);
-    expect(isCrouching(input({ unit: hold, speed: 1 }))).toBe(false);
-    expect(settle(input({ unit: hold })).crouch).toBe(1);
+  it('crouches by posture (POSE-1), on the move too, any side; a redacted HOLD stance never crouches a figure (VIEW-2)', () => {
+    const low = { ...agent, posture: 'crouch' as const };
+    expect(isCrouching(input({ unit: low }))).toBe(true);
+    expect(isCrouching(input({ unit: low, speed: 1 }))).toBe(true);
+    expect(isCrouching(input({ unit: { ...agent, stance: 'hold' } }))).toBe(false);
+    expect(settle(input({ unit: low })).crouch).toBe(1);
     // A hostile in the agency's view always reads stance 'hold' (redacted): it must not crouch for that.
     const v = view(s0, 'agency');
     for (const u of v.units.filter((x) => x.side !== 'agency')) {

@@ -97,7 +97,7 @@ function MotionFeed() {
 
 const UP = new THREE.Vector3();
 
-function Figure({ unit, selected, tps, armTicks }: { unit: Unit; selected: boolean; tps: number; armTicks: number }) {
+function Figure({ unit, selected, tps, armTicks, runPct, crouchPct }: { unit: Unit; selected: boolean; tps: number; armTicks: number; runPct: number; crouchPct: number }) {
   const group = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const target = tileToWorld(unit);
@@ -133,7 +133,9 @@ function Figure({ unit, selected, tps, armTicks }: { unit: Unit; selected: boole
     if (dist > 3) {
       s.copy(tgt);
     } else if (dist > 0.001) {
-      const pace = (1.15 * tps) / Math.max(1, u.moveTicks);
+      // POSE-3: a run covers ground faster, a crouch slower (the engine's own cost factors).
+      const factor = u.order?.run ? runPct / 100 : u.posture === 'crouch' ? crouchPct / 100 : 1;
+      const pace = (1.15 * tps) / Math.max(1, u.moveTicks * factor);
       const step = Math.min(dist, Math.max(pace, dist * 2) * dt);
       const dx = tgt.x - s.x;
       const dz = tgt.z - s.z;
@@ -279,7 +281,7 @@ export function Figures({ state }: { state: State }) {
     <group>
       <MotionFeed />
       {drawn.map((u) => (
-        <Figure key={u.id} unit={u} selected={u.id === selected} tps={tps} armTicks={armTicks} />
+        <Figure key={u.id} unit={u} selected={u.id === selected} tps={tps} armTicks={armTicks} runPct={state.tuning.move.runCostPercent ?? 100} crouchPct={state.tuning.move.crouchCostPercent ?? 100} />
       ))}
       <HpBars units={drawn} />
       {state.units

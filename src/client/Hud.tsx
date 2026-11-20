@@ -48,9 +48,10 @@ export function Hud() {
   const level = useClient((s) => s.level);
   const hover = useClient((s) => s.hover);
   const mode = useClient((s) => s.mode);
+  const run = useClient((s) => s.run);
   const slips = useClient((s) => s.slips);
   const saveStatus = useClient((s) => s.saveStatus);
-  const { togglePause, setSpeed, select, setLevel, setMode, focusUnit, order, leaveBattle } = useClient.getState();
+  const { togglePause, setSpeed, select, setLevel, setMode, setRun, focusUnit, order, leaveBattle } = useClient.getState();
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const [audio, setAudio] = useState(() => director.getSettings());
   // D21 f: the camera shake switch, kept per browser under ekc-view.
@@ -104,6 +105,12 @@ export function Hud() {
         s.setMode(s.mode === 'blast' ? 'normal' : 'blast');
       } else if (e.code === 'KeyF' && s.selected) {
         s.focusUnit(s.selected);
+      } else if (e.code === 'KeyC' && s.selected) {
+        // POSE-2: C crouches the selected agent, or stands it up.
+        const u = s.agency?.units.find((x) => x.id === s.selected);
+        if (u && !u.down) s.order({ type: 'posture', side: 'agency', unit: u.id, posture: u.posture === 'crouch' ? 'stand' : 'crouch' });
+      } else if (e.code === 'KeyR') {
+        s.setRun(!s.run);
       }
     };
     document.addEventListener('keydown', onKey);
@@ -242,6 +249,20 @@ export function Hud() {
                     CHARGE <span className="num">{sel.charges}</span>
                   </button>
                 </div>
+                <div className="switch-row" role="group" aria-label="Posture and pace">
+                  <button
+                    type="button"
+                    className={`toggle ${sel.posture === 'crouch' ? 'toggle-on' : ''}`}
+                    data-testid="posture"
+                    aria-pressed={sel.posture === 'crouch'}
+                    onClick={() => order({ type: 'posture', side: 'agency', unit: sel.id, posture: sel.posture === 'crouch' ? 'stand' : 'crouch' })}
+                  >
+                    {sel.posture === 'crouch' ? 'CROUCHED' : 'CROUCH'}
+                  </button>
+                  <button type="button" className={`toggle ${run ? 'toggle-on' : ''}`} data-testid="run" aria-pressed={run} onClick={() => setRun(!run)}>
+                    {run ? 'RUN ON' : 'RUN'}
+                  </button>
+                </div>
                 <div className="order-line num" data-testid="order-line">
                   {sel.blast
                     ? `Arming a charge for ${sel.blast.at.x},${sel.blast.at.y}: ${sel.blast.progress}/${agency.tuning.blast.armTicks} ticks`
@@ -306,7 +327,7 @@ export function Hud() {
                 {hoverInfo.hit && (
                   <div className="num" data-testid="hit-chance">
                     {hoverInfo.hit.ok
-                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
+                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
                       : `${sel!.name} cannot fire: ${hoverInfo.hit.reason}`}
                   </div>
                 )}

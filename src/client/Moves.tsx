@@ -20,7 +20,7 @@ interface Move {
   label: string;
   /** Tiles per second the figure is drawn moving at. */
   speed?: number;
-  stance?: 'hold';
+  crouch?: boolean;
   aim?: boolean;
   /** A one-shot replayed every `every` seconds. */
   trigger?: Trigger;
@@ -35,7 +35,7 @@ export const MOVES: Move[] = [
   { id: 'idle', label: 'IDLE' },
   { id: 'walk', label: 'WALK', speed: 1.4 },
   { id: 'run', label: 'RUN', speed: 3.2 },
-  { id: 'crouch', label: 'CROUCH', stance: 'hold' },
+  { id: 'crouch', label: 'CROUCH', crouch: true },
   { id: 'aim', label: 'AIM + FIRE', aim: true, trigger: 'recoil', every: 0.6 },
   { id: 'flinch', label: 'HIT', trigger: 'flinch', every: 1.2 },
   { id: 'throw', label: 'THROW', arm: true },
@@ -92,7 +92,8 @@ function MoveCell({ role, move, x, z }: { role: FigureRole; move: Move; x: numbe
     const dt = Math.min(dtRaw, 0.1);
     const now = clock.elapsedTime;
     const u = unit.current;
-    u.stance = move.stance ?? 'engage';
+    u.posture = move.crouch ? 'crouch' : 'stand';
+    if (move.speed && move.speed > 2) u.order = { to: { x: 0, y: 0, level: 0 }, path: [], progress: 0, blockedTicks: 0, run: true };
     if (move.trigger && move.every) {
       const last = triggers.current[move.trigger];
       if (last === undefined || now - last >= Math.max(move.every, TRIGGER_SECONDS[move.trigger])) {
@@ -176,7 +177,7 @@ export function Moves() {
           FIGURE MOVES: {MOVE_ROLES.length} figures, {MOVES.length} motions, {ready ? 'models ready' : 'loading models'}
         </div>
         <div className="moves-legend num" data-testid="moves-legend">
-          Columns, left to right: {MOVES.map((m) => m.label).join(' · ')}. Rows, back to front: {MOVE_ROLES.map((r) => FIGURE_SLOTS[r].label).join(' · ')}. Idle and walk are the generated clips; the rest are built in code on the rig (PLAN D21). Crouch and run are looks until the rules slice.
+          Columns, left to right: {MOVES.map((m) => m.label).join(' · ')}. Rows, back to front: {MOVE_ROLES.map((r) => FIGURE_SLOTS[r].label).join(' · ')}. Idle and walk are the generated clips; the rest are built in code on the rig (PLAN D21). Crouch and run are rules too (spec section 24): a crouched unit is harder to hit at range, a runner is quicker and shoots worse for a second.
         </div>
       </div>
     </div>

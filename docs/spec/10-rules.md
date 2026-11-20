@@ -48,20 +48,20 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - **UNIT-5** Templates: `agent-t1` (plain security gear, `PLAN.md` D7 tier 1), `host` (a taken-over citizen, disguised, pocket pistol), `taker` (the organism, fast, melee, never disguised; its bite takes citizens, TAKE-1), `fighter` (M3: the purpose-grown fighter of `PLAN.md` D14, a headless column on three stilt legs; armoured, lash whip at range 5, one breaching charge), `citizen` (unarmed). Numbers are in `units.json`; the JSON wins.
 
 ## 4. Orders (ORD)
-- **ORD-1** Actions: `{ type: "tick" }`; `{ type: "move", side, unit, to: { x, y, level } }`; `{ type: "fire", side, unit, target }`; `{ type: "stance", side, unit, stance }`; `{ type: "halt", side, unit }`; `{ type: "blast", side, unit, at: { x, y, level } }`; `{ type: "withdraw", side: "agency" }`.
+- **ORD-1** Actions: `{ type: "tick" }`; `{ type: "move", side, unit, to: { x, y, level }, run? }` (POSE-3); `{ type: "fire", side, unit, target }`; `{ type: "stance", side, unit, stance }`; `{ type: "posture", side, unit, posture }` (POSE-2); `{ type: "halt", side, unit }`; `{ type: "blast", side, unit, at: { x, y, level } }`; `{ type: "withdraw", side: "agency" }`.
 - **ORD-2** An order is rejected (`ok: false`) when the battle is over, the unit does not exist, is down or does not belong to `side`, or the side is `civilian`.
 - **ORD-3** `move` is legal when `to` is a passable tile other than the unit's own, not held by a living unit, and a path exists (MOVE-2). It replaces any earlier move order and keeps the fire target.
 - **ORD-4** `fire` is legal when the target is a living unit of another side that `side` can currently see (SEE-5), at any range. It sets the unit's **explicit target** (a new target resets `aimProgress`; the same target again changes nothing); the unit fires when it can (FIRE-1) and otherwise keeps moving. A `fire` on a unit that appears to be a citizen is legal: the player may shoot a suspect, and pays for it in the counters (CIV-3).
 - **ORD-5** `stance` is legal for any stance other than the unit's current one (STANCE-1).
 - **ORD-6** `halt` is always legal for a living own unit: it clears the move order, the explicit target, any aim in progress and a pending charge (BLAST-1).
 - **ORD-7** `withdraw` is legal for `agency` while the battle is not over; it ends the battle at once (END-4).
-- **ORD-8** `legalActions(state, side)` lists, in this order: `tick`; for each living unit of the side in id order, `halt`, each other `stance`, `move` to every reachable tile (QRY-3), `fire` at every legal target, `blast` at every legal tile in tile-index order (ORD-9); then `withdraw` for the agency. For `civilian` and for a finished battle the list is `tick` alone.
+- **ORD-8** `legalActions(state, side)` lists, in this order: `tick`; for each living unit of the side in id order, `halt`, each other `stance`, each other `posture` (POSE-2), `move` to every reachable tile (QRY-3, walking; RULING POSE-3), `fire` at every legal target, `blast` at every legal tile in tile-index order (ORD-9); then `withdraw` for the agency. For `civilian` and for a finished battle the list is `tick` alone.
 
 - **ORD-9** `blast` is legal when the unit has `charges > 0` and `at` is a tile on the unit's level, other than its own, within `blast.throwRange = 6` tiles (MAP-5) that the unit itself sees (SEE-2). It sets the unit's pending charge (BLAST-1), replacing an earlier one; move and fire orders are kept and resume after the detonation.
 
 ## 5. Movement (MOVE)
 - **MOVE-1** Movement is 8-directional on a level. A diagonal step is allowed only when both orthogonal tiles it passes are passable (no corner cutting). A level step is a move between a `stair` tile and the tile above or below it (MAP-4).
-- **MOVE-2** Step cost in ticks: orthogonal `unit.moveTicks`; diagonal `round(moveTicks * move.diagonalCostPercent / 100)`, `move.diagonalCostPercent = 141`; level step `round(moveTicks * move.stairCostPercent / 100)`, `move.stairCostPercent = 150`. A step onto a `rubble` tile costs `round(cost * move.rubbleCostPercent / 100)` of what it would otherwise cost, `move.rubbleCostPercent = 200`. Paths are cheapest-first (Dijkstra) over passable tiles, ignoring units; ties break by the neighbour order east, south, west, north, then the four diagonals clockwise from north-east, then up, then down.
+- **MOVE-2** Step cost in ticks: orthogonal `unit.moveTicks`; diagonal `round(moveTicks * move.diagonalCostPercent / 100)`, `move.diagonalCostPercent = 141`; level step `round(moveTicks * move.stairCostPercent / 100)`, `move.stairCostPercent = 150`. A step onto a `rubble` tile costs `round(cost * move.rubbleCostPercent / 100)` of what it would otherwise cost, `move.rubbleCostPercent = 200`. Running and crouching then scale the cost (POSE-3); no step costs less than 1 tick. Paths are cheapest-first (Dijkstra) over passable tiles, ignoring units; ties break by the neighbour order east, south, west, north, then the four diagonals clockwise from north-east, then up, then down.
 - **MOVE-3** A move order holds the remaining path and a `progress` counter. Each tick in which the unit has no current target (FIRE-2), `progress` rises by 1; when it reaches the cost of the next step the unit moves onto that tile, `progress` returns to 0 and a `moved` event is emitted. On the last step an `arrived` event follows and the order clears.
 - **MOVE-4** A unit with a current target does not advance its move order (it stands and fights); the order survives and resumes when the target is gone.
 - **MOVE-5** A tile holds at most one living unit. Down units do not block. When the next tile is held, the unit waits (`progress` stays at the step cost) and counts `blockedTicks`; at `move.blockedWaitTicks = 5` it replans around every held tile; if no path remains the order clears with a `moveBlocked` event. When the next step is no longer a legal step at all (its tile was destroyed or collapsed, STR-4), the unit replans at once around nothing but the map, and the order clears with `moveBlocked` when no path is left.
@@ -95,11 +95,11 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - **FIRE-2** A unit's **current target** at its step of TIME-3a is its explicit target (ORD-4) when FIRE-1 holds for it, otherwise its stance target (STANCE-3, STANCE-4), otherwise none. An explicit target that is down or no longer seen by the side is dropped; one that is merely out of range or out of the shooter's own sight is kept and waited for.
 - **FIRE-3** With a current target and the weapon ready (`tick >= readyTick`), `aimProgress` rises by 1 per tick; when it reaches `weapon.aimTicks` the shot resolves in that same tick. A tick without a current target resets `aimProgress` to 0. With a current target but the weapon not ready, the unit waits (and stands, MOVE-4).
 - **FIRE-4** Resolving a shot sets `readyTick = tick + weapon.cooldownTicks`, `lastFiredTick = tick`, `aimProgress = 0`, counts `score.shotsFired`, and reveals a disguised shooter (HIDE-2).
-- **FIRE-5** Hit chance in percent: `raw = weapon.accuracy + shooter.aim - weapon.falloffPerTile * floor(distance) - (target moving ? fire.movingTargetPenalty : 0)`, `fire.movingTargetPenalty = 15`; `chance = clamp(raw, fire.minHitChance, fire.maxHitChance)`, `fire.minHitChance = 5`, `fire.maxHitChance = 95`. Melee uses distance 0.
+- **FIRE-5** Hit chance in percent: `raw = weapon.accuracy + shooter.aim - weapon.falloffPerTile * floor(distance) - (target moving ? fire.movingTargetPenalty : 0) - crouchPenalty + crouchBonus - runPenalty` (POSE-4), `fire.movingTargetPenalty = 15`; `chance = clamp(raw, fire.minHitChance, fire.maxHitChance)`, `fire.minHitChance = 5`, `fire.maxHitChance = 95`. Melee uses distance 0.
 - **FIRE-6** The roll is one RNG integer `0..99`; the shot hits when `roll < chance`.
 - **FIRE-7** A miss never hits a unit (no stray hits on units in this slice); a missed ranged shot may strike structure behind the target (STR-6).
 - **FIRE-8** A hit applies damage (section 10) to the target.
-- **FIRE-9** Every shot emits `shot { shooter, target, weapon, distance, moving, breakdown: { accuracy, aim, falloff, movingPenalty, raw, chance }, roll, hit }`.
+- **FIRE-9** Every shot emits `shot { shooter, target, weapon, distance, moving, breakdown: { accuracy, aim, falloff, movingPenalty, crouchPenalty, crouchBonus, runPenalty, raw, chance }, roll, hit }`.
 
 ## 10. Damage (DMG)
 - **DMG-1** Raw damage is one RNG integer in `weapon.damageMin..weapon.damageMax` inclusive.
@@ -121,7 +121,7 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 
 ## 13. View (VIEW)
 - **VIEW-1** `view(state, side)` returns a `State` that holds the side's own units in full and keeps tiles, tick, tuning, score and `over`.
-- **VIEW-2** Units of other sides appear only while the side can currently see them (SEE-5), **redacted**: `order: null`, `fireTarget: null`, `aimProgress: 0`, `readyTick: 0`, `lastFiredTick: -1`, `stance: "hold"`, `blast: null`, `charges: 0`; a disguised, unrevealed host additionally shows template `citizen`, side `civilian`, `weapon: null`, `disguised: false` and the citizen template's name (HIDE-1). Position, `moving`, `hp`, `maxHp`, `armour`, `aim`, `moveTicks`, `sight`, `revealed` and `down` are shown as they are (the suit says what it is).
+- **VIEW-2** Units of other sides appear only while the side can currently see them (SEE-5), **redacted**: `order: null`, `fireTarget: null`, `aimProgress: 0`, `readyTick: 0`, `lastFiredTick: -1`, `stance: "hold"`, `blast: null`, `charges: 0`; a disguised, unrevealed host additionally shows template `citizen`, side `civilian`, `weapon: null`, `disguised: false` and the citizen template's name (HIDE-1). Position, `moving`, `hp`, `maxHp`, `armour`, `aim`, `moveTicks`, `sight`, `revealed`, `down`, `posture` and `lastRunTick` are shown as they are (the suit says what it is; a crouch and a run are seen).
 - **VIEW-3** Down units of other sides are shown while their tile is seen, redacted the same way.
 - **VIEW-4** The view's `rng` is `[0, 0, 0, 0]` and its `log` is empty, so no side can foresee a roll or read the other side's orders. `civilian` sees only its own units.
 - **VIEW-5** When at least one and at most `sight.markLastHostiles = 2` hostile units are living, `view(state, "agency")` carries `marks`: the tile `{ x, y, level }` of each such hostile the agency cannot currently see, in unit order (seen ones are already in `units`). A mark is a place, not a unit: it names no id, template or side, and it gives no right to fire (ORD-4 still needs sight). No other view and never the true state carries `marks`.
@@ -210,6 +210,11 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - RULING: MAP-10 | Until the city layer exists the title offers all three sites as switches | M7 picks the site from the alert; the owner asked that floors vary by building, and a choice shows that variety now. provisional
 - RULING: VIEW-5 | Marks include a disguised host the agency has not unmasked | The marker exists to end the search for the last hostiles; leaving a disguised host unmarked would leave exactly the search the owner asked to remove. Firing still needs an agent who sees it. provisional
 - RULING: VIEW-5 | `sight.markLastHostiles` lives in tuning, so the hash of every new battle changed once and the golden was remade; a save from before it still loads (the save carries its own tuning) and simply shows no marks | Numbers live in data (ARCH); a one-time hash change is cheaper than a number in code. provisional
+- RULING: POSE-3 | `legalActions` lists each move once, as a walk; the run of the same move is legal and not listed again | Listing every move twice would double the longest part of the list for the random drivers and the AI without a new choice of where to go. provisional
+- RULING: POSE-4 | A running shooter is penalised for a second after its last running step ("winded"), not while running | A unit with a current target stands and fights (MOVE-4), so a penalty while moving would never apply; the settle window is what makes a run cost something in a fight. provisional
+- RULING: POSE-4 | Crouching helps only against ranged fire from 2 or more tiles | A crouched target at arm's length or against a bite is no harder to hit. provisional
+- RULING: POSE-1 | The hostile AI does not crouch or run yet; the random drivers do, because posture orders are in `legalActions` | Teaching the AI cover and pace is its own slice with its own bench result (KB rule 30). provisional
+
 
 ## 18. Sim baseline (KB rule 30)
 `npm run sim`, 40 battles per driver pair, seeds 1-40, battle `first-raid`, numbers as committed. The drivers are not an AI (hostiles stand or take random orders), so this is the starting line, not a verdict. Re-run after M3 and change one number at a time.
@@ -226,6 +231,15 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 M2 added structure and charges without a new roll, so sweep vs stand did not move; random vs random moved because the random driver now throws charges too. M3 added taking without a roll and made stairs unbreakable, and neither sim row moved at all (the AI is benched in section 23, not here). The sim also runs a demolition sweep on the block (`block-raid`, 4 battles capped at 500 ticks): on 2026-11-18 after M3, 48 charges, 34 tiles destroyed, 88 steps between levels, 12 hostiles down, no invariant broken.
 
 Raid sites (D20, MAP-10), 2026-11-20: the demolition sweep (`demolitionPolicy` against standing hostiles, 4 battles of at most 500 ticks, seeds 1-4) clears `automat-raid` in every battle (149 to 260 ticks, 5 of 5 hostiles down) and `depot-raid` in every battle (174 to 496 ticks, 7 of 7), and reaches the cap on `savings-raid` with 5 or 6 of 8 hostiles down; 3 agents down in 16 battles, 0 invariant failures. The `block-raid` sweep is unchanged (48 charges, 34 tiles destroyed, 88 level steps, 12 hostiles down). VIEW-5 changes no roll and no driver reads `marks`.
+
+Posture and pace (section 24, D21 c), 2026-11-20, `first-raid`, seeds 1-40:
+
+| Driver pair | Agency wins | Mean sim seconds | Agents down / battle | Civilian hits / battle | Hit rate |
+|---|---|---|---|---|---|
+| random vs random | 100% | 28.4 | 0.68 | 0.38 | 53.3% |
+| sweep vs stand | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
+
+Sweep vs stand did not move (neither driver crouches or runs). Random vs random moved: the random driver now draws posture orders from `legalActions`, and its crouched units are harder to hit and slower. The demolition sweeps of the block and the three sites held every invariant. `action-fuzz` issued 9 posture orders in run 2 with every invariant held.
 
 ## 19. Structure (STR) - `PLAN.md` D16: walls and floors are destructible from M2
 - **STR-1** Every tile carries a `material` (an id in `src/data/materials.json`) and `hp`. A map names materials per tile through an optional `levels[].materials` grid, one character per tile, read through the map's `materialKey`; a tile without one (or with a space there) takes the default material of its kind (`materials.json` `_defaults`). `hp` starts at the material's `hp`.
@@ -272,6 +286,20 @@ Raid sites (D20, MAP-10), 2026-11-20: the demolition sweep (`demolitionPolicy` a
 Determinism: seed 1 in the hostile seat replays to the same hash. Calibration (`random` against `random`, 40 battles, same roster): agency 33%, hostile 63%, 2 draws. Gate (PLAN M3, 95% over at least 200): **PASS, with no margin**: the agency seat is the weak one (92%), lost to random fighters' stance fire when the squad climbs a stair into them; the hostile seat is at 98%. Earlier drafts for the record: hosts that walked at agents, 40 to 48% in the hostile seat; standing ambushers and lurking fighters, 90 to 97% over 30 to 60 battles; the stair collapses that timed out 3 of 40 agency-seat battles became RULING STR-2.
 
 Raid sites (D20, MAP-10), 2026-11-20, `npm run bench:ai` (20 battles per site, 10 per seat, seeds 1-10): normal beats random **85% (17/20)** on `automat-raid`, **80% (16/20)** on `depot-raid`, **85% (17/20)** on `savings-raid`. These rosters were not calibrated random against random (unlike `bench-raid`), so they are a smoke result for the AI on one building, not a gate; `bench-raid` above stays the gate and did not move (95.0%, 190/200).
+
+## 24. Posture and pace (POSE) - M4c: crouching and running (`PLAN.md` D21 c)
+- **POSE-1** A unit has a `posture`, `stand` or `crouch`, and starts standing. `unit.lastRunTick` is the last tick it advanced a running move, or `null`. A state from before M4c has neither field: it reads as standing and never having run.
+- **POSE-2** `posture` (ORD-1) is legal for a living own unit and a posture other than its current one. It sets `unit.posture`. Crouching turns a running move order into a walk. A `move` with `run: true` stands a crouched unit up.
+- **POSE-3** A `move` may carry `run: true`; the order keeps it as `order.run`. A step of a running order costs `round(cost * move.runCostPercent / 100)`, `move.runCostPercent = 60`. A step of a crouched unit costs `round(cost * move.crouchCostPercent / 100)`, `move.crouchCostPercent = 150`. Both apply after MOVE-2, and no step costs less than 1 tick. Paths are planned with the same costs.
+- **POSE-4** FIRE-5 gains three terms, each shown in the breakdown:
+  - `crouchPenalty`, `fire.crouchTargetPenalty = 15`, when a ranged shot's target is crouched and at least 2 tiles away;
+  - `crouchBonus`, `fire.crouchAimBonus = 5`, when the shooter of a ranged shot is crouched;
+  - `runPenalty`, `fire.runningShooterPenalty = 20`, when the shooter ran within the last `fire.runSettleTicks = 10` ticks (`tick - lastRunTick < runSettleTicks`).
+  
+  Melee ignores crouching.
+- **POSE-5** Every unit that advances its move progress on a running order sets `lastRunTick = tick`, whether or not it completes the step that tick (TIME-3a).
+
+Posture and pace (section 24, D21 c), 2026-11-20: **unchanged**: 95.0% (190/200) on `bench-raid` with the same per-seat rows; 85%, 80% and 85% on the three sites. Neither the AI nor the bench's random agents give posture or run orders yet (RULING POSE-1), so the new terms never apply there. The AI slice that teaches cover and pace needs its own result.
 
 ## Sources
 `PLAN.md` D14 (owner, 2026-11-17) and the M3 brief for sections 21 to 23; `PLAN.md` D16 (owner, 2026-11-17) for sections 19 and 20, MAP-7 and MAP-8. `docs/GAME-DESIGN.md` draft 1 (2026-11-17), `PLAN.md` D3, D4, D6, D7, D10, Q3-Q5; KB `rules.md` 2, 8, 22, 30; KB `recipe.md` sections 2, 3, 5, 11; project-x `docs/spec/10-rules.md` as the shape donor (ARCH, MOVE-2, MOVE-7).
