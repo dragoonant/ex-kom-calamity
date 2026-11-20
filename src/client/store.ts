@@ -49,6 +49,8 @@ export interface ClientState {
   hover: Pos | null;
   /** 'blast': the next tap on a tile throws the selected agent's charge there (ORD-9). */
   mode: 'normal' | 'blast';
+  /** POSE-3: the RUN switch; move orders run while it is on (Shift on a tap inverts it). Not saved: a habit, not a state. */
+  run: boolean;
   slips: Slip[];
   /** Effects from the latest commits (fx.ts): the board draws them, the audio director plays them. */
   fx: Fx[];
@@ -82,8 +84,9 @@ export interface ClientState {
   setLevel(level: number): void;
   setHover(p: Pos | null): void;
   setMode(mode: 'normal' | 'blast'): void;
+  setRun(run: boolean): void;
   focusUnit(id: string): void;
-  tapTile(p: Pos): TapResult;
+  tapTile(p: Pos, opts?: { shift?: boolean }): TapResult;
   saveNow(reason: SaveReason): void;
   hash(): string | null;
 }
@@ -321,6 +324,7 @@ export const useClient = create<ClientState>((set, get) => {
     level: 0,
     hover: null,
     mode: 'normal',
+    run: false,
     slips: [],
     fx: [],
     saveStatus: { ok: true, reason: null, tick: null, savedAt: null },
@@ -441,6 +445,10 @@ export const useClient = create<ClientState>((set, get) => {
       set({ hover: p });
     },
 
+    setRun(run) {
+      set({ run });
+    },
+
     setMode(mode) {
       const { agency, selected } = get();
       const u = selected ? agency?.units.find((x) => x.id === selected) : undefined;
@@ -454,7 +462,7 @@ export const useClient = create<ClientState>((set, get) => {
     },
 
     /** KB rule 25: a tap resolves in exactly one place. Legal action for the tile, else select the unit on it, else clear. */
-    tapTile(p) {
+    tapTile(p, opts) {
       const { agency, selected } = get();
       const finish = (did: TapResult['did'], detail: string): TapResult => {
         const r = { tile: p, did, detail };
@@ -474,7 +482,8 @@ export const useClient = create<ClientState>((set, get) => {
         return r.ok ? finish('fire', holder.id) : finish('rejected', r.reason);
       }
       if (sel && !holder) {
-        const r = get().order({ type: 'move', side: 'agency', unit: sel.id, to: { x: p.x, y: p.y, level: p.level } });
+        const run = get().run !== !!opts?.shift;
+        const r = get().order({ type: 'move', side: 'agency', unit: sel.id, to: { x: p.x, y: p.y, level: p.level }, ...(run ? { run: true } : {}) });
         if (r.ok) return finish('move', `${sel.id} -> ${fmtPos(p)}`);
         if (!/impassable|no path|off the map/.test(r.reason)) return finish('rejected', r.reason);
       }

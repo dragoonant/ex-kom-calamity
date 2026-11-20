@@ -2,7 +2,7 @@
 
 **Rewrite this file at the end of every milestone; do not append.** `ls` every path before claiming it exists.
 
-**As of:** 2026-11-20 | **Milestone:** M4 done, plus D20: raids are fought in **one building** of 1 to 3 floors in its street (Sunbeam Automat, Depot 7, Civic Savings; the title offers all three), and the console marks the last two hostiles (VIEW-5). The five-building block stays as data and tests only | **Last commit:** see `git log -1`
+**As of:** 2026-11-20 | **Milestone:** M4c steps 1-3 done on branch `claude/kind-albattani-3mp3ff` (PR #12, not yet merged): figures animate from their rigged GLBs (`?moves` shows every motion), stylised gunfire, explosions, breaking walls, cracks, lingering fire and smoke, a camera shake with a SHAKE switch, and crouch and run as rules (spec section 24). Step 4 (generated citizen model and clips) waits for the GPU machine. Raids are one building each (D20) | **Last commit:** see `git log -1`
 
 **Play it:** https://dragoonant.github.io/ex-kom-calamity/ (GitHub Pages, branch `gh-pages`, a build of `main` pushed by hand, PLAN D12), or `npm install`, `npm run dev`, open the printed URL. `?gallery` on the URL opens the figure gallery, `sounds.html` the sound desk. Private Artifact build (PLAN D12, D15): https://claude.ai/artifact/NtYezrJFZ5cYKuVs475YUG (the phone-friendly copy; republish with `npm run build`, `npm run artifact`, `node tools/check-artifact.mjs`, then publish `dist-artifact/city-of-tomorrow.html` to that URL; the Artifact tool serves no `.glb` supporting file under any content type, so the Artifact always falls back to the stand-ins and the Pages build is the one with the models). Shots: `docs/art/shots/m4-*.png` (street and block, desktop and phone, cut-away, gallery, a generated fighter on the board; remade by `npm run e2e`); `docs/screenshots/m3-*.png` stay as the M3 record (`npm run shot`). `?ai=none` on the URL plays the M2 way, `?ai=random` the random AI.
 
@@ -57,6 +57,8 @@ Determinism: seed 1 in the hostile seat replays to the same hash (`59bd6fcd`). G
 | Citizens that run (PLAN Q18) | owner or the balance pass | they stand (RULING CIV-1) |
 
 ## Known limits of the playable
+- Animation is the generated idle and walk clips plus motions built in code (`docs/art/animation.md`); the auto-rig's coarse skin stretches at big bends. Citizens and hidden hosts are still stand-ins (they bob and lean).
+- The hostile AI does not crouch or run yet (RULING POSE-1).
 - One agent is selected at a time (PLAN Q6); no drag box, no "select all" yet.
 - The title offers the three raid sites by hand; the city layer (M7) will pick the site from an alert. The site rosters are first guesses, not calibrated like `bench-raid`.
 - A mark (VIEW-5) shows a disguised host too (RULING VIEW-5); it gives no right to fire.
@@ -71,6 +73,7 @@ Determinism: seed 1 in the hostile seat replays to the same hash (`59bd6fcd`). G
 None.
 
 ## Next
+1. M4c step 4 (D21 d, g): a citizen concept round, then the citizen model and generated run, crouch and throw clips on the GPU machine. Blocked 2026-11-20: EVILAEGIS's "3D Model Generation" folder is in the owner's Remote Control list but not offered to cloud sessions (the Claude app there may need updating).
 1. The walk cycle from `rigged.glb` (D8): `SkeletonUtils.clone`, one mixer per figure, locomotion phase from distance travelled (KB gotchas), the LOD level replaced by the rigged mesh.
 2. The rest of the GPU pass (PLAN Q7): tile textures or GLBs by name (`docs/art/tile-set.md` 8), the figures' redo list (`figure-models.md` 7), a concept round for the tier 1 agent and the citizen, generated audio once the owner has judged `sounds.html` by ear.
 3. The balance pass (PLAN Q9): rerun `sim` and `bench:ai` after each single change; decide Q18 (citizens that run) with a bench result.

@@ -3,13 +3,17 @@
 // 26). No pointer handlers and no raycast anywhere here (KB rule 25): a figure never blocks a tap on the tile
 // behind it. Movement between tiles is smoothed for the eye only; every position is the engine's.
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { Suspense, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Line } from '@react-three/drei';
 import type { Pos, State, Unit } from '../../engine';
 import { useClient } from '../store';
-import type { FigureRole } from '../models';
-import { COLOURS, FigureModel, NO_RAYCAST } from './placeholders';
+import { WEAPONS } from '../../data';
+import type { Fx } from '../fx';
+import { useRiggedUrl, type FigureRole } from '../models';
+import { REST_POSE, nextPose, type Pose, type Trigger } from './anim';
+import { COLOURS, CoreGlow, FigureModel, NO_RAYCAST } from './placeholders';
+import { RiggedModel } from './Rigged';
 import { FIGURE_H, LEVEL_H, tileToWorld } from './world';
 
 /** The figure role a unit in the agency's view is drawn with (docs/figures.md section 2). */
@@ -24,28 +28,159 @@ export function roleOf(u: Unit): FigureRole {
 /** Smoothed positions of the drawn figures, read by the instanced hp bars each frame. */
 const shownPositions = new Map<string, THREE.Vector3>();
 
-function Figure({ unit, selected }: { unit: Unit; selected: boolean }) {
+/**
+ * What the board has seen each figure do (D21): one-shot starts, the last shot and where it went, when it went down.
+ * Fed from the fx queue (fx.ts), which already hides what the agency may not see (VIEW-2), so a hidden shooter never
+ * recoils on screen. Board clock seconds.
+ */
+interface Motion {
+  triggers: Partial<Record<Trigger, number>>;
+  lastShot: number | null;
+  shotAt: THREE.Vector3 | null;
+  downSince: number | null;
+}
+const motions = new Map<string, Motion>();
+function motionOf(id: string): Motion {
+  let m = motions.get(id);
+  if (!m) {
+    m = { triggers: {}, lastShot: null, shotAt: null, downSince: null };
+    motions.set(id, m);
+  }
+  return m;
+}
+
+/** Turns each new effect into the figure motions it starts. */
+export function motionFromFx(f: Fx, now: number): void {
+  const start = (id: string | undefined, t: Trigger) => {
+    if (id) motionOf(id).triggers[t] = now;
+  };
+  switch (f.kind) {
+    case 'muzzle': {
+      if (!f.unit) break;
+      const melee = f.weapon ? WEAPONS[f.weapon]?.kind === 'melee' : false;
+      start(f.unit, melee ? 'lunge' : 'recoil');
+      const m = motionOf(f.unit);
+      m.lastShot = now;
+      m.shotAt = f.to ? tileToWorld(f.to) : null;
+      break;
+    }
+    case 'hit':
+      start(f.unit, 'flinch');
+      break;
+    case 'blast':
+      start(f.unit, 'throw');
+      break;
+    case 'revealed':
+      start(f.unit, 'reveal');
+      break;
+    case 'taken':
+      start(f.by, 'lunge');
+      break;
+    default:
+      break;
+  }
+}
+
+/** Reads the fx queue once a frame for every figure (mounted once per board). */
+function MotionFeed() {
+  const last = useRef<number | null>(null);
+  useFrame(({ clock }) => {
+    const fx = useClient.getState().fx;
+    const top = fx.length ? fx[fx.length - 1]!.id : 0;
+    // Effects already queued when the board mounts (a Continue) are history: no figure replays them.
+    if (last.current === null) last.current = top;
+    for (const f of fx) if (f.id > last.current) motionFromFx(f, clock.elapsedTime);
+    last.current = Math.max(last.current, top);
+  });
+  return null;
+}
+
+const UP = new THREE.Vector3();
+
+function Figure({ unit, selected, tps, armTicks, runPct, crouchPct }: { unit: Unit; selected: boolean; tps: number; armTicks: number; runPct: number; crouchPct: number }) {
   const group = useRef<THREE.Group>(null);
+  const body = useRef<THREE.Group>(null);
   const target = tileToWorld(unit);
   const shown = useRef(target.clone());
   const facing = useRef(0);
+  const speed = useRef(0);
+  const pose = useRef<Pose>({ ...REST_POSE, fall: unit.down ? 1 : 0 });
+  const frozen = useRef(false);
+  const bob = useRef(0);
   const role = roleOf(unit);
+  const rigged = useRiggedUrl(role);
+  const unitRef = useRef(unit);
+  unitRef.current = unit;
   shownPositions.set(unit.id, shown.current);
+  const motion = motionOf(unit.id);
+  // A unit already down when the board mounts (a Continue, or a figure that scrolled in) lies there at once.
+  if (unit.down && motion.downSince === null) motion.downSince = -1e9;
+  if (!unit.down) motion.downSince = null;
 
-  useFrame((_, dt) => {
+  useFrame(({ clock }, dtRaw) => {
     const g = group.current;
     if (!g) return;
+    const dt = Math.min(dtRaw, 0.1);
+    const now = clock.elapsedTime;
+    const u = unitRef.current;
+    if (u.down && motion.downSince === null) motion.downSince = now;
+    // Glide at the unit's own pace (tiles per second from its move ticks, a little faster so it never lags a step
+    // behind), so a figure walks instead of hopping; a jump of more than 3 tiles (a fall, a load) snaps.
     const s = shown.current;
-    const dx = target.x - s.x;
-    const dz = target.z - s.z;
-    if (Math.abs(dx) + Math.abs(dz) + Math.abs(target.y - s.y) > 0.002) {
+    const tgt = tileToWorld(u, UP);
+    const dist = s.distanceTo(tgt);
+    let moved = 0;
+    if (dist > 3) {
+      s.copy(tgt);
+    } else if (dist > 0.001) {
+      // POSE-3: a run covers ground faster, a crouch slower (the engine's own cost factors).
+      const factor = u.order?.run ? runPct / 100 : u.posture === 'crouch' ? crouchPct / 100 : 1;
+      const pace = (1.15 * tps) / Math.max(1, u.moveTicks * factor);
+      const step = Math.min(dist, Math.max(pace, dist * 2) * dt);
+      const dx = tgt.x - s.x;
+      const dz = tgt.z - s.z;
       if (Math.hypot(dx, dz) > 0.05) facing.current = Math.atan2(dx, dz);
-      const k = 1 - Math.exp(-dt * 9);
-      s.lerp(target, Math.hypot(dx, dz) > 3 ? 1 : k);
+      s.lerp(tgt, step / dist);
+      moved = step;
     }
+    speed.current += ((dt > 0 ? moved / dt : 0) - speed.current) * Math.min(1, dt * 8);
+    // Facing a target while aiming and standing: the own unit's fire target, or where its last seen shot went.
+    if (speed.current < 0.2 && !u.down) {
+      const aimAt = motion.shotAt && motion.lastShot !== null && now - motion.lastShot < 2 ? motion.shotAt : null;
+      const tgtUnit = u.fireTarget ? useClient.getState().agency?.units.find((x) => x.id === u.fireTarget) : null;
+      const at = tgtUnit ? tileToWorld(tgtUnit) : aimAt;
+      if (at && Math.hypot(at.x - s.x, at.z - s.z) > 0.3) {
+        const want = Math.atan2(at.x - s.x, at.z - s.z);
+        let d = want - facing.current;
+        while (d > Math.PI) d -= Math.PI * 2;
+        while (d < -Math.PI) d += Math.PI * 2;
+        facing.current += d * Math.min(1, dt * 10);
+      }
+    }
+    const p = nextPose(pose.current, { unit: u, speed: speed.current, now, triggers: motion.triggers, lastShot: motion.lastShot, downSince: motion.downSince, armTicks }, dt);
+    pose.current = p;
+    frozen.current = u.down && p.fall >= 1;
     g.position.copy(s);
     g.rotation.y = facing.current;
-    g.rotation.x = unit.down ? -Math.PI / 2 : 0;
+    const b = body.current;
+    if (b) {
+      // Whole-body motion: the death fall (backwards over half a second), the lunge, the reveal burst; and for a
+      // stand-in with no skeleton, a walking bob, a run lean and a crouch.
+      b.rotation.x = -(Math.PI / 2) * p.fall;
+      b.position.y = 0.12 * p.fall;
+      b.position.z = 0.32 * p.lunge;
+      const pop = 1 + 0.22 * p.pop;
+      if (!rigged) {
+        bob.current += dt * p.rate * Math.PI * 2 * p.walk;
+        b.position.y += p.walk * 0.05 * Math.abs(Math.sin(bob.current));
+        b.rotation.x += p.walk * (0.08 + 0.12 * p.run) + 0.18 * p.lunge - 0.08 * p.recoil;
+        b.rotation.z = 0.12 * p.flinch + p.walk * 0.04 * Math.sin(bob.current);
+        b.scale.set(pop, pop * (1 - 0.22 * p.crouch), pop);
+      } else {
+        b.rotation.z = 0;
+        b.scale.setScalar(pop);
+      }
+    }
   });
 
   return (
@@ -56,8 +191,15 @@ function Figure({ unit, selected }: { unit: Unit; selected: boolean }) {
           <meshBasicMaterial color={COLOURS.agencyPlate} />
         </mesh>
       )}
-      <group position={[0, unit.down ? 0.12 : 0, 0]}>
-        <FigureModel role={role} down={unit.down} />
+      <group ref={body}>
+        {rigged ? (
+          <Suspense fallback={null}>
+            <RiggedModel url={rigged} pose={pose} frozen={frozen} />
+            {!unit.down && <CoreGlow role={role} />}
+          </Suspense>
+        ) : (
+          <FigureModel role={role} down={unit.down} />
+        )}
       </group>
     </group>
   );
@@ -133,10 +275,13 @@ export function Figures({ state }: { state: State }) {
   const selected = useClient((s) => s.selected);
   const level = useClient((s) => s.level);
   const drawn = state.units.filter((u) => u.level <= level);
+  const tps = state.tuning.time.ticksPerSecond;
+  const armTicks = state.tuning.blast.armTicks;
   return (
     <group>
+      <MotionFeed />
       {drawn.map((u) => (
-        <Figure key={u.id} unit={u} selected={u.id === selected} />
+        <Figure key={u.id} unit={u} selected={u.id === selected} tps={tps} armTicks={armTicks} runPct={state.tuning.move.runCostPercent ?? 100} crouchPct={state.tuning.move.crouchCostPercent ?? 100} />
       ))}
       <HpBars units={drawn} />
       {state.units

@@ -23,9 +23,9 @@ export type TileKindName = 'ground' | 'floor' | 'wall' | 'door' | 'stair' | 'win
 
 export interface Tuning {
   time: { ticksPerSecond: number; maxBattleSeconds: number };
-  move: { diagonalCostPercent: number; stairCostPercent: number; blockedWaitTicks: number; rubbleCostPercent: number };
+  move: { diagonalCostPercent: number; stairCostPercent: number; blockedWaitTicks: number; rubbleCostPercent: number; runCostPercent: number; crouchCostPercent: number };
   sight: { revealRange: number; markLastHostiles: number };
-  fire: { minHitChance: number; maxHitChance: number; movingTargetPenalty: number; retaliateMemoryTicks: number };
+  fire: { minHitChance: number; maxHitChance: number; movingTargetPenalty: number; retaliateMemoryTicks: number; crouchTargetPenalty: number; crouchAimBonus: number; runningShooterPenalty: number; runSettleTicks: number };
   save: { autosaveSeconds: number };
   structure: { fallDamage: number };
   /** Section 22 (AI): the hostile AI's windows and ranges. */

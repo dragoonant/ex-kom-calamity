@@ -36,7 +36,7 @@ function LoopDriver() {
   return null;
 }
 
-function RendererHandle() {
+export function RendererHandle() {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   useEffect(() => {

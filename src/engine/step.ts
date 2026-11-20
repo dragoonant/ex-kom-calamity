@@ -1,7 +1,7 @@
 // ARCH-2: the pure step. Orders (section 4) and the tick (TIME-3, sections 5-12).
 import { UNITS, type Side } from '../data';
 import type { Action, GameEvent, Pos, State, StepResult, Unit } from './types';
-import { SIDES, STANCES } from './types';
+import { POSTURES, SIDES, STANCES } from './types';
 import { inBounds, isPassable, tileIndex } from './map';
 import { pathField, pathTo, stepCost } from './path';
 import { appearsCivilianTo, enemySide, sideSeesTile, sideSeesUnit, unitById } from './sight';
@@ -84,9 +84,12 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       if (holder) return reject(state, `destination held by ${holder.id}`);
       const path = pathTo(state, pathField(state, target, null), action.to);
       if (!path || path.length === 0) return reject(state, 'no path');
+      if (action.run !== undefined && typeof action.run !== 'boolean') return reject(state, 'run must be true or false');
       const st = cloneState(state);
       const u = unitById(st, action.unit)!;
-      u.order = { to: { ...action.to }, path, progress: 0, blockedTicks: 0 };
+      u.order = { to: { ...action.to }, path, progress: 0, blockedTicks: 0, run: action.run === true };
+      // POSE-2: a run stands a crouched unit up.
+      if (action.run === true) u.posture = 'stand';
       return accept(st, action);
     }
     case 'fire': {
@@ -107,6 +110,17 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       if (action.stance === target.stance) return reject(state, 'already in that stance');
       const st = cloneState(state);
       unitById(st, action.unit)!.stance = action.stance;
+      return accept(st, action);
+    }
+    case 'posture': {
+      // POSE-2
+      if (!(POSTURES as string[]).includes(action.posture)) return reject(state, 'unknown posture');
+      if (action.posture === (target.posture ?? 'stand')) return reject(state, 'already in that posture');
+      const st = cloneState(state);
+      const u = unitById(st, action.unit)!;
+      u.posture = action.posture;
+      // A unit that crouches stops running: the rest of its move order is a walk.
+      if (action.posture === 'crouch' && u.order) u.order.run = false;
       return accept(st, action);
     }
     case 'halt': {
@@ -340,6 +354,7 @@ function advanceMove(st: State, u: Unit, events: GameEvent[], occ: Map<number, U
   if (o.progress < cost) o.progress += 1;
   if (o.progress < cost) {
     u.moving = true;
+    if (o.run) u.lastRunTick = st.tick; // POSE-4
     return;
   }
   const nIdx = tileIndex(st, next);
@@ -372,6 +387,8 @@ function advanceMove(st: State, u: Unit, events: GameEvent[], occ: Map<number, U
   o.progress = 0;
   o.blockedTicks = 0;
   u.moving = true;
+  // POSE-4: a running step leaves the unit winded for fire.runSettleTicks.
+  if (o.run) u.lastRunTick = st.tick;
   const tile = st.tiles[nIdx];
   if (tile && tile.kind === 'door' && !tile.open) {
     writableTiles(st)[nIdx] = { ...tile, open: true };

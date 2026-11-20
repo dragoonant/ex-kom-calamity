@@ -287,7 +287,7 @@ function Gltf({ url, name, onDrawn }: { url: string; name: string; onDrawn?: (wh
 }
 
 /** The pulsing glow over a generated figure's painted core (hidden when the figure is down, like the stand-ins' cores). */
-function CoreGlow({ role }: { role: FigureRole }) {
+export function CoreGlow({ role }: { role: FigureRole }) {
   const glow = FIGURE_SLOTS[role].glow;
   if (!glow) return null;
   return <sprite name="glow" raycast={NO_RAYCAST} material={coreGlowMaterial()} position={[glow.x, glow.y, glow.z]} scale={[glow.size, glow.size, 1]} />;

@@ -14,14 +14,17 @@ const PLANAR: ReadonlyArray<readonly [number, number]> = [
   [-1, -1],
 ];
 
-export function stepCost(s: State, unit: Pick<Unit, 'moveTicks'>, from: Pos, to: Pos): number {
+export function stepCost(s: State, unit: Pick<Unit, 'moveTicks'> & Partial<Pick<Unit, 'posture' | 'order'>>, from: Pos, to: Pos, run = unit.order?.run === true): number {
   const t = s.tuning.move;
   let cost = unit.moveTicks;
   if (from.level !== to.level) cost = Math.round((unit.moveTicks * t.stairCostPercent) / 100);
   else if (from.x !== to.x && from.y !== to.y) cost = Math.round((unit.moveTicks * t.diagonalCostPercent) / 100);
   // MOVE-2: rubble is slow going.
   if (s.tiles[tileIndex(s, to)]?.kind === 'rubble') cost = Math.round((cost * t.rubbleCostPercent) / 100);
-  return cost;
+  // POSE-3: running is quicker, moving crouched slower (a run stands the unit up, POSE-2, so never both).
+  if (run) cost = Math.round((cost * t.runCostPercent) / 100);
+  else if (unit.posture === 'crouch') cost = Math.round((cost * t.crouchCostPercent) / 100);
+  return Math.max(1, cost);
 }
 
 function passableAt(s: State, p: Pos, blocked: Set<number> | null): boolean {

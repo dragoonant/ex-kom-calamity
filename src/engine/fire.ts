@@ -34,9 +34,15 @@ export function hitBreakdown(s: State, shooter: Unit, target: Unit, w: WeaponDef
   const f = s.tuning.fire;
   const falloff = w.falloffPerTile * Math.floor(dist);
   const movingPenalty = target.moving ? f.movingTargetPenalty : 0;
-  const raw = w.accuracy + shooter.aim - falloff - movingPenalty;
+  // POSE-4: crouching makes a smaller target at range and a steadier shooter; running leaves a shooter winded.
+  const ranged = w.kind === 'ranged';
+  const crouchPenalty = ranged && target.posture === 'crouch' && dist >= 2 ? f.crouchTargetPenalty : 0;
+  const crouchBonus = ranged && shooter.posture === 'crouch' ? f.crouchAimBonus : 0;
+  const ran = shooter.lastRunTick ?? null;
+  const runPenalty = ran !== null && s.tick - ran < f.runSettleTicks ? f.runningShooterPenalty : 0;
+  const raw = w.accuracy + shooter.aim - falloff - movingPenalty - crouchPenalty + crouchBonus - runPenalty;
   const chance = Math.min(f.maxHitChance, Math.max(f.minHitChance, raw));
-  return { accuracy: w.accuracy, aim: shooter.aim, falloff, movingPenalty, raw, chance };
+  return { accuracy: w.accuracy, aim: shooter.aim, falloff, movingPenalty, crouchPenalty, crouchBonus, runPenalty, raw, chance };
 }
 
 /** DMG-1, DMG-2 as a range (QRY-2). */

@@ -23,11 +23,19 @@ test('hostiles act on their own through advance, never while paused, and their o
     const s = h.getState()!;
     const now = s.units.filter((u) => u.side === 'hostile').map((u) => `${u.id}:${u.x},${u.y},${u.level}`);
     const hostileOrders = s.log.filter((e) => e.type !== 'tick' && 'side' in e && e.side === 'hostile');
-    return { tick: s.tick, hostileOrders: hostileOrders.length, moved: now.filter((p, i) => p !== before[i]).length, kinds: [...new Set(hostileOrders.map((e) => e.type))] };
+    return { tick: s.tick, over: !!s.over, hostileOrders: hostileOrders.length, moved: now.filter((p, i) => p !== before[i]).length, kinds: [...new Set(hostileOrders.map((e) => e.type))] };
   });
-  expect(after.tick).toBe(300);
+  // A one-building raid (MAP-10) can end inside the 30 s on some seeds; then the clock stops where it ended.
+  if (after.over) expect(after.tick).toBeLessThanOrEqual(300);
+  else expect(after.tick).toBe(300);
   expect(after.hostileOrders).toBeGreaterThan(0);
   expect(after.moved).toBeGreaterThan(0);
+  if (after.over) {
+    // The report replaced the console and the finished raid cleared its save (SAV-5): nothing more to read.
+    expect(await page.evaluate(() => localStorage.getItem('ekc-save'))).toBeNull();
+    expect(errors).toEqual([]);
+    return;
+  }
   // The message tray reports only what the agency may know: no hostile order lines (AI-9, VIEW-2).
   const tray = await page.getByTestId('tray').innerText();
   expect(tray).not.toMatch(/\b(Host|Taker|Fighter|Citizen): (move|fire|stance|halt|arming)/);

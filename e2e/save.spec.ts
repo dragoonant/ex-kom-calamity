@@ -20,7 +20,10 @@ test('pause, order, advance, save; close the browser; Continue reopens the same 
   try {
     let { ctx, page } = await open(dir);
     const errors = watchErrors(page);
-    await openTitle(page);
+    // The hostile AI is off (?ai=none, AI-2): this test is about the save, and on a one-building raid (MAP-10) a
+    // hunting AI can down the whole squad inside the 12.5 s below on some seeds. Stances still fire back.
+    await page.goto('./?ai=none');
+    await expect(page.getByTestId('title')).toBeVisible();
     await expect(page.getByTestId('continue')).toHaveCount(0);
     await startRaid(page);
     // The save is written when the raid starts, before any order (rule 22).
@@ -36,7 +39,7 @@ test('pause, order, advance, save; close the browser; Continue reopens the same 
       const h = window.__ekc!;
       h.pause();
       h.advance(12.5); // past the 10 s autosave interval
-      // A living agent: by now the fighter by the west door may have downed one, and a down unit takes no order (UNIT-4).
+      // A living agent: a host firing back by stance may have downed one, and a down unit takes no order (UNIT-4).
       const who = h.getState()!.units.find((u) => u.side === 'agency' && !u.down && u.stance !== 'hold')!.id;
       const ok = h.order({ type: 'stance', side: 'agency', unit: who, stance: 'hold' }).ok;
       return { hash: h.hash(), tick: h.getState()!.tick, bytes: localStorage.getItem('ekc-save')!.length, who, ok };

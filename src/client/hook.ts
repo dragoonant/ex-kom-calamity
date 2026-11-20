@@ -26,7 +26,7 @@ export interface EkcHook {
   setMode(mode: 'normal' | 'blast'): void;
   setLevel(level: number): void;
   level(): number;
-  tapTile(p: Pos): TapResult;
+  tapTile(p: Pos, opts?: { shift?: boolean }): TapResult;
   lastTap(): TapResult | null;
   hash(): string | null;
   screen(): string;
@@ -47,6 +47,8 @@ export interface EkcHook {
   fx(): Fx[];
   /** M4: what the audio director has played, its settings and whether the context is unlocked. */
   audio(): AudioReport | null;
+  /** D21 f: the camera shake now and whether the player's switch allows it. */
+  shake(): { amp: number; enabled: boolean };
   setAudio(s: { volume?: number; muted?: boolean }): void;
 }
 
