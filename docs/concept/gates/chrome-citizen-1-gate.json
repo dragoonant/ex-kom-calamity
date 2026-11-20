@@ -1,0 +1,47 @@
+{
+ "role": "citizen",
+ "body": "humanoid",
+ "verdict": "fail",
+ "fails": [
+  "head 24% not in 30-40%",
+  "shoulders 2.33 heads not in 1.6-2.0"
+ ],
+ "model": {
+  "top": 224,
+  "bottom": 2239,
+  "height": 2016,
+  "jump": 404,
+  "chin": 484,
+  "chin_source": "given",
+  "shoulder_row": 725,
+  "crotch": 1573,
+  "head_h": 484,
+  "head_w": 451.1,
+  "shoulder_w": 1050.4,
+  "width": 1297,
+  "head_share": 0.24,
+  "shoulders_in_heads": 2.33,
+  "legs_in_heads": 0.92,
+  "leg_share": 0.22,
+  "aspect": 0.643
+ },
+ "reference": {
+  "top": 185,
+  "bottom": 2251,
+  "height": 2067,
+  "jump": 448,
+  "chin": 517,
+  "chin_source": "given",
+  "shoulder_row": 765,
+  "crotch": 1637,
+  "head_h": 517,
+  "head_w": 532.1,
+  "shoulder_w": 1049.5,
+  "width": 1363,
+  "head_share": 0.25,
+  "shoulders_in_heads": 1.97,
+  "legs_in_heads": 0.83,
+  "leg_share": 0.208,
+  "aspect": 0.659
+ }
+}

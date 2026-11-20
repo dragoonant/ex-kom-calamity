@@ -19,9 +19,9 @@ The owner chose the house figure style of KB rule 7, animated (D8: it "should wo
 ## 2. Rosters and colours
 | Figure | Colours and marks | Reference |
 |---|---|---|
-| Agent, tier 1 (plain security gear) | Bright red (`#c8322a`) plates over black (`#1b1b1f`) underlayer; single black visor; no silver, no chest light, no crest | D7; `docs/GAME-DESIGN.md` 5 |
+| Agent, tier 1 (plain security gear) | Bright red (`#c8322a`) plates over black (`#1b1b1f`) underlayer; single black visor; no silver, no chest light, no crest | D7; `docs/GAME-DESIGN.md` 5; candidates `chrome-suit-t1-1` (gate PASS) and `chrome-suit-t1-2` (round 8, 2026-11-20, `sheet-11-tier1-citizen.jpg`), owner to pick |
 | Agent, tier 2 (moulded suit) | Same colours, smooth shell helmet with two upward-slanting almond lenses | `chrome-suit-t2-h2.jpg` (locked) |
-| Citizen | Enamel cream coat (`#e7dcc1`) over graphite (`#3b3f44`), bare head, stern | none yet; placeholder |
+| Citizen | Enamel cream coat (`#e7dcc1`) over graphite (`#3b3f44`), bare head, stern | candidates `chrome-citizen-1` (man, briefcase) and `chrome-citizen-2` (woman, handbag), the host's body (round 8, 2026-11-20, `sheet-11-tier1-citizen.jpg`), owner to pick |
 | Host, passing as a citizen | Drawn exactly as a citizen until revealed (spec HIDE-1) | `gemini-alien-host-a`, `chrome-host-2` once revealed up close |
 | Host, revealed | Citizen body with sea-glass green (`#7fc8b0`) skin and an amber (`#e0a030`) core glow at the throat; coral growth on the head | `alien-host-s42` (locked, D14) |
 | Taker | The organism that takes hosts: sea-glass body with an amber core on dark chitin legs | `alien-taker-s51` / `alien-taker-s52` (locked, D14) |
