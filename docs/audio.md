@@ -32,7 +32,7 @@ Every gunshot take came back with a crest of 18.4 to 28.5 dB (crest factor 8 or 
 - `raid-over` has two takes by meaning (cleared, lost), picked by the sign of the variant; a third would be noise.
 - The music loops are 75 to 90 s prompts asked to be "steady and loopable"; if a seam is audible, lengthen `LOOP_OVERLAP` or ask for a composition plan with matching first and last chunks.
 - An announcer voice (presentation concept: "a calm announcer voice") is not in this pass.
-- The Artifact build cannot carry the files (same limit as the GLBs); it plays the synth.
+- The Artifact tool serves `.mp3` and the index as supporting files (unlike `.glb`): the sound desk is published at https://claude.ai/artifact/QUtrEmQaCyfeB1mA8ZuHgg (private, 2026-11-20) with all 41 files. The game's own Artifact (`npm run artifact`) still inlines one page without them and plays the synth.
 
 ## 5. Not verified by ear
 Nothing above has been judged by ear. The desk shows what each card plays (`generated:` or `synth:`) and the last tap's source.
