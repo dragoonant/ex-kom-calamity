@@ -2,9 +2,11 @@
 // The figure manifest (docs/figures.md sections 2 and 3; docs/art/figure-models.md): one slot per figure role. A
 // slot with a url is preloaded at startup and drawn by FigureModel (placeholders.tsx) in place of the procedural
 // placeholder; a slot with null, or a url that fails to load, draws the placeholder. The GPU pass (M4b) delivers
-// public/models/figures/<role>/{textured,textured-lod,rigged}.glb; the full model is drawn up close, the 8k LOD
-// beyond LOD_DISTANCE, and the rigged file waits for the animation pass (the client does not animate yet, PLAN D8).
+// public/models/figures/<role>/{textured,textured-lod,rigged}.glb. Since D21 the board draws the rigged file (the 8k
+// mesh with its `idle` and `walk` clips) at every distance, so figures move; the gallery keeps the full model.
+// The LOD file is no longer drawn or preloaded.
 import { useGLTF } from '@react-three/drei';
+import { useSyncExternalStore } from 'react';
 
 export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter';
 
@@ -36,7 +38,7 @@ export interface FigureSlot {
   url: string | null;
   /** The 8k LOD drawn beyond LOD_DISTANCE; null draws the full model at every distance. */
   lod: string | null;
-  /** The rigged LOD with `idle` and `walk` clips; listed, not yet drawn. */
+  /** The rigged LOD with `idle` and `walk` clips: what the board draws (D21). */
   rigged: string | null;
   /** Where the glow sprite for the painted amber core sits on the model (figure units; front is +z). */
   glow: { x: number; y: number; z: number; size: number } | null;
@@ -54,7 +56,16 @@ const figure = (folder: string) => ({
 const none = { url: null, lod: null, rigged: null, glow: null, gate: null };
 
 export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
-  'agent-t1': { role: 'agent-t1', label: 'Agent, tier 1 (plain security gear)', ...none, templates: ['agent-t1'] },
+  'agent-t1': {
+    role: 'agent-t1',
+    label: 'Agent, tier 1 (plain security gear)',
+    // RULING AGENT-1: the tier 1 agent has no locked reference, so the squad wears the generated tier 2 suit until
+    // its own concept round (owner, 2026-11-19: "Yes, use it", so the playable shows models from the first frame).
+    ...figure('agent'),
+    glow: null,
+    gate: { headShare: 0.299, shoulders: 2.03, legs: 1.02, mode: 'house', verdict: 'pass', ruling: 'GATE-1, AGENT-1' },
+    templates: ['agent-t1 (drawn with the tier 2 model until a tier 1 reference is locked, RULING AGENT-1)'],
+  },
   'agent-t2': {
     role: 'agent-t2',
     label: 'Agent, tier 2 (moulded suit)',
@@ -91,20 +102,52 @@ export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
   },
 };
 
-/** Every url the manifest names (full models first, then LODs), preloaded at startup. */
+/** Every url preloaded at startup: the rigged files the board draws first, then the full models for the gallery. */
 export const MODEL_URLS: string[] = [
-  ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
-  ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].lod).filter((u): u is string => !!u),
+  ...new Set([
+    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].rigged).filter((u): u is string => !!u),
+    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
+  ]),
 ];
 
 export type ModelState = 'placeholder' | 'loading' | 'ready' | 'failed';
 const modelState = new Map<string, ModelState>();
+
+// Figures mount before the preload ends (the gallery at once, the board after the start switch), so every change
+// of a slot's state is published: a figure that read 'loading' at mount re-reads it when the file lands. Without
+// this the gallery stayed on the stand-ins for good on a slow connection (owner's desktop, 2026-11-19).
+const listeners = new Set<() => void>();
+function setModelState(url: string, state: ModelState): void {
+  modelState.set(url, state);
+  for (const l of listeners) l();
+}
+export function subscribeModels(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+/** The slot's state for a React figure, re-read whenever the preload changes any slot. */
+export function useModelState(role: FigureRole): ModelState {
+  return useSyncExternalStore(subscribeModels, () => modelStateOf(role));
+}
 
 /** What the gallery and the figures read: 'ready' draws the GLB, anything else the placeholder (rule 26). */
 export function modelStateOf(role: FigureRole): ModelState {
   const url = FIGURE_SLOTS[role].url;
   if (!url) return 'placeholder';
   return modelState.get(url) ?? 'loading';
+}
+
+/** The rigged url for a role when it loaded, else null (the board then draws the full model or the stand-in). */
+export function riggedUrlOf(role: FigureRole): string | null {
+  const r = FIGURE_SLOTS[role].rigged;
+  return r && modelState.get(r) === 'ready' ? r : null;
+}
+
+/** The rigged url for a React figure, re-read whenever the preload changes any slot. */
+export function useRiggedUrl(role: FigureRole): string | null {
+  return useSyncExternalStore(subscribeModels, () => riggedUrlOf(role));
 }
 
 /** The LOD url for a role when it loaded, else null (the full model is drawn at every distance). */
@@ -119,15 +162,17 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
   let loaded = 0;
   for (const url of MODEL_URLS) {
     try {
-      modelState.set(url, 'loading');
-      // Check the file is really there before handing it to the loader, so a missing GLB is a known failure.
+      setModelState(url, 'loading');
+      // Fetch the whole file first, so a missing GLB is a known failure and the start switch opens only once the
+      // bytes are really here (rule 26); the loader then reads them back from the HTTP cache.
       const r = await fetch(url, { cache: 'force-cache' });
       if (!r.ok) throw new Error(`${url}: ${r.status}`);
+      await r.arrayBuffer();
       useGLTF.preload(url);
-      modelState.set(url, 'ready');
+      setModelState(url, 'ready');
     } catch {
       // A failed load leaves the placeholder in place (rule 26); the count still advances so the button opens.
-      modelState.set(url, 'failed');
+      setModelState(url, 'failed');
     }
     loaded += 1;
     onProgress(loaded, total);

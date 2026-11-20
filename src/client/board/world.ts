@@ -42,6 +42,19 @@ export function clampRig(): void {
   rig.target.z = Math.min(bounds.depth + 6, Math.max(-6, rig.target.z));
 }
 
+/**
+ * D21 f: the camera shake of a blast or a collapse. `amp` is world units of jolt, decayed by the effects each frame;
+ * `enabled` is the player's switch (viewSettings.ts, `ekc-view`). The shake moves the eye only, never the rig, so
+ * picking and the hook's camera() read the steady pose.
+ */
+export const shake = { amp: 0, enabled: true };
+
+/** Adds a jolt; nearby and big events call this with up to about 0.4. */
+export function kickShake(amount: number): void {
+  if (!shake.enabled) return;
+  shake.amp = Math.min(0.6, Math.max(shake.amp, amount));
+}
+
 export function applyRig(camera: THREE.Camera, levelY: number): void {
   const cp = Math.cos(rig.pitch);
   const tx = rig.target.x;
@@ -49,6 +62,13 @@ export function applyRig(camera: THREE.Camera, levelY: number): void {
   const tz = rig.target.z;
   camera.position.set(tx + rig.distance * Math.sin(rig.yaw) * cp, ty + rig.distance * Math.sin(rig.pitch), tz + rig.distance * Math.cos(rig.yaw) * cp);
   camera.lookAt(tx, ty, tz);
+  if (shake.amp > 0.002 && shake.enabled) {
+    const t = performance.now() / 1000;
+    const a = shake.amp * Math.min(1, rig.distance / 18);
+    camera.position.x += Math.sin(t * 47) * a;
+    camera.position.y += Math.sin(t * 59 + 1) * a * 0.6;
+    camera.position.z += Math.sin(t * 41 + 2) * a;
+  }
 }
 
 /** Live handles set by the scene; null before the board mounts. */
@@ -65,7 +85,9 @@ export const live: {
   frameMs: number[];
   /** The board's scene, for the perf hook's figure count. */
   scene: THREE.Scene | null;
-} = { camera: null, canvas: null, renderer: null, tileMeshes: [], tileOfInstance: new Map(), levelY: 0, dressing: null, frameMs: [], scene: null };
+  /** D21: live effect counts as last drawn (Effects.tsx), for the perf hook and the e2e. */
+  fx: { glow: number; smoke: number; chunks: number; tracers: number; scorches: number; lights: number; emitters: number };
+} = { camera: null, canvas: null, renderer: null, tileMeshes: [], tileOfInstance: new Map(), levelY: 0, dressing: null, frameMs: [], scene: null, fx: { glow: 0, smoke: 0, chunks: 0, tracers: 0, scorches: 0, lights: 0, emitters: 0 } };
 
 /** What window.__ekc.perf() reports: draw calls and triangles of the last frame, instance counts, frame times. */
 export interface PerfReport {
@@ -78,7 +100,9 @@ export interface PerfReport {
   layers: Record<string, number>;
   tileInstances: number;
   /** Figures as drawn this frame (M4b): generated GLBs at full detail, at the LOD level, their core glow sprites, and stand-ins. */
-  figures: { glb: number; lod: number; glow: number; standIn: number };
+  figures: { glb: number; lod: number; rigged: number; glow: number; standIn: number };
+  /** D21: effects alive in the last frame. */
+  fx: { glow: number; smoke: number; chunks: number; tracers: number; scorches: number; lights: number; emitters: number };
   /** Mean and worst of the last frames, ms; 0 when no frame has run. */
   frameMsMean: number;
   frameMsMax: number;
@@ -92,11 +116,12 @@ export function perfReport(): PerfReport | null {
   for (const l of live.dressing?.layers ?? []) layers[l.kind] = l.count;
   const f = live.frameMs;
   const mean = f.length ? f.reduce((a, b) => a + b, 0) / f.length : 0;
-  const figures = { glb: 0, lod: 0, glow: 0, standIn: 0 };
+  const figures = { glb: 0, lod: 0, rigged: 0, glow: 0, standIn: 0 };
   live.scene?.traverse((o) => {
     if (!o.visible) return;
     if (o.name === 'glb') figures.glb += 1;
     else if (o.name === 'glb-lod') figures.lod += 1;
+    else if (o.name === 'glb-rigged') figures.rigged += 1;
     else if (o.name === 'glow') figures.glow += 1;
     else if (o.name === 'body') figures.standIn += 1;
   });
@@ -109,6 +134,7 @@ export function perfReport(): PerfReport | null {
     layers,
     tileInstances: live.tileMeshes.reduce((a, m) => a + m.count, 0),
     figures,
+    fx: { ...live.fx },
     frameMsMean: mean,
     frameMsMax: f.length ? Math.max(...f) : 0,
     frames: f.length,

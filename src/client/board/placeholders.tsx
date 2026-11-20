@@ -6,10 +6,10 @@
 // handlers and no raycast anywhere here (KB rule 25). Alien cores share CORE_MATERIAL so one uniform pulses them all.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { Component, Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Component, Suspense, useEffect, useMemo, type ReactNode } from 'react';
 import { Detailed, useGLTF } from '@react-three/drei';
 import { CORE_MATERIAL, coreGlowMaterial } from './Effects';
-import { FIGURE_SLOTS, LOD_DISTANCE, lodUrlOf, modelStateOf, type FigureRole, type RenderGate } from '../models';
+import { FIGURE_SLOTS, LOD_DISTANCE, lodUrlOf, useModelState, type FigureRole, type RenderGate } from '../models';
 import { FIGURE_H } from './world';
 
 export const NO_RAYCAST = () => undefined;
@@ -287,7 +287,7 @@ function Gltf({ url, name, onDrawn }: { url: string; name: string; onDrawn?: (wh
 }
 
 /** The pulsing glow over a generated figure's painted core (hidden when the figure is down, like the stand-ins' cores). */
-function CoreGlow({ role }: { role: FigureRole }) {
+export function CoreGlow({ role }: { role: FigureRole }) {
   const glow = FIGURE_SLOTS[role].glow;
   if (!glow) return null;
   return <sprite name="glow" raycast={NO_RAYCAST} material={coreGlowMaterial()} position={[glow.x, glow.y, glow.z]} scale={[glow.size, glow.size, 1]} />;
@@ -307,10 +307,7 @@ function PlaceholderDrawn({ role, down, onDrawn }: { role: FigureRole; down: boo
  * draws the full model. `onDrawn` reports which of the two the cell really shows, for the gallery's table.
  */
 export function FigureModel({ role, down = false, detail = 'auto', onDrawn }: { role: FigureRole; down?: boolean; detail?: 'auto' | 'full'; onDrawn?: (what: Drawn) => void }) {
-  const [state, setState] = useState(() => modelStateOf(role));
-  useEffect(() => {
-    setState(modelStateOf(role));
-  }, [role]);
+  const state = useModelState(role); // re-read when the preload lands, so a figure mounted early still gets its GLB
   const url = FIGURE_SLOTS[role].url;
   if (!url || state !== 'ready') return <PlaceholderDrawn role={role} down={down} onDrawn={onDrawn} />;
   const lod = detail === 'auto' ? lodUrlOf(role) : null;

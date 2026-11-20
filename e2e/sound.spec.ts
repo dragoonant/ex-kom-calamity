@@ -44,7 +44,7 @@ test('the console plays from engine events, the paddle and the switches; mute an
   // A breach: blast and breach events become one 'breach' sound; the pause paddle clacks both ways.
   await page.evaluate(() => {
     const h = window.__ekc!;
-    h.order({ type: 'blast', side: 'agency', unit: 'a3', at: { x: 5, y: 44, level: 0 } });
+    h.order({ type: 'blast', side: 'agency', unit: 'a3', at: { x: 4, y: 10, level: 0 } });
     h.advance(1);
   });
   await page.getByTestId('pause').click(); // resume
@@ -58,7 +58,7 @@ test('the console plays from engine events, the paddle and the switches; mute an
   expect(report.played.pause ?? 0).toBeGreaterThanOrEqual(1);
   expect(report.played.click ?? 0).toBeGreaterThanOrEqual(2);
   // A refused order buzzes.
-  await page.evaluate(() => window.__ekc!.order({ type: 'move', side: 'agency', unit: 'a1', to: { x: 5, y: 41, level: 0 } }));
+  await page.evaluate(() => window.__ekc!.order({ type: 'move', side: 'agency', unit: 'a1', to: { x: 4, y: 7, level: 0 } }));
   expect((await page.evaluate(() => window.__ekc!.audio()!)).played.refused ?? 0).toBeGreaterThanOrEqual(1);
   // Mute from the console, set the volume, reload: both come back (Q19, under ekc-audio, apart from the save).
   await page.getByTestId('mute').click();

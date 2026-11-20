@@ -168,7 +168,7 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
     down.current = null;
     if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 6) return; // a drag, not a tap
     const p = tileOf(e.instanceId);
-    if (p) tapTile(p);
+    if (p) tapTile(p, { shift: e.shiftKey });
   };
   const onPointerMove = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();

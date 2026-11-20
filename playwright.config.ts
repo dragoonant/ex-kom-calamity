@@ -16,6 +16,8 @@ export default defineConfig({
     baseURL: `http://localhost:${port}/`,
     viewport: { width: 1440, height: 900 },
     browserName: 'chromium',
+    // A machine whose pre-installed Chromium is not the one this Playwright pins sets PW_CHROMIUM to its binary.
+    launchOptions: process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {},
   },
   webServer: {
     command: `npm run dev -- --port ${port} --strictPort`,

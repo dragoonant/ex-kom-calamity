@@ -1,9 +1,9 @@
 {
   "_": "Every number here is a first guess (tune). Keys are cited in docs/spec/10-rules.md as section.key = N; validate:data checks they agree. A change needs a sim result (KB rule 30).",
   "time": {"ticksPerSecond": 10, "maxBattleSeconds": 600},
-  "move": {"diagonalCostPercent": 141, "stairCostPercent": 150, "blockedWaitTicks": 5, "rubbleCostPercent": 200},
-  "sight": {"revealRange": 3},
-  "fire": {"minHitChance": 5, "maxHitChance": 95, "movingTargetPenalty": 15, "retaliateMemoryTicks": 50},
+  "move": {"diagonalCostPercent": 141, "stairCostPercent": 150, "blockedWaitTicks": 5, "rubbleCostPercent": 200, "runCostPercent": 60, "crouchCostPercent": 150},
+  "sight": {"revealRange": 3, "markLastHostiles": 2},
+  "fire": {"minHitChance": 5, "maxHitChance": 95, "movingTargetPenalty": 15, "retaliateMemoryTicks": 50, "crouchTargetPenalty": 15, "crouchAimBonus": 5, "runningShooterPenalty": 20, "runSettleTicks": 10},
   "save": {"autosaveSeconds": 10},
   "structure": {"fallDamage": 15},
   "ai": {"decideTicks": 5, "hostAmbushRange": 4, "fleeHpPercent": 40, "takerChaseRange": 12, "coverSearchTicks": 30, "breachRange": 8, "breachDetourTicks": 40, "randomOrderPercent": 50, "isolationRange": 5, "huntAfterAgentsDown": 3, "huntAfterSeconds": 120},

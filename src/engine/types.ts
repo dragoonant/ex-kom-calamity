@@ -24,7 +24,13 @@ export interface MoveOrder {
   path: Pos[];
   progress: number;
   blockedTicks: number;
+  /** POSE-3: a running move (absent in saves from before M4c: a walk). */
+  run?: boolean;
 }
+
+/** POSE-1 */
+export type Posture = 'stand' | 'crouch';
+export const POSTURES: Posture[] = ['stand', 'crouch'];
 
 export interface Unit {
   id: string;
@@ -56,6 +62,10 @@ export interface Unit {
   /** BLAST-1: charges left, and the pending one. */
   charges: number;
   blast: { at: Pos; progress: number } | null;
+  /** POSE-1 (absent in saves from before M4c: standing). */
+  posture?: Posture;
+  /** POSE-4: the last tick the unit advanced a running step, or null (absent in old saves: never). */
+  lastRunTick?: number | null;
 }
 
 export interface Score {
@@ -86,9 +96,10 @@ export interface Setup {
 
 export type Action =
   | { type: 'tick' }
-  | { type: 'move'; side: Side; unit: string; to: Pos }
+  | { type: 'move'; side: Side; unit: string; to: Pos; run?: boolean }
   | { type: 'fire'; side: Side; unit: string; target: string }
   | { type: 'stance'; side: Side; unit: string; stance: Stance }
+  | { type: 'posture'; side: Side; unit: string; posture: Posture }
   | { type: 'halt'; side: Side; unit: string }
   | { type: 'blast'; side: Side; unit: string; at: Pos }
   | { type: 'withdraw'; side: Side };
@@ -112,6 +123,8 @@ export interface State {
   score: Score;
   over: Over | null;
   log: LogEntry[];
+  /** VIEW-5: only on `view(state, 'agency')`, never on the true state: where the last few hostiles are. */
+  marks?: Pos[];
 }
 
 export interface ShotBreakdown {
@@ -119,6 +132,12 @@ export interface ShotBreakdown {
   aim: number;
   falloff: number;
   movingPenalty: number;
+  /** POSE-4: a ranged shot at a crouched target 2 or more tiles away. */
+  crouchPenalty: number;
+  /** POSE-4: a crouched shooter's steadier aim. */
+  crouchBonus: number;
+  /** POSE-4: the shooter ran within the last fire.runSettleTicks. */
+  runPenalty: number;
   raw: number;
   chance: number;
 }

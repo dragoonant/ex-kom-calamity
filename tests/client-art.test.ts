@@ -185,9 +185,9 @@ describe('M4 effects from events (fx.ts; VIEW-2, VIEW-1)', () => {
     expect(breach).toMatchObject({ material: 'brick' });
     expect(s.tiles[tileIndex(s, { x: 5, y: 44, level: 0 })]!.kind).toBe('rubble');
     // A shot between two units the agency cannot see yields nothing; the agency's own shot always does.
-    const hidden = fxFor([{ type: 'shot', tick: 1, shooter: 'u9', target: 'u10', weapon: 'pocket-pistol', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
+    const hidden = fxFor([{ type: 'shot', tick: 1, shooter: 'u9', target: 'u10', weapon: 'pocket-pistol', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
     expect(hidden.filter((f) => f.kind === 'muzzle')).toEqual([]);
-    const own = fxFor([{ type: 'shot', tick: 1, shooter: 'a1', target: 'u9', weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
+    const own = fxFor([{ type: 'shot', tick: 1, shooter: 'a1', target: 'u9', weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
     expect(own.filter((f) => f.kind === 'muzzle')).toHaveLength(1);
     expect(own[0]).toMatchObject({ weapon: 'patrol-carbine', side: 'agency', hit: true });
     expect(BATTLES['block-raid']!.squad[0]!.name).toBe('Vance');

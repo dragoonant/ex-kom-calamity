@@ -6,9 +6,15 @@ import unitsJson from './units.json';
 import materialsJson from './materials.json';
 import civicSavingsBranch from './maps/civic-savings-branch.json';
 import halcyonBlock from './maps/halcyon-block.json';
+import automatSite from './maps/sunbeam-automat-site.json';
+import depotSite from './maps/depot-7-site.json';
+import savingsSite from './maps/civic-savings-site.json';
 import firstRaid from './battles/first-raid.json';
 import blockRaid from './battles/block-raid.json';
 import benchRaid from './battles/bench-raid.json';
+import automatRaid from './battles/automat-raid.json';
+import depotRaid from './battles/depot-raid.json';
+import savingsRaid from './battles/savings-raid.json';
 
 export type Side = 'agency' | 'hostile' | 'civilian';
 export type Stance = 'engage' | 'retaliate' | 'hold';
@@ -17,9 +23,9 @@ export type TileKindName = 'ground' | 'floor' | 'wall' | 'door' | 'stair' | 'win
 
 export interface Tuning {
   time: { ticksPerSecond: number; maxBattleSeconds: number };
-  move: { diagonalCostPercent: number; stairCostPercent: number; blockedWaitTicks: number; rubbleCostPercent: number };
-  sight: { revealRange: number };
-  fire: { minHitChance: number; maxHitChance: number; movingTargetPenalty: number; retaliateMemoryTicks: number };
+  move: { diagonalCostPercent: number; stairCostPercent: number; blockedWaitTicks: number; rubbleCostPercent: number; runCostPercent: number; crouchCostPercent: number };
+  sight: { revealRange: number; markLastHostiles: number };
+  fire: { minHitChance: number; maxHitChance: number; movingTargetPenalty: number; retaliateMemoryTicks: number; crouchTargetPenalty: number; crouchAimBonus: number; runningShooterPenalty: number; runSettleTicks: number };
   save: { autosaveSeconds: number };
   structure: { fallDamage: number };
   /** Section 22 (AI): the hostile AI's windows and ranges. */
@@ -168,12 +174,21 @@ export const DEFAULT_MATERIAL: Record<TileKindName, string> = (materialsJson as 
 export const MAPS: Record<string, MapDef> = {
   [civicSavingsBranch.id]: stripComments<MapDef>(civicSavingsBranch as Record<string, unknown>),
   [halcyonBlock.id]: stripComments<MapDef>(halcyonBlock as Record<string, unknown>),
+  [automatSite.id]: stripComments<MapDef>(automatSite as Record<string, unknown>),
+  [depotSite.id]: stripComments<MapDef>(depotSite as Record<string, unknown>),
+  [savingsSite.id]: stripComments<MapDef>(savingsSite as Record<string, unknown>),
 };
 export const BATTLES: Record<string, BattleDef> = {
   [firstRaid.id]: stripComments<BattleDef>(firstRaid as Record<string, unknown>),
   [blockRaid.id]: stripComments<BattleDef>(blockRaid as Record<string, unknown>),
   [benchRaid.id]: stripComments<BattleDef>(benchRaid as Record<string, unknown>),
+  [automatRaid.id]: stripComments<BattleDef>(automatRaid as Record<string, unknown>),
+  [depotRaid.id]: stripComments<BattleDef>(depotRaid as Record<string, unknown>),
+  [savingsRaid.id]: stripComments<BattleDef>(savingsRaid as Record<string, unknown>),
 };
+
+/** MAP-10 (PLAN.md D20): the playable raids, one building each, in the order the title offers them. */
+export const RAID_SITES: string[] = [automatRaid.id, depotRaid.id, savingsRaid.id];
 
 /** MAP-2 legend. */
 export const LEGEND: Record<string, TileKindName> = {

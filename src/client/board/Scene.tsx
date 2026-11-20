@@ -10,6 +10,7 @@ import { useClient } from '../store';
 import { CameraRig } from './CameraRig';
 import { CorePulse, Effects, FrameTimes } from './Effects';
 import { Figures } from './Figures';
+import { Marks } from './Marks';
 import { Props } from './Props';
 import { Tiles, useBoardDerived } from './Tiles';
 import { live } from './world';
@@ -35,7 +36,7 @@ function LoopDriver() {
   return null;
 }
 
-function RendererHandle() {
+export function RendererHandle() {
   const gl = useThree((s) => s.gl);
   const scene = useThree((s) => s.scene);
   useEffect(() => {
@@ -71,6 +72,7 @@ function Board() {
       <Tiles state={agency} derived={derived} />
       <Props state={agency} />
       <Figures state={agency} />
+      <Marks state={agency} />
       <Effects />
     </>
   );

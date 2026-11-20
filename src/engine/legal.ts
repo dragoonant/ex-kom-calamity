@@ -1,6 +1,6 @@
 // ARCH-3, ORD-8: every legal action for a side, tick first, never empty.
 import type { Action, Side, State } from './types';
-import { SIDES, STANCES } from './types';
+import { POSTURES, SIDES, STANCES } from './types';
 import { tileIndex } from './map';
 import { pathField, posOfIndex } from './path';
 import { sideSeesUnit } from './sight';
@@ -15,6 +15,8 @@ export function legalActions(state: State, side: Side): Action[] {
     if (u.down || u.side !== side) continue;
     acts.push({ type: 'halt', side, unit: u.id });
     for (const st of STANCES) if (st !== u.stance) acts.push({ type: 'stance', side, unit: u.id, stance: st });
+    // POSE-2; a run (POSE-3) is the same move with run: true and is not listed again (RULING POSE-3).
+    for (const p of POSTURES) if (p !== (u.posture ?? 'stand')) acts.push({ type: 'posture', side, unit: u.id, posture: p });
     const own = tileIndex(state, u);
     const field = pathField(state, u, null);
     const idxs = [...field.dist.keys()].sort((a, b) => a - b);
