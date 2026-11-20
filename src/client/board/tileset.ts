@@ -57,6 +57,7 @@ export const OVERLAY = {
   hover: new THREE.Color('#ffffff'),
   hidden: new THREE.Color('#3a4446'),
   scorch: new THREE.Color('#2b2f33'),
+  crack: new THREE.Color('#1b1b1f'),
   rubble: new THREE.Color('#8a7f73'),
   stair: new THREE.Color('#d9a62e'),
   doorOpen: new THREE.Color('#d7b07a'),
@@ -124,7 +125,7 @@ export function damageFraction(t: Tile): number {
 // ---------------------------------------------------------------------------------------------------------
 // Instance layers. One InstancedMesh per layer across every drawn level; `fill` writes matrices and colours.
 
-export type LayerKind = 'trim' | 'plinth' | 'glass' | 'mullion' | 'leaf' | 'step' | 'chunk' | 'scorch' | 'kerb' | 'gravel';
+export type LayerKind = 'trim' | 'plinth' | 'glass' | 'mullion' | 'leaf' | 'step' | 'chunk' | 'scorch' | 'crack' | 'kerb' | 'gravel';
 
 export interface Layer {
   kind: LayerKind;
@@ -160,6 +161,44 @@ function push(layer: Layer, x: number, y: number, z: number, sx: number, sy: num
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 
+/** The most crack segments one tile can carry (see pushCracks). */
+export const CRACK_SEGMENTS_MAX = 12;
+
+/**
+ * D21: zigzag fissures on the faces of a damaged tile, by a stable draw per tile so they never flicker as the board
+ * refills: 1 crack per face at a scratch, more as it weakens, each 2 or 3 thin dark segments at alternating angles, at
+ * most CRACK_SEGMENTS_MAX over the tile.
+ * `half` is the distance of the faces from the centre (a wall's four faces; a pane's two, `paneOnly`).
+ */
+export function pushCracks(layer: Layer, cx: number, y0: number, cz: number, h: number, dmg: number, seed: number, half: number, paneOnly = false): void {
+  const perFace = dmg < 0.34 ? 1 : dmg < 0.67 ? 2 : 3;
+  const faces = paneOnly ? [0, 2] : [0, 1, 2, 3];
+  const perFaceMax = Math.floor(CRACK_SEGMENTS_MAX / faces.length);
+  for (const f of faces) {
+    let k = 0;
+    for (let c = 0; c < perFace; c++) {
+      const r = (n: number) => hash01(seed * 31 + f * 7 + c * 131 + n * 977);
+      let u = (r(1) - 0.5) * 0.6; // along the face
+      let v = h * (0.25 + r(2) * 0.5); // height up the face
+      let ang = (r(3) - 0.5) * 1.6;
+      const segs = 2 + (r(4) < 0.5 ? 1 : 0);
+      for (let sgi = 0; sgi < segs && k < perFaceMax; sgi++, k++) {
+        const len = 0.18 + r(5 + sgi) * (0.15 + 0.25 * dmg);
+        const du = Math.sin(ang) * len;
+        const dv = Math.cos(ang) * len;
+        const mu = u + du / 2;
+        const mv = v + dv / 2;
+        // Face 0: +z, 1: +x, 2: -z, 3: -x; each crack lies flat on its face and turns in the face's plane.
+        const [x, z, yaw] = f === 0 ? [cx + mu, cz + half, 0] : f === 1 ? [cx + half, cz - mu, Math.PI / 2] : f === 2 ? [cx - mu, cz - half, Math.PI] : [cx - half, cz + mu, -Math.PI / 2];
+        push(layer, x, y0 + mv, z, 0.035, len, 0.012, OVERLAY.crack, yaw, 0, -ang);
+        u += du;
+        v += dv;
+        ang = -ang * (0.6 + r(9 + sgi) * 0.6) + (r(12 + sgi) - 0.5) * 0.5;
+      }
+    }
+  }
+}
+
 function std(opts: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, ...opts });
 }
@@ -184,6 +223,8 @@ export function makeLayers(capacity: Record<LayerKind, number>): Record<LayerKin
     step: mk('step', std({ roughness: 0.85 })),
     chunk: mk('chunk', std({ roughness: 0.95 })),
     scorch: mk('scorch', std({ roughness: 1, color: '#000000' })),
+    // D21: fissures on a damaged wall or pane, unlit so they read dark in any light.
+    crack: mk('crack', new THREE.MeshBasicMaterial({ color: '#ffffff' })),
     kerb: mk('kerb', std({ roughness: 0.9 })),
     gravel: mk('gravel', std({ roughness: 1 })),
   };
@@ -217,6 +258,7 @@ export function layerCapacity(state: Pick<State, 'tiles' | 'width' | 'depth'>): 
     step: stairs * 4,
     chunk: breakable * 3,
     scorch: breakable,
+    crack: breakable * CRACK_SEGMENTS_MAX,
     kerb: Math.ceil(ground / 6) + 64,
     gravel: Math.ceil(roofish / 8) + 64,
   };
@@ -259,7 +301,9 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
           const partition = t.material === 'plaster';
           push(layers.trim, cx, y0 + wallH - 0.1, cz, partition ? 1.0 : 1.08, 0.08, partition ? 1.0 : 1.08, partition ? pal.partition : pal.trim);
           if (!partition) push(layers.plinth, cx, y0 + 0.03, cz, 1.06, 0.14, 1.06, pal.plinth);
-          if (dmg > 0) push(layers.scorch, cx, y0 + wallH * 0.35, cz, 1.03, wallH * 0.5 * Math.min(1, 0.4 + dmg), 1.03, OVERLAY.scorch);
+          // D21: a weakened wall cracks first (more fissures as it weakens) and chars only when nearly gone.
+          if (dmg > 0) pushCracks(layers.crack, cx, y0, cz, wallH, dmg, base + i, 0.505);
+          if (dmg > 0.5) push(layers.scorch, cx, y0 + wallH * 0.3, cz, 1.03, wallH * 0.4 * (dmg - 0.3), 1.03, OVERLAY.scorch);
           break;
         }
         case 'window': {
@@ -270,7 +314,7 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
           push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.08, h + 0.02, 0.18, pal.trim);
           push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.9, 0.06, 0.18, pal.trim);
           push(layers.trim, cx, y0 + wallH * 0.33, cz, 1.08, 0.08, 1.08, pal.trim);
-          if (dmg > 0) push(layers.scorch, cx, y0 + wallH * 0.62, cz, 0.6 * dmg + 0.2, h * 0.7, 0.2, OVERLAY.scorch);
+          if (dmg > 0) pushCracks(layers.crack, cx, y0 + wallH * 0.38, cz, h, dmg * 0.6, base + i, 0.08, true);
           break;
         }
         case 'door': {

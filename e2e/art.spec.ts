@@ -108,6 +108,9 @@ test('props stand on floor tiles and follow the tile under them: intact, askew w
   });
   expect(fx).toContain('blast');
   expect(fx).toContain('breach');
+  await page.waitForTimeout(200);
+  // Read the budget now: on a one-building site (MAP-10) some seeds finish the raid inside the 20 s below.
+  const after = await page.evaluate(() => window.__ekc!.perf());
   // A shot the squad fires makes a muzzle flash; its fx carries the weapon and the target.
   const shot = await page.evaluate(() => {
     const h = window.__ekc!;
@@ -115,7 +118,6 @@ test('props stand on floor tiles and follow the tile under them: intact, askew w
     return h.fx().filter((f) => f.kind === 'muzzle').map((f) => ({ weapon: f.weapon, hasTo: !!f.to }));
   });
   void shot; // whether a shot happens in 20 s depends on the seed; the queue never throws
-  const after = await page.evaluate(() => window.__ekc!.perf());
   expect(after!.drawCalls).toBeLessThanOrEqual(BUDGET.drawCalls);
   expect(before!.layers.chunk ?? 0).toBeLessThanOrEqual(after!.layers.chunk ?? 0); // rubble chunks appear where the wall fell
   expect(errors).toEqual([]);

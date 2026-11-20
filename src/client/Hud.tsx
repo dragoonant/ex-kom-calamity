@@ -7,6 +7,9 @@ import { MAPS, WEAPONS } from '../data';
 import { query, STANCES, type Stance, type Unit } from '../engine';
 import { unitLabel, useClient, type Speed } from './store';
 import { director } from './App';
+import { browserStorage } from './save';
+import { readViewSettings, writeViewSettings } from './viewSettings';
+import { shake } from './board/world';
 
 function levelName(level: number): string {
   return level === 0 ? 'GROUND' : `LEVEL ${level}`;
@@ -50,6 +53,17 @@ export function Hud() {
   const { togglePause, setSpeed, select, setLevel, setMode, focusUnit, order, leaveBattle } = useClient.getState();
   const [confirmWithdraw, setConfirmWithdraw] = useState(false);
   const [audio, setAudio] = useState(() => director.getSettings());
+  // D21 f: the camera shake switch, kept per browser under ekc-view.
+  const [shakeOn, setShakeOn] = useState(() => readViewSettings(browserStorage()).shake);
+  useEffect(() => {
+    shake.enabled = shakeOn;
+    if (!shakeOn) shake.amp = 0;
+  }, [shakeOn]);
+  const toggleShake = () => {
+    const next = !shakeOn;
+    writeViewSettings(browserStorage(), { shake: next });
+    setShakeOn(next);
+  };
   const setMuted = (muted: boolean) => {
     director.setMuted(muted);
     setAudio(director.getSettings());
@@ -157,6 +171,9 @@ export function Hud() {
                 {audio.muted ? 'MUTED' : 'SOUND'}
               </button>
               <input className="volume-slider" type="range" min={0} max={100} value={Math.round(audio.volume * 100)} aria-label="Volume" data-testid="volume" onChange={(e) => setVolume(Number(e.target.value) / 100)} />
+              <button type="button" className={`toggle ${shakeOn ? '' : 'toggle-alert'}`} data-testid="shake" aria-pressed={shakeOn} onClick={toggleShake}>
+                {shakeOn ? 'SHAKE' : 'NO SHAKE'}
+              </button>
             </div>
             <div className={`save-lamp ${saveStatus.ok ? '' : 'save-lamp-alert'}`} data-testid="save-lamp">
               <span className={`lamp ${saveStatus.ok ? 'lamp-ok' : 'lamp-alert'}`} />
