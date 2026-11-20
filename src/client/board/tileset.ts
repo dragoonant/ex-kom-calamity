@@ -122,6 +122,24 @@ export function damageFraction(t: Tile): number {
   return max > 0 && t.hp < max ? 1 - t.hp / max : 0;
 }
 
+/** A tile that continues a wall line: a window or door sits in the run of these. */
+function wallish(t: Tile | undefined): boolean {
+  return !!t && (t.kind === 'wall' || t.kind === 'window' || t.kind === 'door');
+}
+
+/**
+ * Yaw of a window (or door) so its pane lies in the wall it sits in: 0 when the wall runs east-west (the pane
+ * faces north and south), a quarter turn when it runs north-south. Decided by the wall-like neighbours on the same
+ * level; a tile with as many on each axis, or none, keeps the east-west default.
+ */
+export function openingYaw(tiles: readonly Tile[], width: number, depth: number, t: Tile): number {
+  const base = t.level * width * depth;
+  const at = (x: number, y: number): Tile | undefined => (x < 0 || y < 0 || x >= width || y >= depth ? undefined : tiles[base + y * width + x]);
+  const ew = (wallish(at(t.x - 1, t.y)) ? 1 : 0) + (wallish(at(t.x + 1, t.y)) ? 1 : 0);
+  const ns = (wallish(at(t.x, t.y - 1)) ? 1 : 0) + (wallish(at(t.x, t.y + 1)) ? 1 : 0);
+  return ns > ew ? Math.PI / 2 : 0;
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Instance layers. One InstancedMesh per layer across every drawn level; `fill` writes matrices and colours.
 
@@ -170,9 +188,10 @@ export const CRACK_SEGMENTS_MAX = 12;
  * most CRACK_SEGMENTS_MAX over the tile.
  * `half` is the distance of the faces from the centre (a wall's four faces; a pane's two, `paneOnly`).
  */
-export function pushCracks(layer: Layer, cx: number, y0: number, cz: number, h: number, dmg: number, seed: number, half: number, paneOnly = false): void {
+export function pushCracks(layer: Layer, cx: number, y0: number, cz: number, h: number, dmg: number, seed: number, half: number, paneOnly = false, paneYaw = 0): void {
   const perFace = dmg < 0.34 ? 1 : dmg < 0.67 ? 2 : 3;
-  const faces = paneOnly ? [0, 2] : [0, 1, 2, 3];
+  // A pane cracks on its two faces only: north and south, or east and west when the window is turned (openingYaw).
+  const faces = paneOnly ? (paneYaw ? [1, 3] : [0, 2]) : [0, 1, 2, 3];
   const perFaceMax = Math.floor(CRACK_SEGMENTS_MAX / faces.length);
   for (const f of faces) {
     let k = 0;
@@ -308,13 +327,15 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
         }
         case 'window': {
           // Pane in the upper part of the opening, a cross mullion, a sill; lit at evening by a stable draw.
+          // The pane lies in the wall's own line: turned a quarter when the wall runs north-south.
           const lit = hash01(base + i) < 0.62;
           const h = wallH * 0.55;
-          push(layers.glass, cx, y0 + wallH * 0.62, cz, 0.86, h, 0.14, lit ? pal.glow : pal.glass);
-          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.08, h + 0.02, 0.18, pal.trim);
-          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.9, 0.06, 0.18, pal.trim);
+          const yaw = openingYaw(state.tiles, w, state.depth, t);
+          push(layers.glass, cx, y0 + wallH * 0.62, cz, 0.86, h, 0.14, lit ? pal.glow : pal.glass, yaw);
+          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.08, h + 0.02, 0.18, pal.trim, yaw);
+          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.9, 0.06, 0.18, pal.trim, yaw);
           push(layers.trim, cx, y0 + wallH * 0.33, cz, 1.08, 0.08, 1.08, pal.trim);
-          if (dmg > 0) pushCracks(layers.crack, cx, y0 + wallH * 0.38, cz, h, dmg * 0.6, base + i, 0.08, true);
+          if (dmg > 0) pushCracks(layers.crack, cx, y0 + wallH * 0.38, cz, h, dmg * 0.6, base + i, 0.08, true, yaw);
           break;
         }
         case 'door': {
