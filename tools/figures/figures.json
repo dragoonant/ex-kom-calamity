@@ -39,5 +39,35 @@
     "texture": 2048,
     "seeds": [1234, 7, 42],
     "rig": "legs"
+  },
+  "agent-t1": {
+    "reference": "docs/concept/samples/chrome-suit-t1-1.jpg",
+    "body": "humanoid",
+    "height": 1.2,
+    "preset": "high",
+    "faces": 30000,
+    "texture": 2048,
+    "seeds": [1234, 7, 42],
+    "rig": "humanoid"
+  },
+  "citizen": {
+    "reference": "docs/concept/samples/chrome-citizen-1.jpg",
+    "body": "humanoid",
+    "height": 1.2,
+    "preset": "high",
+    "faces": 30000,
+    "texture": 2048,
+    "seeds": [1234, 7, 42],
+    "rig": "humanoid"
+  },
+  "citizen-2": {
+    "reference": "docs/concept/samples/chrome-citizen-2.jpg",
+    "body": "humanoid",
+    "height": 1.2,
+    "preset": "high",
+    "faces": 30000,
+    "texture": 2048,
+    "seeds": [1234, 7, 42],
+    "rig": "humanoid"
   }
 }
