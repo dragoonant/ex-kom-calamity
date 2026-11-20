@@ -10,7 +10,7 @@ const port = Number(process.env.PW_PORT ?? 5181);
 const baseURL = `http://localhost:${port}/`;
 
 async function open(dir: string): Promise<{ ctx: BrowserContext; page: Page }> {
-  const ctx = await chromium.launchPersistentContext(dir, { baseURL, viewport: { width: 1440, height: 900 } });
+  const ctx = await chromium.launchPersistentContext(dir, { baseURL, viewport: { width: 1440, height: 900 }, ...(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {}) });
   const page = ctx.pages()[0] ?? (await ctx.newPage());
   return { ctx, page };
 }
@@ -29,18 +29,21 @@ test('pause, order, advance, save; close the browser; Continue reopens the same 
     await page.getByTestId('pause').click(); // unpause
     await page.getByTestId('pause').click(); // pause: an autosave point
     await page.getByTestId('agent-a2').click();
-    const target = { x: 3, y: 41, level: 0 };
+    const target = { x: 3, y: 7, level: 0 };
     const pt = await page.evaluate((t) => window.__ekc!.screenPointOfTile(t), target);
     await page.mouse.click(pt!.x, pt!.y); // an accepted order: an autosave point
     const saved = await page.evaluate(() => {
       const h = window.__ekc!;
       h.pause();
       h.advance(12.5); // past the 10 s autosave interval
-      h.order({ type: 'stance', side: 'agency', unit: 'a4', stance: 'hold' });
-      return { hash: h.hash(), tick: h.getState()!.tick, bytes: localStorage.getItem('ekc-save')!.length };
+      // A living agent: by now the fighter by the west door may have downed one, and a down unit takes no order (UNIT-4).
+      const who = h.getState()!.units.find((u) => u.side === 'agency' && !u.down && u.stance !== 'hold')!.id;
+      const ok = h.order({ type: 'stance', side: 'agency', unit: who, stance: 'hold' }).ok;
+      return { hash: h.hash(), tick: h.getState()!.tick, bytes: localStorage.getItem('ekc-save')!.length, who, ok };
     });
+    expect(saved.ok).toBe(true);
     expect(saved.tick).toBeGreaterThanOrEqual(125);
-    expect(saved.bytes).toBeLessThan(200_000); // a tile diff, not 25,200 tiles (RULING SAV-3)
+    expect(saved.bytes).toBeLessThan(200_000); // a tile diff, not every tile (RULING SAV-3)
     await expect(page.getByTestId('save-lamp')).toContainText('SAVED AT');
     expect(errors).toEqual([]);
     await ctx.close();
@@ -51,16 +54,16 @@ test('pause, order, advance, save; close the browser; Continue reopens the same 
     await openTitle(page);
     // Continue names what it reopens (SAV-4).
     const summary = page.getByTestId('continue-summary');
-    await expect(summary).toContainText('Raid on Halcyon Row');
+    await expect(summary).toContainText('Raid on Civic Savings');
     await expect(summary).toContainText('paused');
     await expect(summary).toContainText(/Agents standing \d\/6/);
     await sweepText(page);
     await page.getByTestId('continue').click();
     await waitForBoard(page);
-    const back = await page.evaluate(() => {
+    const back = await page.evaluate((who) => {
       const h = window.__ekc!;
-      return { hash: h.hash(), tick: h.getState()!.tick, paused: h.isPaused(), stance: h.getState()!.units.find((u) => u.id === 'a4')!.stance };
-    });
+      return { hash: h.hash(), tick: h.getState()!.tick, paused: h.isPaused(), stance: h.getState()!.units.find((u) => u.id === who)!.stance };
+    }, saved.who);
     expect(back).toEqual({ hash: saved.hash, tick: saved.tick, paused: true, stance: 'hold' });
     await expect(page.getByTestId('pause')).toHaveText('PAUSED');
     // It plays on from there.

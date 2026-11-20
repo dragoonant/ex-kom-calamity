@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, legalActions, parseMap, query, step, tileAt, tileIndex, view, type GameEvent, type Pos, type State, type Tile } from '../src/engine';
-import { BATTLES, MAPS, MATERIALS, PROP_KINDS, TUNING } from '../src/data';
+import { BATTLES, MAPS, MATERIALS, PROP_KINDS, RAID_SITES, TUNING } from '../src/data';
 import { checkInvariants } from '../src/sim/invariants';
 import { NEVER_HIT, clone, expectReject, game, only, order, patch, place, pos, tick, unit } from './helpers';
 
@@ -21,6 +21,31 @@ function blastFrom(s0: State, from: Pos, at: Pos): { state: State; events: GameE
 }
 
 describe('2. Map, the city block (MAP)', () => {
+  it('MAP-10 the playable raids are one building each, of 1, 2 and 3 floors, in a street ring, the squad outside and every hostile inside', () => {
+    expect(RAID_SITES.map((id) => MAPS[BATTLES[id]!.map]!.buildings![0]!.floors)).toEqual([1, 2, 3]);
+    for (const id of RAID_SITES) {
+      const m = MAPS[BATTLES[id]!.map]!;
+      expect(m.buildings, id).toHaveLength(1);
+      const b = m.buildings![0]!;
+      expect(m.levels.length, id).toBe(b.floors + 1);
+      expect([b.x, b.y, m.width - b.x - b.w, m.depth - b.y - b.d], id).toEqual([4, 4, 4, 4]);
+      const s = createGame({ battleId: id, seed: 1 });
+      const inside = (u: Pos) => u.x >= b.x && u.x < b.x + b.w && u.y >= b.y && u.y < b.y + b.d;
+      for (const u of s.units.filter((x) => x.side === 'agency')) {
+        expect(tileAt(s, u)?.kind).toBe('ground');
+        expect(inside(u)).toBe(false);
+      }
+      const hostiles = s.units.filter((x) => x.side === 'hostile');
+      expect(hostiles.length, id).toBeGreaterThanOrEqual(5);
+      for (const h of hostiles) {
+        expect(inside(h), `${id} ${h.id}`).toBe(true);
+        const near = [1, -1, 0, 0].map((dx, k) => ({ x: h.x + dx, y: h.y + [0, 0, 1, -1][k]!, level: h.level })).find((p) => tileAt(s, p)?.kind === 'floor');
+        expect(near, `${id} ${h.id}`).toBeDefined();
+        expect(query.path(s, 'a1', near!), `${id}: path to ${h.id}`).not.toBeNull();
+      }
+    }
+  });
+
   it('MAP-7 the first block is 60 x 60 on 7 levels with five buildings of 1 to 6 floors, and the squad starts in the street', () => {
     const m = MAPS['halcyon-block']!;
     expect([m.width, m.depth, m.levels.length]).toEqual([60, 60, 7]);

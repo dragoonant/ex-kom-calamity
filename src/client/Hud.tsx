@@ -125,6 +125,7 @@ export function Hud() {
           <button type="button" key={l} className={`toggle floor ${level === l ? 'toggle-on' : ''}`} data-testid={`level-${l}`} aria-pressed={level === l} onClick={() => setLevel(l)}>
             {levelName(l)}
             <span className="floor-count num">{agents.filter((u) => !u.down && u.level === l).length || ''}</span>
+            {agency.marks?.some((m) => m.level === l) && <span className="floor-mark" data-testid={`mark-on-${l}`} aria-label="A last hostile is marked here" />}
           </button>
         ))}
       </div>
@@ -316,6 +317,11 @@ export function Hud() {
               <span>AGENTS DOWN {outcome.score.agentsDown}</span>
               <span>HOSTILES SEEN {agency.units.filter((u) => u.side === 'hostile' && !u.down).length}</span>
             </div>
+            {agency.marks && agency.marks.length > 0 && (
+              <div className="marks-line num" data-testid="marks">
+                LAST HOSTILES MARKED: {agency.marks.map((m) => levelName(m.level)).join(', ')}
+              </div>
+            )}
           </section>
 
           <section className="panel panel-tray" aria-label="Message slips">

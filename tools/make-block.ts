@@ -9,9 +9,10 @@
 import { writeFileSync } from 'node:fs';
 import type { BuildingStyle, PropDef, PropKind } from '../src/data';
 
-const W = 60;
-const D = 60;
-const LEVELS = 7;
+// The canvas the helpers below draw on; begin() resets it for each map this tool writes.
+let W = 60;
+let D = 60;
+let LEVELS = 7;
 
 type Plan = 'corridor' | 'hall';
 interface Building {
@@ -39,12 +40,22 @@ const BUILDINGS: Building[] = [
   { id: 'civic-savings', name: 'Civic Savings, branch 12', x: 5, y: 38, w: 18, d: 16, floors: 3, plan: 'corridor', style: 'bank', wall: 'b' },
 ];
 
-const kinds: string[][][] = [];
-const mats: string[][][] = [];
-for (let l = 0; l < LEVELS; l++) {
-  kinds.push(Array.from({ length: D }, () => Array.from({ length: W }, () => (l === 0 ? ',' : ' '))));
-  mats.push(Array.from({ length: D }, () => Array.from({ length: W }, () => ' ')));
+let kinds: string[][][] = [];
+let mats: string[][][] = [];
+let props: PropDef[] = [];
+function begin(w: number, d: number, levels: number): void {
+  W = w;
+  D = d;
+  LEVELS = levels;
+  kinds = [];
+  mats = [];
+  props = [];
+  for (let l = 0; l < LEVELS; l++) {
+    kinds.push(Array.from({ length: D }, () => Array.from({ length: W }, () => (l === 0 ? ',' : ' '))));
+    mats.push(Array.from({ length: D }, () => Array.from({ length: W }, () => ' ')));
+  }
 }
+begin(60, 60, 7);
 function put(l: number, x: number, y: number, kind: string, mat = ' '): void {
   if (l < 0 || l >= LEVELS || x < 0 || x >= W || y < 0 || y >= D) throw new Error(`put off the map ${x},${y},${l}`);
   kinds[l]![y]![x] = kind;
@@ -82,7 +93,6 @@ function shell(b: Building, l: number, f: Frame, windows: boolean): void {
   }
 }
 
-const props: PropDef[] = [];
 /** MAP-9: a prop on a passable, unfurnished floor or ground tile; silently skipped anywhere else. */
 function prop(kind: PropKind, l: number, x: number, y: number, yaw: 0 | 1 | 2 | 3 = 0): void {
   const k = kinds[l]?.[y]?.[x];
@@ -337,19 +347,26 @@ const others = [
   { template: 'citizen', at: local(wireless, 13, 11, 0) },
   { template: 'citizen', at: local(wireless, 3, 2, 1) },
 ];
-const used = new Set<string>();
-for (const e of [...squad, ...others]) {
-  const k = kinds[e.at.level]?.[e.at.y]?.[e.at.x];
-  const key = `${e.at.x},${e.at.y},${e.at.level}`;
-  if (!k || !passable.has(k)) throw new Error(`spawn ${key} (${e.template}) is on "${k}"`);
-  if (used.has(key)) throw new Error(`spawn ${key} used twice`);
-  used.add(key);
+interface Spawn {
+  at: { x: number; y: number; level: number };
+  template: string;
 }
-// A prop under a spawning unit would be drawn through the figure: drop it.
-for (let i = props.length - 1; i >= 0; i--) {
-  const p = props[i]!;
-  if (used.has(`${p.x},${p.y},${p.level}`)) props.splice(i, 1);
+/** Every spawn on a passable tile, no two on one tile; a prop under a spawning unit would be drawn through the figure, so it is dropped. */
+function checkSpawns(all: Spawn[]): void {
+  const used = new Set<string>();
+  for (const e of all) {
+    const k = kinds[e.at.level]?.[e.at.y]?.[e.at.x];
+    const key = `${e.at.x},${e.at.y},${e.at.level}`;
+    if (!k || !passable.has(k)) throw new Error(`spawn ${key} (${e.template}) is on "${k}"`);
+    if (used.has(key)) throw new Error(`spawn ${key} used twice`);
+    used.add(key);
+  }
+  for (let i = props.length - 1; i >= 0; i--) {
+    const p = props[i]!;
+    if (used.has(`${p.x},${p.y},${p.level}`)) props.splice(i, 1);
+  }
 }
+checkSpawns([...squad, ...others]);
 
 const map = {
   id: 'halcyon-block',
@@ -384,3 +401,110 @@ const count = (ch: string) => kinds.flat(2).filter((k) => k === ch).length;
 const byKind: Record<string, number> = {};
 for (const p of props) byKind[p.kind] = (byKind[p.kind] ?? 0) + 1;
 console.log(`halcyon-block: ${W} x ${D} x ${LEVELS}; walls ${count('#')}, floors ${count('.')}, doors ${count('+')}, windows ${count('=')}, stairs ${count('>')}; ${BUILDINGS.length} buildings; ${props.length} props (${Object.entries(byKind).map(([k, n]) => `${k} ${n}`).join(', ')}); block-raid: ${squad.length} agents, ${others.length} others`);
+
+// ---------------------------------------------------------------------------------------------------------
+// Single-building raid sites (PLAN.md D20, spec MAP-10): one building of 1 to 3 floors in a ring of street,
+// the squad in the west street. The buildings are the block's own plans, moved to the origin of their site.
+// ---------------------------------------------------------------------------------------------------------
+const RING = 4;
+type Local = [number, number, number]; // i, j, level in the building's frame
+interface Site {
+  building: string;
+  battle: string;
+  battleName: string;
+  hosts: Local[];
+  takers: Local[];
+  fighters: Local[];
+  citizens: Local[];
+  /** Citizens in the street, absolute tiles on level 0. */
+  streetCitizens: [number, number][];
+}
+const SITES: Site[] = [
+  {
+    building: 'sunbeam-automat',
+    battle: 'automat-raid',
+    battleName: 'Raid on the Sunbeam Automat',
+    hosts: [[3, 6, 0], [7, 2, 0], [6, 7, 0]],
+    takers: [[11, 3, 0]],
+    fighters: [[7, 5, 1]],
+    citizens: [[2, 2, 0], [6, 5, 0], [3, 8, 0], [8, 8, 0]],
+    streetCitizens: [[10, 16]],
+  },
+  {
+    building: 'depot-7',
+    battle: 'depot-raid',
+    battleName: 'Raid on Depot 7',
+    hosts: [[6, 6, 0], [14, 10, 0], [6, 6, 1], [17, 3, 1]],
+    takers: [[21, 3, 0]],
+    fighters: [[10, 7, 0], [14, 11, 1]],
+    citizens: [[3, 10, 0], [11, 2, 0], [9, 9, 1], [21, 10, 1]],
+    streetCitizens: [[16, 1]],
+  },
+  {
+    building: 'civic-savings',
+    battle: 'savings-raid',
+    battleName: 'Raid on Civic Savings',
+    hosts: [[3, 3, 0], [12, 12, 1], [7, 2, 1], [3, 12, 2]],
+    takers: [[13, 3, 2], [9, 4, 3]],
+    fighters: [[8, 12, 0], [14, 3, 1]],
+    citizens: [[8, 3, 0], [13, 12, 0], [3, 7, 0], [2, 11, 1], [7, 12, 2]],
+    streetCitizens: [[14, 22]],
+  },
+];
+
+const siteSummaries: string[] = [];
+for (const site of SITES) {
+  const home = byId(site.building);
+  const b: Building = { ...home, x: RING, y: RING };
+  begin(b.w + 2 * RING, b.d + 2 * RING, b.floors + 1);
+  for (let l = 0; l <= b.floors; l++) {
+    if (b.plan === 'corridor') corridorFloor(b, l, l === b.floors);
+    else hallFloor(b, l, l === b.floors);
+  }
+  // Street dressing (MAP-9): a lamp at each corner and midway along each side, parked vehicles east, north and
+  // south (the west street is the squad's), a crate or two by the kerb.
+  const cx = Math.floor(W / 2);
+  const cy = Math.floor(D / 2);
+  for (const [x, y] of [[1, 1], [W - 2, 1], [1, D - 2], [W - 2, D - 2], [cx, 1], [cx, D - 2], [W - 2, cy]] as [number, number][]) prop('lamp', 0, x, y);
+  for (const [x, y, yaw] of [[W - 2, cy - 4, 1], [W - 2, cy + 4, 1], [cx - 5, 1, 0], [cx + 5, D - 2, 0]] as [number, number, 0 | 1 | 2 | 3][]) prop('vehicle', 0, x, y, yaw);
+  for (const [x, y] of [[W - 3, 2], [2, D - 3]] as [number, number][]) prop('crate', 0, x, y);
+  for (let l = 0; l < b.floors; l++) {
+    if (b.plan === 'corridor') furnishCorridor(b, l);
+    else furnishHall(b, l);
+  }
+  dressRoof(b);
+
+  const at = ([i, j, level]: Local) => local(b, i, j, level);
+  const siteSquad = squad.map((s, n) => ({ ...s, at: n < 5 ? { x: 2, y: cy - 2 + n, level: 0 } : { x: 1, y: cy, level: 0 } }));
+  const siteOthers = [
+    ...site.hosts.map((p) => ({ template: 'host', at: at(p) })),
+    ...site.takers.map((p) => ({ template: 'taker', at: at(p) })),
+    ...site.fighters.map((p) => ({ template: 'fighter', at: at(p) })),
+    ...site.citizens.map((p) => ({ template: 'citizen', at: at(p) })),
+    ...site.streetCitizens.map(([x, y]) => ({ template: 'citizen', at: { x, y, level: 0 } })),
+  ];
+  checkSpawns([...siteSquad, ...siteOthers]);
+  const siteMap = {
+    id: `${b.id}-site`,
+    name: b.name,
+    _: `Written by tools/make-block.ts (npm run map:make); edit the tool, not this file. A single-building raid site (MAP-10): ${b.name}, ${b.floors} floor${b.floors === 1 ? '' : 's'} and a roof, in a ${RING}-tile street ring. Legend and materials as halcyon-block. Placeholder names (PLAN.md D10).`,
+    width: W,
+    depth: D,
+    materialKey: { b: 'brick', p: 'plaster', s: 'steel' },
+    buildings: [{ id: b.id, name: b.name, x: b.x, y: b.y, w: b.w, d: b.d, floors: b.floors, style: b.style }],
+    levels: kinds.map((rows, level) => ({ level, rows: rows.map((r) => r.join('')), materials: mats[level]!.map((r) => r.join('')) })),
+    props,
+  };
+  const siteBattle = {
+    id: site.battle,
+    name: site.battleName,
+    _: 'Written by tools/make-block.ts. A raid on one building (MAP-10): the squad starts in the west street. Agent names are placeholders. Non-agent units get ids by spawn position (UNIT-3).',
+    map: siteMap.id,
+    squad: siteSquad,
+    others: siteOthers,
+  };
+  writeJson(`src/data/maps/${siteMap.id}.json`, siteMap);
+  writeJson(`src/data/battles/${site.battle}.json`, siteBattle);
+  siteSummaries.push(`${siteMap.id}: ${W} x ${D} x ${LEVELS}; windows ${count('=')}, stairs ${count('>')}; ${props.length} props; ${site.battle}: ${siteSquad.length} agents, ${siteOthers.length} others (${site.hosts.length} hosts, ${site.takers.length} takers, ${site.fighters.length} fighters)`);
+}
+for (const line of siteSummaries) console.log(line);

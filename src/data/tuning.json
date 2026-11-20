@@ -2,7 +2,7 @@
   "_": "Every number here is a first guess (tune). Keys are cited in docs/spec/10-rules.md as section.key = N; validate:data checks they agree. A change needs a sim result (KB rule 30).",
   "time": {"ticksPerSecond": 10, "maxBattleSeconds": 600},
   "move": {"diagonalCostPercent": 141, "stairCostPercent": 150, "blockedWaitTicks": 5, "rubbleCostPercent": 200},
-  "sight": {"revealRange": 3},
+  "sight": {"revealRange": 3, "markLastHostiles": 2},
   "fire": {"minHitChance": 5, "maxHitChance": 95, "movingTargetPenalty": 15, "retaliateMemoryTicks": 50},
   "save": {"autosaveSeconds": 10},
   "structure": {"fallDamage": 15},

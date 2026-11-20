@@ -37,13 +37,13 @@ test('rule 25: a tap on the screen point of a figure reaches the tile behind it,
   await page.getByTestId('agent-a1').click();
   // Look from the north at a low pitch: the head of Teodoro (a5, the southern end of the squad column)
   // then covers a street tile further south.
-  await page.evaluate(() => window.__ekc!.setCamera({ yaw: Math.PI, pitch: 0.6, distance: 14, target: { x: 2.5, z: 47 } }));
+  await page.evaluate(() => window.__ekc!.setCamera({ yaw: Math.PI, pitch: 0.6, distance: 14, target: { x: 2.5, z: 13 } }));
   await page.waitForFunction(() => {
     const h = window.__ekc!;
     const head = h.screenPointOfUnitHead('a5');
     if (!head) return false;
     const t = h.tileAtScreen(head.x, head.y);
-    return !!t && t.y > 48;
+    return !!t && t.y > 14;
   });
   const probe = await page.evaluate(() => {
     const h = window.__ekc!;
@@ -62,18 +62,21 @@ test('rule 25: a tap on the screen point of a figure reaches the tile behind it,
   expect(after.tap).toMatchObject({ did: 'move', tile: probe.behind });
   expect(after.order).toEqual(probe.behind);
   // Tapping a tile an agent stands on selects that agent: units are picked by their tile.
-  const own = await page.evaluate(() => window.__ekc!.screenPointOfTile({ x: 2, y: 46, level: 0 }));
+  const own = await page.evaluate(() => window.__ekc!.screenPointOfTile({ x: 2, y: 12, level: 0 }));
   await page.mouse.click(own!.x, own!.y);
   expect(await page.evaluate(() => window.__ekc!.lastTap())).toMatchObject({ did: 'select', detail: 'a3' });
   await expect(page.getByTestId('agent-a3')).toHaveAttribute('aria-pressed', 'true');
   expect(errors).toEqual([]);
 });
 
-test('rule 26: the start switch reports the model preload and opens only when it is done', async ({ page }) => {
+test('rule 26: the site switches show only once the model preload is done, one per raid site (MAP-10)', async ({ page }) => {
   await openTitle(page);
-  const start = page.getByTestId('start');
-  await expect(start).toHaveText('START RAID'); // zero models in M2, so it opens at once
-  await expect(start).toBeEnabled();
+  await expect(page.getByTestId('sites')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId('loading')).toHaveCount(0);
+  await expect(page.getByTestId('start-automat-raid')).toContainText('1 FLOOR + ROOF');
+  await expect(page.getByTestId('start-depot-raid')).toContainText('2 FLOORS + ROOF');
+  await expect(page.getByTestId('start-savings-raid')).toContainText('3 FLOORS + ROOF');
+  for (const id of ['automat-raid', 'depot-raid', 'savings-raid']) await expect(page.getByTestId(`start-${id}`)).toBeEnabled();
 });
 
 test('rule 27: left-drag pans until a middle button is seen, right-drag turns and tilts, middle-drag pans, the wheel zooms to the cursor', async ({ page }) => {
@@ -120,7 +123,7 @@ test('rule 27: left-drag pans until a middle button is seen, right-drag turns an
   expect(c4.target).toEqual(c3.target);
 
   // 5. The wheel zooms towards the cursor: closer, and the tile under the cursor stays under it. Look back at the
-  // squad first, since the pans above may have carried the cursor off the block.
+  // squad first, since the pans above may have carried the cursor off the map.
   await page.evaluate(() => {
     const a = window.__ekc!.getState()!.units.find((u) => u.side === 'agency')!;
     window.__ekc!.setCamera({ target: { x: a.x + 0.5, z: a.y + 0.5 } });

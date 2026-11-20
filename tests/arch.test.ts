@@ -6,7 +6,7 @@ import { ALWAYS_HIT, SETUP, clone, expectReject, game, only, order, place, tick,
 
 describe('0. Engine contract (ARCH)', () => {
   it('ARCH-1 createGame builds the battle from its file and stores merged tuning', () => {
-    const s = createGame({ battleId: 'first-raid', seed: 5, tuning: { sight: { revealRange: 9 } } });
+    const s = createGame({ battleId: 'first-raid', seed: 5, tuning: { sight: { ...TUNING.sight, revealRange: 9 } } });
     expect(s.units.filter((u) => u.side === 'agency')).toHaveLength(6);
     expect(s.units).toHaveLength(15);
     expect(s.tuning.sight.revealRange).toBe(9);

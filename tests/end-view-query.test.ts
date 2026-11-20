@@ -107,6 +107,25 @@ describe('13. View (VIEW)', () => {
     expect(view(place(s, 'u2', 10, 8), 'agency').units.find((u) => u.id === 'u2')).toBeUndefined();
   });
 
+  it('VIEW-5 with at most sight.markLastHostiles hostiles alive the agency view marks the unseen ones; never before, never for other sides', () => {
+    const s0 = game();
+    expect(view(s0, 'agency').marks).toBeUndefined();
+    expect(s0.marks).toBeUndefined();
+    // Two hostiles live (u2 and the roof sentinel u9): a1 sees u2, so only u9 is marked.
+    let s = only(game(), ['a1', 'u2']);
+    s = place(s, 'a1', 3, 3);
+    s = place(s, 'u2', 6, 5);
+    const u9 = unit(s, 'u9');
+    const v = view(s, 'agency');
+    expect(v.marks).toEqual([{ x: u9.x, y: u9.y, level: u9.level }]);
+    expect(v.units.some((u) => u.id === 'u9')).toBe(false); // a mark is a place, not a unit
+    // Out of sight, a disguised host is marked too: the hunt for the last ones ends.
+    expect(view(place(s, 'u2', 10, 8), 'agency').marks).toHaveLength(2);
+    expect(view(s, 'hostile').marks).toBeUndefined();
+    // Three alive is one too many.
+    expect(view(only(game(), ['a1', 'u2', 'u4']), 'agency').marks).toBeUndefined();
+  });
+
   it('VIEW-4 the view zeroes the rng and empties the log; civilians see only themselves', () => {
     let s = game();
     s = tick(s, 3).state;

@@ -1,0 +1,94 @@
+{
+  "id": "depot-raid",
+  "name": "Raid on Depot 7",
+  "_": "Written by tools/make-block.ts. A raid on one building (MAP-10): the squad starts in the west street. Agent names are placeholders. Non-agent units get ids by spawn position (UNIT-3).",
+  "map": "depot-7-site",
+  "squad": [
+    {
+      "name": "Vance",
+      "template": "agent-t1",
+      "weapon": "patrol-carbine",
+      "at": { "x": 2, "y": 9, "level": 0 }
+    },
+    {
+      "name": "Okoro",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 2, "y": 10, "level": 0 }
+    },
+    {
+      "name": "Lindqvist",
+      "template": "agent-t1",
+      "weapon": "scatter-gun",
+      "at": { "x": 2, "y": 11, "level": 0 }
+    },
+    {
+      "name": "Marsh",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 2, "y": 12, "level": 0 }
+    },
+    {
+      "name": "Teodoro",
+      "template": "agent-t1",
+      "weapon": "patrol-carbine",
+      "at": { "x": 2, "y": 13, "level": 0 }
+    },
+    {
+      "name": "Quill",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 1, "y": 11, "level": 0 }
+    }
+  ],
+  "others": [
+    {
+      "template": "host",
+      "at": { "x": 10, "y": 10, "level": 0 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 18, "y": 14, "level": 0 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 10, "y": 10, "level": 1 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 21, "y": 7, "level": 1 }
+    },
+    {
+      "template": "taker",
+      "at": { "x": 25, "y": 7, "level": 0 }
+    },
+    {
+      "template": "fighter",
+      "at": { "x": 14, "y": 11, "level": 0 }
+    },
+    {
+      "template": "fighter",
+      "at": { "x": 18, "y": 15, "level": 1 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 7, "y": 14, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 15, "y": 6, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 13, "y": 13, "level": 1 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 25, "y": 14, "level": 1 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 16, "y": 1, "level": 0 }
+    }
+  ]
+}

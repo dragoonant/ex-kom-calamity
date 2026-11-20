@@ -21,10 +21,11 @@ export async function openTitle(page: Page): Promise<void> {
   await expect(page.getByTestId('title')).toBeVisible();
 }
 
-/** Starts a raid and waits for the board to have a live camera and its tiles. */
-export async function startRaid(page: Page): Promise<void> {
-  await expect(page.getByTestId('start')).toHaveText('START RAID');
-  await page.getByTestId('start').click();
+/** Starts a raid on one of the sites (MAP-10; Civic Savings by default) and waits for the board to have a live camera and its tiles. */
+export async function startRaid(page: Page, battleId = 'savings-raid'): Promise<void> {
+  const button = page.getByTestId(`start-${battleId}`);
+  await expect(button).toBeVisible({ timeout: 30_000 }); // the switches show once the models have preloaded (KB rule 26)
+  await button.click();
   await waitForBoard(page);
 }
 
