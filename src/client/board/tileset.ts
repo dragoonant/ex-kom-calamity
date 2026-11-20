@@ -121,6 +121,24 @@ export function damageFraction(t: Tile): number {
   return max > 0 && t.hp < max ? 1 - t.hp / max : 0;
 }
 
+/** A tile that continues a wall line: a window or door sits in the run of these. */
+function wallish(t: Tile | undefined): boolean {
+  return !!t && (t.kind === 'wall' || t.kind === 'window' || t.kind === 'door');
+}
+
+/**
+ * Yaw of a window (or door) so its pane lies in the wall it sits in: 0 when the wall runs east-west (the pane
+ * faces north and south), a quarter turn when it runs north-south. Decided by the wall-like neighbours on the same
+ * level; a tile with as many on each axis, or none, keeps the east-west default.
+ */
+export function openingYaw(tiles: readonly Tile[], width: number, depth: number, t: Tile): number {
+  const base = t.level * width * depth;
+  const at = (x: number, y: number): Tile | undefined => (x < 0 || y < 0 || x >= width || y >= depth ? undefined : tiles[base + y * width + x]);
+  const ew = (wallish(at(t.x - 1, t.y)) ? 1 : 0) + (wallish(at(t.x + 1, t.y)) ? 1 : 0);
+  const ns = (wallish(at(t.x, t.y - 1)) ? 1 : 0) + (wallish(at(t.x, t.y + 1)) ? 1 : 0);
+  return ns > ew ? Math.PI / 2 : 0;
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // Instance layers. One InstancedMesh per layer across every drawn level; `fill` writes matrices and colours.
 
@@ -264,13 +282,15 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
         }
         case 'window': {
           // Pane in the upper part of the opening, a cross mullion, a sill; lit at evening by a stable draw.
+          // The pane lies in the wall's own line: turned a quarter when the wall runs north-south.
           const lit = hash01(base + i) < 0.62;
           const h = wallH * 0.55;
-          push(layers.glass, cx, y0 + wallH * 0.62, cz, 0.86, h, 0.14, lit ? pal.glow : pal.glass);
-          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.08, h + 0.02, 0.18, pal.trim);
-          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.9, 0.06, 0.18, pal.trim);
+          const yaw = openingYaw(state.tiles, w, state.depth, t);
+          push(layers.glass, cx, y0 + wallH * 0.62, cz, 0.86, h, 0.14, lit ? pal.glow : pal.glass, yaw);
+          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.08, h + 0.02, 0.18, pal.trim, yaw);
+          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.9, 0.06, 0.18, pal.trim, yaw);
           push(layers.trim, cx, y0 + wallH * 0.33, cz, 1.08, 0.08, 1.08, pal.trim);
-          if (dmg > 0) push(layers.scorch, cx, y0 + wallH * 0.62, cz, 0.6 * dmg + 0.2, h * 0.7, 0.2, OVERLAY.scorch);
+          if (dmg > 0) push(layers.scorch, cx, y0 + wallH * 0.62, cz, 0.6 * dmg + 0.2, h * 0.7, 0.2, OVERLAY.scorch, yaw);
           break;
         }
         case 'door': {
