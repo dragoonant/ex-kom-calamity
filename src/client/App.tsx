@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
 import type * as THREE from 'three';
 import { Gallery } from './Gallery';
+import { Moves } from './Moves';
 import { Hud } from './Hud';
 import { Report } from './Report';
 import { Title } from './Title';
 import { Director } from './audio/director';
 import { Scene } from './board/Scene';
 import { unitHeadWorld } from './board/Figures';
-import { clampRig, perfReport, readMouseMode, rig, tileAtScreen, tileToWorld, worldToScreen } from './board/world';
+import { clampRig, perfReport, shake, readMouseMode, rig, tileAtScreen, tileToWorld, worldToScreen } from './board/world';
 import { installHook } from './hook';
 import { preloadModels } from './models';
 import { browserStorage } from './save';
@@ -19,6 +20,11 @@ export const director = new Director(browserStorage());
 /** `?gallery` on the page opens the figure gallery instead of the console (KB recipe step 7). */
 export function isGalleryPage(search: string | undefined): boolean {
   return !!search && new URLSearchParams(search).has('gallery');
+}
+
+/** ?moves: every animated figure doing every motion (PLAN D21). */
+export function isMovesPage(search: string | undefined): boolean {
+  return !!search && new URLSearchParams(search).has('moves');
 }
 
 function Battle() {
@@ -50,7 +56,7 @@ export function App() {
       setMode: (m) => s().setMode(m),
       setLevel: (l) => s().setLevel(l),
       level: () => s().level,
-      tapTile: (p) => s().tapTile(p),
+      tapTile: (p, opts) => s().tapTile(p, opts),
       lastTap: () => s().lastTap,
       hash: () => s().hash(),
       screen: () => s().screen,
@@ -73,6 +79,7 @@ export function App() {
       perf: () => perfReport(),
       fx: () => s().fx,
       audio: () => director.report(),
+      shake: () => ({ amp: shake.amp, enabled: shake.enabled }),
       setAudio: (a) => {
         if (a.volume !== undefined) director.setVolume(a.volume);
         if (a.muted !== undefined) director.setMuted(a.muted);
@@ -85,6 +92,7 @@ export function App() {
   }, []);
 
   if (isGalleryPage((globalThis as { location?: { search?: string } }).location?.search)) return <Gallery />;
+  if (isMovesPage((globalThis as { location?: { search?: string } }).location?.search)) return <Moves />;
   if (screen === 'battle') return <Battle />;
   if (screen === 'report') return <Report />;
   return <Title />;

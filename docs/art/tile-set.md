@@ -34,7 +34,7 @@ Materials keep their own reading whatever the style: a `steel` wall is always th
 | `ground` | paving slab, kerb seam every sixth tile | never damaged (STR-2) | |
 | `floor` | slab in the style's floor colour; a roof (level = building `floors`) in the roof colour with sparse gravel | darkened by hp share, a dark patch | level 0: rubble bed and three chunks; above: `void`, nothing drawn, the prop on it is gone |
 | `wall` | full-height body (2.0) on lower levels, cut to 0.9 on the active level; cornice strip on top; plinth band at the foot (outer walls); partitions thinner and pale | body darkens; a dark scorch band across the lower half grows with the damage | rubble bed, three chunks in the wall's colour, one pale (plaster), one charred |
-| `window` | sill and spandrel (lower 34%), a pane (upper 55%) **lit or dark by a stable draw** (62% lit) with the style's glow, a cross mullion, a sill strip | pane cracked (a dark streak) | as a wall's rubble, glass pale |
+| `window` | sill and spandrel (lower 34%), a pane (upper 55%) **lit or dark by a stable draw** (62% lit) with the style's glow, a cross mullion, a sill strip; the pane, mullions and cracks turn to lie in the wall's own line (`openingYaw`: a quarter turn when the wall-like neighbours run north-south, else east-west) | pane cracked on its two faces | as a wall's rubble, glass pale |
 | `door` | frame (full height, a third deep), a leaf 78% high in the style's door colour, a handle, a lintel; **open** (MAP-3): the leaf swung on its west hinge into the south half of the tile | leaf darkens | rubble |
 | `stair` | tread base plus four rising steps along x, a rail bar on the north side; never damaged (RULING STR-2) | | |
 | `rubble` | rubble bed and three chunks at stable angles | | |

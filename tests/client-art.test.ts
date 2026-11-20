@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { BATTLES, MAPS, PROP_KINDS } from '../src/data';
 import { createGame, step, tileIndex, type State } from '../src/engine';
-import { PROP_PARTS, STYLE_PALETTE, baseColour, buildingIndex, damageOf, fillLayers, groupProps, layerCapacity, makeLayers, placeProp, propCatalogue, propGeometry, styleAt } from '../src/client/board/tileset';
+import { PROP_PARTS, STYLE_PALETTE, baseColour, buildingIndex, damageOf, fillLayers, groupProps, layerCapacity, makeLayers, openingYaw, placeProp, propCatalogue, propGeometry, styleAt } from '../src/client/board/tileset';
 import { fxFor } from '../src/client/fx';
 import { readAudioSettings, writeAudioSettings, DEFAULT_AUDIO } from '../src/client/audio/settings';
 import { SOUNDS, SOUND_NAMES } from '../src/client/audio/synth';
@@ -65,6 +65,39 @@ describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
     const damaged: State = { ...s, tiles: s.tiles.map((t, i) => (i === wallIdx ? { ...t, hp: 10 } : t)) };
     fillLayers(layers, { state: damaged, map, active: 0 });
     expect(layers.scorch.count).toBe(1);
+  });
+
+  it('MAP-9 a window turns to lie in its wall: flat in an east-west run, a quarter turn in a north-south run, the default when alone', () => {
+    const map = MAPS['halcyon-block']!;
+    const s = createGame({ battleId: 'block-raid', seed: 1 }) as State;
+    const w = s.width;
+    const d = s.depth;
+    let ew = 0;
+    let ns = 0;
+    for (const t of s.tiles) {
+      if (t.kind !== 'window') continue;
+      const yaw = openingYaw(s.tiles, w, d, t);
+      const base = t.level * w * d;
+      const side = (x: number, y: number) => s.tiles[base + y * w + x];
+      const wallish = (q?: { kind: string }) => !!q && (q.kind === 'wall' || q.kind === 'window' || q.kind === 'door');
+      const alongX = wallish(side(t.x - 1, t.y)) || wallish(side(t.x + 1, t.y));
+      const alongZ = wallish(side(t.x, t.y - 1)) || wallish(side(t.x, t.y + 1));
+      if (alongZ && !alongX) {
+        expect(yaw).toBe(Math.PI / 2);
+        ns++;
+      } else if (alongX && !alongZ) {
+        expect(yaw).toBe(0);
+        ew++;
+      }
+    }
+    // The block has windows on both faces of its buildings.
+    expect(ew).toBeGreaterThan(0);
+    expect(ns).toBeGreaterThan(0);
+    expect(map).toBeTruthy();
+    // A lone window (no wall beside it) keeps the east-west default.
+    const lone = { ...s.tiles.find((t) => t.kind === 'window')!, x: 0, y: 0, level: 0 };
+    const empty = s.tiles.map((t) => (t.level === 0 && t.x <= 1 && t.y <= 1 ? { ...t, kind: 'ground' as const } : t));
+    expect(openingYaw(empty, w, d, lone)).toBe(0);
   });
 
   it('MAP-9 every prop kind has a merged vertex-coloured geometry under 5 tiles tall, and the block uses every kind', () => {
@@ -152,9 +185,9 @@ describe('M4 effects from events (fx.ts; VIEW-2, VIEW-1)', () => {
     expect(breach).toMatchObject({ material: 'brick' });
     expect(s.tiles[tileIndex(s, { x: 5, y: 44, level: 0 })]!.kind).toBe('rubble');
     // A shot between two units the agency cannot see yields nothing; the agency's own shot always does.
-    const hidden = fxFor([{ type: 'shot', tick: 1, shooter: 'u9', target: 'u10', weapon: 'pocket-pistol', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
+    const hidden = fxFor([{ type: 'shot', tick: 1, shooter: 'u9', target: 'u10', weapon: 'pocket-pistol', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
     expect(hidden.filter((f) => f.kind === 'muzzle')).toEqual([]);
-    const own = fxFor([{ type: 'shot', tick: 1, shooter: 'a1', target: 'u9', weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
+    const own = fxFor([{ type: 'shot', tick: 1, shooter: 'a1', target: 'u9', weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit: true }], s, s);
     expect(own.filter((f) => f.kind === 'muzzle')).toHaveLength(1);
     expect(own[0]).toMatchObject({ weapon: 'patrol-carbine', side: 'agency', hit: true });
     expect(BATTLES['block-raid']!.squad[0]!.name).toBe('Vance');

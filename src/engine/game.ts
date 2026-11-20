@@ -46,6 +46,8 @@ function makeUnit(id: string, name: string, templateId: string, weapon: string |
     moving: false,
     charges: t.charges ?? 0,
     blast: null,
+    posture: 'stand',
+    lastRunTick: null,
   };
 }
 

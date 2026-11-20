@@ -68,7 +68,7 @@ describe('0. Engine contract (ARCH)', () => {
 
   it('ARCH-7 same seed and actions give the same hash; a different seed differs', () => {
     const play = (seed: number) => {
-      let s = only(game(seed, { fire: { minHitChance: 50, maxHitChance: 50, movingTargetPenalty: 15, retaliateMemoryTicks: 50 } }), ['a1', 'u2']);
+      let s = only(game(seed, { fire: { minHitChance: 50, maxHitChance: 50, movingTargetPenalty: 15, retaliateMemoryTicks: 50, crouchTargetPenalty: 15, crouchAimBonus: 5, runningShooterPenalty: 20, runSettleTicks: 10 } }), ['a1', 'u2']);
       s = place(s, 'a1', 3, 3);
       s = place(s, 'u2', 6, 3);
       s = order(s, { type: 'fire', side: 'agency', unit: 'a1', target: 'u2' }).state;
