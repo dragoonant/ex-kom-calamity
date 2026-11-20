@@ -339,17 +339,22 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
           break;
         }
         case 'door': {
-          // Lintel over the frame; the leaf swings open on its hinge when used (MAP-3).
+          // Lintel over the frame; the leaf swings open on its hinge when used (MAP-3). The leaf, handle and
+          // scorch lie in the wall's own line (openingYaw), offsets turned with it.
           push(layers.trim, cx, y0 + wallH * 0.86, cz, 1.0, 0.1, 1.0, pal.trim);
           const leafH = wallH * 0.78;
+          const yaw = openingYaw(state.tiles, w, state.depth, t);
+          const at = (dx: number, dz: number): [number, number] => (yaw ? [cx + dz, cz - dx] : [cx + dx, cz + dz]);
           if (t.open) {
-            // Hinged at the west jamb, swung into the tile's south half.
-            push(layers.leaf, cx - 0.36, y0 + leafH / 2, cz + 0.3, 0.1, leafH, 0.68, pal.door);
+            // Hinged at one jamb, swung into the tile's half on the hinge side (west jamb, south half when unturned).
+            const [lx, lz] = at(-0.36, 0.3);
+            push(layers.leaf, lx, y0 + leafH / 2, lz, 0.1, leafH, 0.68, pal.door, yaw);
           } else {
-            push(layers.leaf, cx, y0 + leafH / 2, cz, 0.76, leafH, 0.12, pal.door);
-            push(layers.mullion, cx + 0.22, y0 + leafH * 0.5, cz + 0.08, 0.08, 0.08, 0.06, pal.metal);
+            push(layers.leaf, cx, y0 + leafH / 2, cz, 0.76, leafH, 0.12, pal.door, yaw);
+            const [hx, hz] = at(0.22, 0.08);
+            push(layers.mullion, hx, y0 + leafH * 0.5, hz, 0.08, 0.08, 0.06, pal.metal, yaw);
           }
-          if (dmg > 0) push(layers.scorch, cx, y0 + leafH * 0.4, cz, 0.5, leafH * 0.5 * dmg + 0.1, 0.16, OVERLAY.scorch);
+          if (dmg > 0) push(layers.scorch, cx, y0 + leafH * 0.4, cz, 0.5, leafH * 0.5 * dmg + 0.1, 0.16, OVERLAY.scorch, yaw);
           break;
         }
         case 'stair': {
