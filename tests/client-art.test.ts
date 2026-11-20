@@ -9,7 +9,9 @@ import { fxFor } from '../src/client/fx';
 import { readAudioSettings, writeAudioSettings, DEFAULT_AUDIO } from '../src/client/audio/settings';
 import { SOUNDS, SOUND_NAMES } from '../src/client/audio/synth';
 import { FIGURE_PARTS, figureGeometry, gateOf, humanoidRole, measureParts } from '../src/client/board/placeholders';
-import { FIGURE_ROLES } from '../src/client/models';
+import { FIGURE_ROLES, FIGURE_SLOTS } from '../src/client/models';
+import { citizenBody, roleOf } from '../src/client/board/Figures';
+import type { Unit } from '../src/engine';
 import * as THREE from 'three';
 
 const block = (): State => createGame({ battleId: 'block-raid', seed: 5 });
@@ -161,8 +163,26 @@ describe('M4 figure placeholders (docs/figures.md sections 1 to 3)', () => {
     expect(cores('fighter')).toBe(1);
     expect(cores('agent-t1')).toBe(0);
     expect(cores('citizen')).toBe(0);
-    // A hidden host is the citizen, part for part (HIDE-1).
+    // A hidden host is the citizen, part for part (HIDE-1); the second body's stand-in is the same citizen.
     expect(FIGURE_PARTS['host-hidden']).toEqual(FIGURE_PARTS.citizen);
+    expect(FIGURE_PARTS['citizen-2']).toEqual(FIGURE_PARTS.citizen);
+  });
+
+  it('RULING CITIZEN-2: the two citizen bodies are dealt by the unit id, odd last digit body 2, and a hidden host gets its body the same way', () => {
+    expect(citizenBody('u1')).toBe('citizen-2');
+    expect(citizenBody('u2')).toBe('citizen');
+    expect(citizenBody('u13')).toBe('citizen-2');
+    expect(citizenBody('u20')).toBe('citizen');
+    expect(citizenBody('x')).toBe('citizen');
+    const unit = (id: string, template: string, side: string) => ({ id, template, side }) as unknown as Unit;
+    expect(roleOf(unit('u3', 'citizen', 'civilian'))).toBe('citizen-2');
+    expect(roleOf(unit('u4', 'citizen', 'civilian'))).toBe('citizen');
+    expect(roleOf(unit('u3', 'host', 'hostile'))).toBe('host-revealed'); // the view only shows template host once revealed
+    expect(roleOf(unit('a1', 'agent-t1', 'agency'))).toBe('agent-t1');
+    // Every model slot the roles need is filled: no humanoid is a stand-in any more (AGENT-1 closed, D22 citizens).
+    for (const role of FIGURE_ROLES) expect(FIGURE_SLOTS[role].url, role).not.toBeNull();
+    expect(FIGURE_SLOTS['host-hidden'].url).toBe(FIGURE_SLOTS.citizen.url); // HIDE-1
+    expect(FIGURE_SLOTS['agent-t1'].url).not.toBe(FIGURE_SLOTS['agent-t2'].url);
   });
 });
 

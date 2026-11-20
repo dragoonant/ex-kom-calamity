@@ -1,4 +1,4 @@
-# Figure models, pass 1 (M4b, 2026-11-18)
+# Figure models: pass 1 (M4b, 2026-11-18) and pass 2 (M4d, 2026-11-20)
 
 The GPU half of M4: one 3D model per locked concept reference (PLAN D7, D14), generated on the owner's GPU PC with
 the Local AI Studio pipeline (Hunyuan3D 2.1 shape, 2.0 paint), gated by measurement against `docs/figures.md`
@@ -6,8 +6,9 @@ section 1 (KB rule 13: the image is measured, never the prompt), normalized for 
 `public/models/figures/<role>/`. Pipeline and how to rerun it: `tools/figures/README.md`. The M4a loader and
 gallery wire these files into the game; this document records what was made and why.
 
-Not made: the tier 1 agent and the citizen have no locked reference yet (`docs/figures.md` section 2), so they
-keep their placeholders.
+Pass 1 (sections 1 to 7) made four models; the tier 1 agent and the citizen had no locked reference then. Pass 2
+(section 8) made the tier 1 agent and the two citizen bodies from the references locked on 2026-11-20 (PLAN D7, D22),
+so every role now has a model and nothing is a placeholder unless a file fails to load.
 
 ## 1. Output contract
 
@@ -223,11 +224,81 @@ the legs found by splitting the lowest 20% of the mesh into three angular cluste
 | Taker leg count | six legs and a tail against four in the reference, on both seeds | a side or back concept view of `alien-taker-s51`, then a multi-view shape run (RULING TAKER-1) |
 | Fighter leg length | legs about half the reference's share of height, on both seeds | a cutout with the legs stretched 1.6x before the shape stage (RULING FIGHTER-1), checked against the reference by the same gate |
 | Vertex welding | three vertices per triangle inflate every file threefold | re-UV (xatlas with island merging) and re-bake, then weld with `gltf-transform weld` |
-| Tier 1 agent, citizen | no locked reference | concept round first (Gemini web app, never the API), then this pipeline |
+| Citizen coats | the Lab transfer lands at a tan cream, not the roster's enamel cream `#e7dcc1` over graphite | the same hand re-grade as the agents' |
+| Preload weight | 14 preloaded files, about 70 MB, before the title's site switches open | preload the full models only on `?gallery`, or the re-UV weld above |
 | Rig | proximity skinning | only with a re-topologized mesh, as a separate owner decision |
+
+## 8. Pass 2 (M4d, 2026-11-20): the tier 1 agent and the two citizen bodies
+
+The owner locked three more references on 2026-11-20 (PLAN D7, D22; `sheet-11-tier1-citizen.jpg`): `chrome-suit-t1-1.jpg`
+for the tier 1 agent, `chrome-citizen-1.jpg` (a man with a briefcase) and `chrome-citizen-2.jpg` (a woman with a
+handbag) as two citizen bodies with the passing host's build. The same pipeline (High preset, 30k faces, 2048
+paint, `--regrade`, no base cut) ran on the owner's RTX 5080, one GPU job at a time, with the same output contract
+as section 1 (every folder holds the nine files). The reference chin for the gate was read by eye on each
+locked image: tier 1 0.29, citizen 0.24, citizen-2 0.27 (the round 8 concept gates measured the same rows).
+
+| Role | Reference | Attempt kept | GPU | Triangles full / LOD | Size full / LOD / rigged | Gate | Rig |
+|---|---|---|---|---|---|---|---|
+| agent-t1 (tier 1 suit) | `chrome-suit-t1-1.jpg` | seed 1234 High | 4.3 min (plus a 39 s crash, section 8.3) | 30,000 / 8,000 | 7.6 / 2.2 / 2.7 MB | **pass**: head 29.9%, shoulders 2.08 heads, legs 1.04 heads (reference 29% / 2.0 / 1.02) | humanoid, 15 bones, no unweighted vertex, walk usable |
+| citizen (body 1) | `chrome-citizen-1.jpg` | seed 1234 High | 4.0 min | 30,000 / 8,000 | 6.8 / 2.0 / 2.5 MB | **pass against its reference** (RULING CITIZEN-1): head 26% (ref 24%, 8% over), legs 0.80 heads (ref 0.92, 13% under), silhouette 0.692 (ref 0.643, 8% wider); shoulders 2.22 heads reported (ref 2.33) | humanoid, 15 bones, walk usable |
+| citizen-2 (body 2) | `chrome-citizen-2.jpg` | seed 7 High (second attempt) | 3.9 min (7.8 with the first) | 30,000 / 8,000 | 6.6 / 1.9 / 2.5 MB | **pass against its reference** (RULING CITIZEN-1): head 24% (ref 27%, 11% under), legs 0.68 heads (ref 0.61, 11% over), silhouette 0.647 (ref 0.618, 5% wider); shoulders 2.07 heads reported (ref 2.15) | humanoid, 15 bones, walk usable |
+
+Committed binary total after pass 2: `public/models/figures/` 90 MB (seven roles) plus 1.5 MB of gate sheets
+(RULING BUDGET-1). Attempt folders: `%USERPROFILE%\Hunyuan3D-2\outputs\ekc-figures\<agent-t1|citizen|citizen-2>\s<seed>-high\`.
+
+### 8.1 What came through
+
+- **Tier 1 agent.** The one-piece red helmet with the single wide visor, the red chest plate over the quilted black
+  undersuit, the shoulder caps, forearm and shin guards, the belt pouches and the pistol low in the left hand all
+  read; the back, unseen in the reference, became a plated pack with a round port on the helmet's rear. The gate
+  passes the house bands outright (shoulders 2.08 heads is inside GATE-1's 5%, as the tier 2 model's 2.03 was).
+  Colour is the brick red of pass 1 rather than the reference's deep red (section 7).
+- **Citizen, body 1.** Double-breasted coat with lapels and pocket flaps, graphite shirt and tie, the briefcase,
+  slicked hair, stern face. The coat paints a tan cream; the LOD keeps the buttons and lapels (`turnaround-lod.jpg`).
+- **Citizen, body 2.** The same coat over the graphite dress, the low bun (seen from the side and back), the handbag.
+  Seed 1234 measured head 22% (18% under the reference's 27%, outside CITIZEN-1's 15%): a bulkier coat on a smaller
+  head; seed 7 measures 24% and is kept. Both seeds painted the face a touch paler than the reference.
+
+### 8.2 Rulings
+
+- RULING: CITIZEN-1 | the two citizen bodies and the hidden host are gated against their own locked references
+  (`chrome-citizen-1.jpg`, `chrome-citizen-2.jpg`), as HOST-1 gates the host: head share and leg length within 15% of
+  the reference's, silhouette aspect within 5% noted (body 1's is 8% wider and kept, as the host's 6% was), shoulders
+  in heads reported but not gated | the owner locked the citizen references knowing they have the passing host's
+  build (D22: "head 24-27%"), outside the house bands of section 1 by design, since a hidden host must be
+  indistinguishable from a citizen (spec HIDE-1); a model that met the 30-40% head band would not be the locked
+  figure. The house gate printed on the sheets reads FAIL on the head band for both bodies, as it did for the host.
+- RULING: CITIZEN-2 | the board deals the two citizen bodies by the unit id's last digit, odd `citizen-2`, even
+  `citizen` (`roleOf` in `src/client/board/Figures.tsx`), hidden hosts included | deterministic from the id, so a
+  citizen keeps its body across frames, saves and the hostile reveal, and the street shows both bodies without the
+  engine knowing anything about looks (the rules never read a body); the ids of a battle's non-agency units are
+  `u1..uN` in file order, so about half the street is each body.
+- RULING: BUDGET-1 | the committed-GLB budget of pass 1 (60 MB for four roles) becomes 100 MB for seven, keeping
+  the per-role contract of section 1 (every folder holds the full, LOD, rigged, shape, cutout, sheets and job) |
+  three more roles at 12-14 MB each cannot fit 60 MB without dropping files the contract and the gallery read; the
+  real cost is the preload (14 files, about 70 MB, section 7), which a re-UV weld or a gallery-only preload of the
+  full models would cut. Shape and cutout are kept so a re-paint or a re-gate needs no GPU shape run.
+- RULING AGENT-1 (2026-11-19) is **closed**: the tier 1 squad draws `agent-t1/rigged.glb`; the tier 2 model stays on
+  the `agent-t2` slot for the template that will use it.
+
+### 8.3 Attempts and GPU
+
+| # | Role | Seed | Preset | Shape | Paint | Outcome |
+|---|---|---|---|---|---|---|
+| 9 | agent-t1 | 1234 | High | 39 s | | the shape process died with an access violation right after loading the model (before sampling), with 4 GB of desktop use on the card; retried unchanged |
+| 10 | agent-t1 | 1234 | High | 195 s | 65 s | gate pass; **kept** |
+| 11 | citizen | 1234 | High | 183 s | 59 s | within CITIZEN-1; **kept** |
+| 12 | citizen-2 | 1234 | High | 172 s | 59 s | head 22% (18% under the reference); replaced by attempt 13 |
+| 13 | citizen-2 | 7 | High | 179 s | 55 s | head 24%, legs 0.68 heads, within CITIZEN-1; **kept** |
+
+Five GPU jobs, 20.8 minutes of shape and paint plus the 39 s crash. No studio server was started; the GPU was idle
+(no python process, 2 GB of desktop use) when the pass ended. Validation (`gltf-transform validate`, nine files):
+no errors, no warnings. The LOD sheets show no tearing (LOD-1 holds). Rigs: 15 bones each, proximity weights,
+`unweighted_vertices: 0`; the walk frames (`walk.jpg`) stride readably, the citizens' coats fold at the hip as the
+host's jacket does (RIG-1).
 
 ## Sources
 
-Brief for M4b (2026-11-18); `docs/figures.md`; `PLAN.md` D7, D8, D14, D15, Q7; `docs/concept/samples/gemini-chrome-brief.md`
-Locked sections; KB `rules.md` 7, 10, 11, 13, 15, 17, 23, 26 and `gotchas.md` (figures, GLBs); the studio's
+Briefs for M4b (2026-11-18) and M4d (2026-11-20); `docs/figures.md`; `PLAN.md` D7, D8, D14, D15, Q7; `docs/concept/samples/gemini-chrome-brief.md`
+Locked sections; `PLAN.md` D22; KB `rules.md` 7, 10, 11, 13, 15, 17, 23, 26 and `gotchas.md` (figures, GLBs); the studio's
 `HANDOFF-hunyuan-install.md` and `pipeline/*.py`; `public/models/figures/*/job.json`.

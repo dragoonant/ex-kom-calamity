@@ -168,12 +168,13 @@ test('generated figures draw on the board (M4b): a hostile that comes into view 
   const errors = watchErrors(page);
   await openTitle(page);
   await startRaid(page);
-  // At the start only agents and citizens are in the agency's view: the squad wears the generated suit (RULING
-  // AGENT-1) as its rigged, animated mesh (D21), the citizens are stand-ins, and no alien GLB is in view yet.
+  // At the start only agents and citizens are in the agency's view: the squad wears the tier 1 suit (M4d; this closed
+  // RULING AGENT-1) as its rigged, animated mesh (D21), the citizens and hidden hosts wear the two citizen bodies
+  // (CITIZEN-2), so nothing in view is a stand-in, and no alien GLB is in view yet.
   const before = await perf(page);
   expect(before.figures.rigged).toBeGreaterThanOrEqual(6);
   expect(before.figures.glb + before.figures.lod).toBe(0); // D21: the board draws the rigged mesh at every distance
-  expect(before.figures.standIn).toBeGreaterThan(0);
+  expect(before.figures.standIn).toBe(0);
   expect(before.figures.glow).toBe(0);
   // Advance until a taker, fighter or revealed host is in the view (the normal AI charges and ambushes within a minute
   // or two of sim time on most seeds); the raid's seed is random, so the loop is bounded and says when it gave up.

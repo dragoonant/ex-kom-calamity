@@ -4,13 +4,15 @@
 // placeholder; a slot with null, or a url that fails to load, draws the placeholder. The GPU pass (M4b) delivers
 // public/models/figures/<role>/{textured,textured-lod,rigged}.glb. Since D21 the board draws the rigged file (the 8k
 // mesh with its `idle` and `walk` clips) at every distance, so figures move; the gallery keeps the full model.
-// The LOD file is no longer drawn or preloaded.
+// The LOD file is no longer drawn or preloaded. The M4d pass (2026-11-20) added the tier 1 agent and the two citizen
+// bodies (`citizen`, `citizen-2`), so every humanoid role now has its own model and RULING AGENT-1 is closed.
 import { useGLTF } from '@react-three/drei';
 import { useSyncExternalStore } from 'react';
+import { Cache } from 'three';
 
-export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter';
+export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'citizen-2' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter';
 
-export const FIGURE_ROLES: FigureRole[] = ['agent-t1', 'agent-t2', 'citizen', 'host-hidden', 'host-revealed', 'taker', 'fighter'];
+export const FIGURE_ROLES: FigureRole[] = ['agent-t1', 'agent-t2', 'citizen', 'citizen-2', 'host-hidden', 'host-revealed', 'taker', 'fighter'];
 
 /** Camera distance (world units) beyond which the 8k LOD is drawn instead of the 30k model. */
 export const LOD_DISTANCE = 12;
@@ -53,18 +55,21 @@ const figure = (folder: string) => ({
   rigged: `models/figures/${folder}/rigged.glb`,
 });
 
-const none = { url: null, lod: null, rigged: null, glow: null, gate: null };
+// The render gate of each M4d model (tools/figures/gate.py on job.json; docs/art/figure-models.md section 8).
+const GATE_T1 = { headShare: 0.299, shoulders: 2.08, legs: 1.04 }; // reference 0.29 / 2.0 / 1.02
+const GATE_C1 = { headShare: 0.26, shoulders: 2.22, legs: 0.8 }; // reference 0.24 / 2.33 / 0.92
+const GATE_C2 = { headShare: 0.24, shoulders: 2.07, legs: 0.68 }; // reference 0.27 / 2.15 / 0.61 (seed 7)
 
 export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
   'agent-t1': {
     role: 'agent-t1',
     label: 'Agent, tier 1 (plain security gear)',
-    // RULING AGENT-1: the tier 1 agent has no locked reference, so the squad wears the generated tier 2 suit until
-    // its own concept round (owner, 2026-11-19: "Yes, use it", so the playable shows models from the first frame).
-    ...figure('agent'),
+    // Its own model since the M4d GPU pass (reference `chrome-suit-t1-1.jpg`, locked by the owner 2026-11-20, PLAN D7).
+    // This closes RULING AGENT-1 (the squad wore the tier 2 suit from 2026-11-19 to 2026-11-20 while tier 1 had no reference).
+    ...figure('agent-t1'),
     glow: null,
-    gate: { headShare: 0.299, shoulders: 2.03, legs: 1.02, mode: 'house', verdict: 'pass', ruling: 'GATE-1, AGENT-1' },
-    templates: ['agent-t1 (drawn with the tier 2 model until a tier 1 reference is locked, RULING AGENT-1)'],
+    gate: { headShare: GATE_T1.headShare, shoulders: GATE_T1.shoulders, legs: GATE_T1.legs, mode: 'house', verdict: 'pass', ruling: 'GATE-1' },
+    templates: ['agent-t1'],
   },
   'agent-t2': {
     role: 'agent-t2',
@@ -74,8 +79,36 @@ export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
     gate: { headShare: 0.299, shoulders: 2.03, legs: 1.02, mode: 'house', verdict: 'pass', ruling: 'GATE-1' },
     templates: ['agent-t2 (not yet in data)'],
   },
-  citizen: { role: 'citizen', label: 'Citizen', ...none, templates: ['citizen'] },
-  'host-hidden': { role: 'host-hidden', label: 'Host, passing as a citizen', ...none, templates: ['host (unrevealed: drawn as the citizen)'] },
+  citizen: {
+    role: 'citizen',
+    label: 'Citizen (body 1)',
+    // `chrome-citizen-1.jpg` (D22). Gated against its own reference like the host (RULING CITIZEN-1): the locked citizen
+    // references have the passing host's build (head 24-27%), outside the house bands by the owner's choice.
+    ...figure('citizen'),
+    glow: null,
+    gate: { headShare: GATE_C1.headShare, shoulders: GATE_C1.shoulders, legs: GATE_C1.legs, mode: 'reference', verdict: 'pass', ruling: 'CITIZEN-1' },
+    templates: ['citizen (units whose id ends in an even digit, RULING CITIZEN-2)', 'host (unrevealed: drawn as this citizen, HIDE-1)'],
+  },
+  'citizen-2': {
+    role: 'citizen-2',
+    label: 'Citizen (body 2)',
+    // `chrome-citizen-2.jpg` (D22): the second citizen body, so the street is not one person repeated. RULING CITIZEN-2:
+    // a citizen (or hidden host) whose unit id ends in an odd digit wears this body, an even digit body 1.
+    ...figure('citizen-2'),
+    glow: null,
+    gate: { headShare: GATE_C2.headShare, shoulders: GATE_C2.shoulders, legs: GATE_C2.legs, mode: 'reference', verdict: 'pass', ruling: 'CITIZEN-1' },
+    templates: ['citizen (units whose id ends in an odd digit, RULING CITIZEN-2)', 'host (unrevealed, odd id)'],
+  },
+  'host-hidden': {
+    role: 'host-hidden',
+    label: 'Host, passing as a citizen',
+    // HIDE-1: a hidden host is a citizen to the agency, so it draws the citizen model (body 1 here; the board picks the
+    // body by the unit id like any citizen, RULING CITIZEN-2). Listed so the slot reads the same model as `citizen`.
+    ...figure('citizen'),
+    glow: null,
+    gate: { headShare: GATE_C1.headShare, shoulders: GATE_C1.shoulders, legs: GATE_C1.legs, mode: 'reference', verdict: 'pass', ruling: 'CITIZEN-1, HIDE-1' },
+    templates: ['host (unrevealed: drawn as the citizen, HIDE-1)'],
+  },
   'host-revealed': {
     role: 'host-revealed',
     label: 'Host, revealed',
@@ -167,8 +200,18 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
       // bytes are really here (rule 26); the loader then reads them back from the HTTP cache.
       const r = await fetch(url, { cache: 'force-cache' });
       if (!r.ok) throw new Error(`${url}: ${r.status}`);
-      await r.arrayBuffer();
+      const bytes = await r.arrayBuffer();
+      // Hand the loader these bytes instead of letting it read the file back from the browser's disk cache: three's
+      // FileLoader checks its own cache first (key `file:<url>`) and passes the entry to the parser on a 0 ms timer. A
+      // second read of a 7 MB entry that was written a moment ago failed with ERR_CACHE_READ_FAILURE on a fresh
+      // Chromium profile (the save e2e, 2026-11-20), which would have left that figure a stand-in for the session.
+      // The parser copies what it keeps, so the entry is dropped once the timer has fired.
+      Cache.enabled = true;
+      Cache.add(`file:${url}`, bytes);
       useGLTF.preload(url);
+      await new Promise((res) => setTimeout(res, 20));
+      Cache.remove(`file:${url}`);
+      Cache.enabled = false;
       setModelState(url, 'ready');
     } catch {
       // A failed load leaves the placeholder in place (rule 26); the count still advances so the button opens.

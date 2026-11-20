@@ -1,0 +1,110 @@
+{
+ "role": "agent-t1",
+ "reference": "docs/concept/samples/chrome-suit-t1-1.jpg",
+ "attempt": {
+  "role": "agent-t1",
+  "reference": "docs/concept/samples/chrome-suit-t1-1.jpg",
+  "seed": 1234,
+  "preset": "high",
+  "octree": 512,
+  "steps": 50,
+  "guidance": 5.0,
+  "faces": 30000,
+  "texture": 2048,
+  "cutBase": false,
+  "stages": {
+   "cutout": {
+    "seconds": 0,
+    "ok": true,
+    "tail": [
+     "cached"
+    ]
+   },
+   "shape": {
+    "seconds": 195,
+    "ok": true,
+    "tail": [
+     "PointCrossAttentionEncoder INFO: pc_sharpedge_size is zero",
+     "loaded in 45s; generating (seed 1234, octree 512, 50 steps)",
+     "self.gen = func(*args, **kwds)",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:24<00:00,  2.03it/s]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:24<00:00,  2.00it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16792/16876 [01:22<00:00, 203.91it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16814/16876 [01:22<00:00, 203.27it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16836/16876 [01:22<00:00, 202.59it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16857/16876 [01:22<00:00, 201.42it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:22<00:00, 204.37it/s]",
+     "generated in 131s: 1232948 raw faces",
+     "shape: 30000 faces, 191s total"
+    ]
+   },
+   "paint": {
+    "seconds": 65,
+    "ok": true,
+    "tail": [
+     "loading Hunyuan3D 2.0 paint model",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.70it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.90it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:06<00:00,  1.23s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:06<00:00,  1.15s/it]",
+     "loaded in 32s; painting at 2048",
+     "textured: 4.5 MB, 63s total"
+    ]
+   }
+  },
+  "started": "2026-11-20 12:17:34",
+  "finished": "2026-11-20 12:21:53",
+  "gpuSeconds": 260
+ },
+ "finalize": {
+  "landmarks": {
+   "chin_frac": 0.3,
+   "crotch_frac": 0.75
+  },
+  "full": {
+   "triangles": 30000,
+   "bytes": 7598620,
+   "texture": "as painted"
+  },
+  "lod": {
+   "triangles": 8000,
+   "bytes": 2223128,
+   "texture": 1024
+  },
+  "dimensions": {
+   "width": 0.802,
+   "depth": 0.647,
+   "height": 1.2
+  },
+  "yaw": 0.0,
+  "roughness": 0.9,
+  "regrade": true
+ },
+ "gate": {
+  "verdict": "pass",
+  "fails": [],
+  "model": {
+   "head_share": 0.299,
+   "shoulders_in_heads": 2.08,
+   "legs_in_heads": 1.04,
+   "aspect": 0.668,
+   "chin_source": "given"
+  },
+  "reference": {
+   "head_share": 0.29,
+   "shoulders_in_heads": 2.0,
+   "legs_in_heads": 1.02,
+   "aspect": 0.68,
+   "chin_source": "given"
+  }
+ },
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\agent-t1\\s1234-high",
+ "files": [
+  "cutout.png",
+  "shape.glb",
+  "textured-lod.glb",
+  "textured.glb",
+  "turnaround-lod.jpg",
+  "turnaround.jpg"
+ ]
+}

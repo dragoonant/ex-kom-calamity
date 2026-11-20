@@ -126,7 +126,7 @@ export function Gallery() {
           FIGURE GALLERY: {FIGURE_ROLES.length} roles, measured {list.length}, generated models drawn {generated} with {glows} core glows, humanoid gates passed {passes}/{FIGURE_ROLES.filter(humanoidRole).length}
         </div>
         <div className="hint">
-          Targets (docs/figures.md section 1): height about {RULER_HEADS} heads; head {GATES.headShare[0] * 100} to {GATES.headShare[1] * 100}% of height; shoulders {GATES.shoulders[0]} to {GATES.shoulders[1]} heads wide; legs at most {GATES.legsMax} heads. Aliens are measured and judged by eye against the D14 references. A generated model is one mesh, so its ratios come from the pipeline&apos;s gate on its front render (docs/art/figure-models.md section 4) and the gate column names the ruling; a slot without a locked reference still draws its stand-in.
+          Targets (docs/figures.md section 1): height about {RULER_HEADS} heads; head {GATES.headShare[0] * 100} to {GATES.headShare[1] * 100}% of height; shoulders {GATES.shoulders[0]} to {GATES.shoulders[1]} heads wide; legs at most {GATES.legsMax} heads. Aliens are measured and judged by eye against the D14 references. A generated model is one mesh, so its ratios come from the pipeline&apos;s gate on its front render (docs/art/figure-models.md section 4) and the gate column names the ruling. Every role has its model: the citizens and the hidden host are gated against their own locked references (CITIZEN-1), and the board deals the two citizen bodies by unit id (CITIZEN-2).
         </div>
         <table className="report-table num gallery-table" data-testid="gallery-table">
           <thead>
