@@ -73,7 +73,11 @@ export function parseIndex(text: string): AudioIndex | null {
   try {
     const v = JSON.parse(text) as Partial<AudioIndex>;
     if (v.version !== 1 || typeof v.sfx !== 'object' || typeof v.music !== 'object') return null;
-    return { version: 1, madeAt: String(v.madeAt ?? ''), sfx: v.sfx ?? {}, music: v.music ?? {} };
+    // The city set (docs/audio.md 6) sits under `city` so the battle's lists stay exact; the player reads one map.
+    const city = (v as { city?: { sfx?: Record<string, unknown>; music?: Record<string, unknown> } }).city;
+    const sfx = { ...(v.sfx ?? {}), ...((city?.sfx ?? {}) as AudioIndex['sfx']) };
+    const music = { ...(v.music ?? {}), ...((city?.music ?? {}) as AudioIndex['music']) };
+    return { version: 1, madeAt: String(v.madeAt ?? ''), sfx, music };
   } catch {
     return null;
   }

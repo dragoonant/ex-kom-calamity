@@ -1,6 +1,6 @@
 // Shared rule helpers (docs/spec/20-city.md). Pure, read-only over the state.
-import { CITY, type BuildingDef, type OrgDef } from '../data/city';
-import type { Band, CityState, Org } from './types';
+import { CITY, RESEARCH, type BuildingDef, type Evidence, type OrgDef, type ProjectDef } from '../data/city';
+import type { Band, CityState, ItemId, Org } from './types';
 
 export function buildingDef(id: string): BuildingDef | undefined {
   return CITY.buildings.find((b) => b.id === id);
@@ -40,11 +40,12 @@ export function hostilesFor(state: CityState, org: Org): number {
   return base + (org.turned ? r.turnedGuards : 0);
 }
 
-/** RES-1: the auto-resolver's win chance in percent. */
+/** RES-1, SHOP-4: the auto-resolver's win chance in percent, with the squad's working kit. */
 export function winChance(state: CityState, agents: number, hostiles: number): number {
   const r = state.tuning.res;
   if (hostiles <= 0) return 100;
-  const p = r.winBasePercent + r.winPerAgent * agents - r.winPerHostile * hostiles;
+  const kit = state.shop ? working(state, 'shell-plate', agents) * state.tuning.shop.plateWin + working(state, 'arc-carbine', agents) * state.tuning.shop.carbineWin : 0;
+  const p = r.winBasePercent + r.winPerAgent * agents - r.winPerHostile * hostiles + kit;
   return Math.max(r.winMinPercent, Math.min(r.winMaxPercent, p));
 }
 
@@ -77,4 +78,57 @@ export function grantOf(state: CityState): number {
 
 export function totalInfiltration(state: CityState): number {
   return state.orgs.reduce((s, o) => s + o.infiltration, 0);
+}
+
+const EVIDENCE_WORDS: Record<Evidence, string> = { host: 'host body', taker: 'taker body', fighter: 'fighter body', core: 'amber core', liveHost: 'live host', liveTaker: 'live taker' };
+
+/** LAB-2 */
+export function projectDef(id: string): ProjectDef | undefined {
+  return RESEARCH.projects.find((p) => p.id === id);
+}
+
+export function hasDone(state: CityState, project: string): boolean {
+  return state.lab.done.includes(project);
+}
+
+/** LAB-2: why a project cannot start now, or null when it can. */
+export function researchBlock(state: CityState, id: string): string | null {
+  const p = projectDef(id);
+  if (!p) return `no project ${id}`;
+  if (state.lab.project) return 'the lab is busy';
+  if (hasDone(state, id)) return 'already done';
+  for (const r of p.requires ?? []) if (!hasDone(state, r)) return `needs ${projectDef(r)?.name ?? r} first`;
+  for (const [k, n] of Object.entries(p.needs ?? {})) if (state.shelf[k as Evidence] < (n ?? 0)) return `needs ${n} ${EVIDENCE_WORDS[k as Evidence]} on the shelf`;
+  for (const [k, n] of Object.entries(p.consumes ?? {})) if (state.shelf[k as Evidence] < (n ?? 0)) return `uses up ${n} ${EVIDENCE_WORDS[k as Evidence]}`;
+  return null;
+}
+
+/** RAID-7 */
+export function compositionFor(state: CityState, org: Org, hostiles: number): { takers: number; fighters: number } {
+  const r = state.tuning.raid;
+  const quarter = Math.floor(hostiles / 4);
+  const takers = org.infiltration >= r.takersAt && hostiles >= 2 ? Math.max(1, quarter) : 0;
+  const fighters = org.infiltration >= r.fightersAt ? quarter : 0;
+  return { takers, fighters: Math.min(fighters, Math.max(0, hostiles - takers)) };
+}
+
+/** SHOP-1 */
+export function itemCost(state: CityState, item: ItemId): { cost: number; hours: number } {
+  const s = state.tuning.shop;
+  return item === 'shell-plate' ? { cost: s.plateCost, hours: s.plateHours } : { cost: s.carbineCost, hours: s.carbineHours };
+}
+
+/** SHOP-2: the supplier organisation (kind "arms"). */
+export function supplierOrg(state: CityState): Org | undefined {
+  const def = CITY.orgs.find((o) => o.kind === 'arms');
+  return def ? orgOf(state, def.id) : undefined;
+}
+
+/** SHOP-4: working items carried by a squad of n. */
+export function working(state: CityState, item: ItemId, n: number): number {
+  const stock = state.shop.stock[item];
+  const carried = Math.min(n, stock);
+  if (carried <= 0) return 0;
+  const good = stock - state.shop.sabotaged[item];
+  return Math.floor((carried * good) / stock);
 }

@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MUSIC, SFX, musicFile, sfxFile, sfxPrompt } from '../tools/audio/manifest';
+import { CITY_MUSIC, CITY_SFX, MUSIC, SFX, musicFile, sfxFile, sfxPrompt } from '../tools/audio/manifest';
 import { promptHash, statsOf } from '../tools/audio/measure';
 import { audioUrl, dbToGain, parseIndex, takeFor, type AudioIndex } from '../src/client/audio/bank';
 import { MUSIC_STATES, musicStateFor } from '../src/client/audio/music';
@@ -108,7 +108,9 @@ describe('generated files (public/audio; warn, never fail, where they are missin
     }
     let takes = 0;
     for (const [name, e] of Object.entries(idx.sfx)) {
-      expect(SOUND_NAMES).toContain(name);
+      // The city set (docs/audio.md 6) is merged in by parseIndex; its names come from its own manifest list.
+      if (name.startsWith('city-')) expect(CITY_SFX.map((c) => c.name)).toContain(name);
+      else expect(SOUND_NAMES).toContain(name);
       for (const t of e!.takes) {
         takes++;
         const path = join(AUDIO, t.file);
@@ -125,11 +127,12 @@ describe('generated files (public/audio; warn, never fail, where they are missin
       }
     }
     for (const [state, e] of Object.entries(idx.music)) {
-      expect(MUSIC_STATES).toContain(state);
+      if (state.startsWith('city-')) expect(CITY_MUSIC.map((c) => c.state)).toContain(state);
+      else expect(MUSIC_STATES).toContain(state);
       if (!existsSync(join(AUDIO, e!.take.file))) console.warn(`${e!.take.file} is in the index but not on disk`);
       else expect(e!.take.seconds).toBeGreaterThan(5);
     }
-    const wanted = SFX.reduce((a, s) => a + s.takes, 0);
+    const wanted = [...SFX, ...CITY_SFX].reduce((a, s) => a + s.takes, 0);
     if (takes < wanted) console.warn(`${wanted - takes} of ${wanted} sound takes are not generated yet`);
     else expect(takes).toBe(wanted);
     // KB gotchas: a generated gunshot should carry a real transient (crest factor 8, 18 dB); below that the director layers the synth.

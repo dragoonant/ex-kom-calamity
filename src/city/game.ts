@@ -47,6 +47,9 @@ export function createCity(setup: CitySetup): CityState {
     biomass: tuning.spread.startBiomass,
     hostileReadyTick: 0,
     score: { raids: 0, raidsWon: 0, cleanRaids: 0, hostilesDown: 0, agentsDead: 0, civiliansDown: 0, taken: 0, seeds: 0 },
+    shelf: { host: 0, taker: 0, fighter: 0, core: 0, liveHost: 0, liveTaker: 0 },
+    lab: { project: null, progress: 0, done: [] },
+    shop: { item: null, progress: 0, stock: { 'shell-plate': 0, 'arc-carbine': 0 }, sabotaged: { 'shell-plate': 0, 'arc-carbine': 0 }, orders: [] },
     over: null,
     log: [],
   };

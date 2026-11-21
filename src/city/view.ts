@@ -14,7 +14,14 @@ export function cityView(state: CityState, side: CitySide): CityState {
     v.score.taken = -1;
     v.score.seeds = -1;
     // CVIEW-1: until the squad arrives, nobody at the agency knows what is inside.
-    if (v.raid && !v.raid.arrived) v.raid.hostiles = -1;
+    if (v.raid && !v.raid.arrived) {
+      v.raid.hostiles = -1;
+      v.raid.takers = -1;
+      v.raid.fighters = -1;
+    }
+    // SHOP-3: sabotage is hidden.
+    v.shop.sabotaged = { 'shell-plate': 0, 'arc-carbine': 0 };
+    for (const o of v.shop.orders) o.sabotaged = false;
   }
   // CVIEW-2: the organism sees the whole city, the agency's orders included.
   return v;

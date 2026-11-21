@@ -13,7 +13,7 @@
     "sourceStart": 25,
     "actEveryHours": 12,
     "seedCost": 12,
-    "seedAmount": 5,
+    "seedAmount": 7,
     "dailyGrowthPercent": 4,
     "biomassPer100Points": 20,
     "lobbyAt": 30,
@@ -42,7 +42,9 @@
     "maxAgents": 6,
     "hostilesPer10Points": 1,
     "maxHostiles": 10,
-    "turnedGuards": 2
+    "turnedGuards": 2,
+    "takersAt": 20,
+    "fightersAt": 40
   },
   "res": {
     "winBasePercent": 50,
@@ -81,5 +83,26 @@
     "turnedLosePercent": 50,
     "containedTotal": 60,
     "actDays": 90
+  },
+  "lab": {
+    "capturePerRaid": 1,
+    "tellsAccuracy": 10,
+    "scannerAccuracy": 5,
+    "scannerSpot": 30,
+    "antiserumDeathPercent": 50,
+    "evacuationCivilianPercent": 50
+  },
+  "shop": {
+    "plateCost": 30,
+    "plateHours": 24,
+    "carbineCost": 25,
+    "carbineHours": 18,
+    "supplierPricePercent": 80,
+    "supplierHours": 6,
+    "sabotageAt": 20,
+    "sabotageBiomassPercent": 50,
+    "plateWin": 2,
+    "plateDownCutPercent": 40,
+    "carbineWin": 3
   }
 }

@@ -13,6 +13,12 @@ import { installHook } from './hook';
 import { preloadModels } from './models';
 import { browserStorage } from './save';
 import { useClient } from './store';
+import { CityHud } from './city/CityHud';
+import { CityScene } from './city/CityScene';
+import { useCity } from './city/store';
+import { battleFor, resultFromBattle } from './city/join';
+import { installCityHook } from './city/hook';
+import type { RaidResult } from '../city';
 
 /** The one audio director of the session (audio/director.ts); the HUD's volume control and the hook read it. */
 export const director = new Director(browserStorage());
@@ -38,8 +44,48 @@ function Battle() {
   );
 }
 
+function City() {
+  return (
+    <div className="battle city" data-testid="city">
+      <div className="board-wrap">
+        <CityScene />
+      </div>
+      <CityHud />
+    </div>
+  );
+}
+
+/** M7: a fight chosen at a door opens the real battle; when its report closes, the result goes back to the city. */
+function useJoin(): void {
+  useEffect(() => {
+    let pending: RaidResult | null = null;
+    const offCity = useCity.subscribe((c, prev) => {
+      if (c.fight && !prev.fight) {
+        pending = null;
+        useClient.getState().newBattle(battleFor(c.fight.building));
+      }
+    });
+    const offBattle = useClient.subscribe((b, prev) => {
+      const fight = useCity.getState().fight;
+      if (!fight) return;
+      if (b.screen === 'report' && prev.screen !== 'report' && b.report) pending = resultFromBattle(b.report, fight);
+      if (b.screen === 'title' && prev.screen !== 'title') {
+        useCity.getState().finishFight(pending);
+        pending = null;
+      }
+    });
+    return () => {
+      offCity();
+      offBattle();
+    };
+  }, []);
+}
+
 export function App() {
   const screen = useClient((s) => s.screen);
+  const cityActive = useCity((s) => s.active);
+  const fight = useCity((s) => s.fight);
+  useJoin();
 
   useEffect(() => {
     const s = useClient.getState;
@@ -87,12 +133,14 @@ export function App() {
         if (a.source !== undefined) director.setSource(a.source);
       },
     });
+    installCityHook();
     void preloadModels((loaded, total) => s().setModels(loaded, total));
     return director.attach();
   }, []);
 
   if (isGalleryPage((globalThis as { location?: { search?: string } }).location?.search)) return <Gallery />;
   if (isMovesPage((globalThis as { location?: { search?: string } }).location?.search)) return <Moves />;
+  if (cityActive && !fight && screen === 'title') return <City />;
   if (screen === 'battle') return <Battle />;
   if (screen === 'report') return <Report />;
   return <Title />;

@@ -9,4 +9,4 @@ export { cityQuery } from './query';
 export { advanceCity, advanceCityTicks } from './advance';
 export { replayCity, hashCity, appendCityLog, expandCityLog } from './replay';
 export { clockOf, ticksPerHour, ticksPerDay, isNightHour } from './time';
-export { bandOf, hostilesFor, winChance, downChance, grantOf, totalInfiltration, sourceOrg, orgOfBuilding, buildingDef } from './rules';
+export { bandOf, hostilesFor, winChance, downChance, grantOf, totalInfiltration, sourceOrg, orgOfBuilding, buildingDef, projectDef, researchBlock, hasDone, compositionFor, itemCost, supplierOrg, working } from './rules';

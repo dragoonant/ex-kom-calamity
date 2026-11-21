@@ -1,7 +1,7 @@
 // The city AI (docs/spec/20-city.md section 12). Pure functions of a side's view (CAI-1): the organism's planner and
 // the agency drivers the sim and an autopilot use. No DOM, three.js or React here.
 import { CITY } from '../data/city';
-import { cityLegalActions, clockOf, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
+import { cityLegalActions, clockOf, hasDone, itemCost, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
 import { nextInt, seedRng } from '../engine/rng';
 
 export type CityDriver = (view: CityState) => CityAction[];
@@ -75,7 +75,10 @@ export const agencyRandom: CityDriver = (view) => {
   return legal.length ? [legal[nextInt(rng, legal.length)]!] : [];
 };
 
-const SLIP_WEIGHT: Record<string, number> = { missing: 1, purchase: 2, power: 3, perfect: 3, vote: 2, hum: 6, spotted: 8 };
+/** CAI-7 */
+export const RESEARCH_ORDER = ['restraints', 'host-tells', 'antiserum', 'interrogation', 'shell-plate', 'arc-carbine', 'hand-scanner', 'evacuation', 'taker-cage', 'core-study', 'source-trace'];
+
+const SLIP_WEIGHT: Record<string, number> = { missing: 1, purchase: 2, power: 3, perfect: 3, vote: 2, hum: 6, spotted: 8, confession: 10 };
 
 /** CAI-6: how suspicious each building looks to the agency, from its slips of the last week and its reports. */
 export function suspicion(view: CityState): Map<string, number> {
@@ -111,6 +114,21 @@ export const agencyCareful: CityDriver = (view) => {
   const ready = view.agents.filter((a) => a.status === 'ready').map((a) => a.id);
   const living = view.agents.filter((a) => a.status !== 'dead').length;
   if (living < 8 && view.money >= t.roster.recruitCost + 20) out.push({ type: 'recruit', side: 'agency' });
+  // CAI-7: research in a fixed order of use, question every captive, and build kit with money to spare.
+  if (!view.lab.project) {
+    const next = RESEARCH_ORDER.find((id) => !researchBlock(view, id));
+    if (next) out.push({ type: 'research', side: 'agency', project: next });
+  }
+  if (hasDone(view, 'interrogation') && view.shelf.liveHost > 0 && !hasDone(view, 'hand-scanner')) out.push({ type: 'question', side: 'agency' });
+  else if (hasDone(view, 'interrogation') && view.shelf.liveHost > 1) out.push({ type: 'question', side: 'agency' });
+  if (!view.shop.item) {
+    for (const item of ['shell-plate', 'arc-carbine'] as const) {
+      if (hasDone(view, item) && view.shop.stock[item] < t.raid.maxAgents && view.money >= itemCost(view, item).cost + t.roster.recruitCost + 20) {
+        out.push({ type: 'build', side: 'agency', item });
+        break;
+      }
+    }
+  }
   const sus = suspicion(view);
   const ranked = [...sus.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));
   // Raid a building a fresh report calls some or heavy (or low with slips behind it), with a full squad.

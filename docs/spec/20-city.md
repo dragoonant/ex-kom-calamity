@@ -2,7 +2,7 @@
 
 **The spec is the product** (KB rule 2): the engine in `src/city/` implements exactly this, tests under `tests/` are named by these ids (`tests/coverage.test.ts` fails on an id without a test), and every ambiguity is logged in section 15 as `RULING: <id> | <what we did> | <why>`. Where this spec and `docs/strategic-layer.md` or `docs/GAME-DESIGN.md` disagree, this spec wins. Every number written as `section.key = N` is a key in `src/data/city/tuning.json` (`npm run validate:data` checks the two agree); the city itself (districts, organisations, buildings) is `src/data/city/city.json`. Every number is a first guess *(tune)* until a `sim:city` result says otherwise (KB rule 30).
 
-**Scope (KB rule 6):** act 1 only: the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
+**Scope (KB rule 6):** act 1 only, with M5b's lab and workshop (sections 17 to 19): the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
 
 ---
 
@@ -19,7 +19,7 @@
 ## 1. The clock (CLOCK)
 - **CLOCK-1** One tick is `clock.minutesPerTick = 10` city minutes; an hour is 6 ticks, a day 144. Tick 0 is `clock.startHour = 8` on day 0.
 - **CLOCK-2** A month is `clock.daysPerMonth = 30` days. `clockOf(tuning, tick)` gives day, month, day of month, hour, minute and night.
-- **CLOCK-3** One `tick` resolves in this order: (a) `tick` increases by 1; (b) agents in roster order: a finished watch reports (WATCH-2) and a healed wound returns (ROSTER-4); (c) a travelling raid arrives (RAID-2); (d) on the hour, the slips (section 4); (e) at midnight, the day's end (SPREAD-4, FUND-4, CEND-2, CEND-4); (f) at midnight on the first day of a month, the month's end (FUND-1, CEND-1).
+- **CLOCK-3** One `tick` resolves in this order: (a) `tick` increases by 1; (b) agents in roster order: a finished watch reports (WATCH-2) and a healed wound returns (ROSTER-4); (c) a travelling raid arrives (RAID-2); (d) on the hour, the lab and the workshop advance one hour and due deliveries arrive (LAB-2, SHOP-1, SHOP-2), then the slips (section 4); (e) at midnight, the day's end (SPREAD-4, FUND-4, CEND-2, CEND-4); (f) at midnight on the first day of a month, the month's end (FUND-1, CEND-1).
 - **CLOCK-4** Time advances only through `tick`; pause is the absence of ticks. Orders are accepted whether or not ticks flow.
 - **CLOCK-5** Night is from `clock.nightStartHour = 20` to `clock.nightEndHour = 6`.
 - **CLOCK-6** `advanceCity(state, seconds)` applies `round(seconds * clock.ticksPerSecond)` ticks (`clock.ticksPerSecond = 6`: one city hour per real second at speed 1) and concatenates their events; it stops early when a tick changes nothing (RAID-4, CEND-6). The client's loop drives it as the battle's TIME-6 does.
@@ -34,7 +34,7 @@
 ## 3. The spread (SPREAD)
 - **SPREAD-1** The source starts at `spread.sourceStart = 25`, every other organisation at 0. The agency never sees an infiltration number (CVIEW-1).
 - **SPREAD-2** The organism's resource is **biomass**, starting at `spread.startBiomass = 10`. At each day's end it gains `floor(total infiltration * spread.biomassPer100Points / 100)` (`spread.biomassPer100Points = 20`).
-- **SPREAD-3** The organism's one order is `seed { org }`: legal when the tick has reached its ready tick, biomass is at least `spread.seedCost = 12` and the organisation is below the cap. It pays the cost, adds `spread.seedAmount = 5` (capped) and waits `spread.actEveryHours = 12` hours before the next.
+- **SPREAD-3** The organism's one order is `seed { org }`: legal when the tick has reached its ready tick, biomass is at least `spread.seedCost = 12` and the organisation is below the cap. It pays the cost, adds `spread.seedAmount = 7` (capped) and waits `spread.actEveryHours = 12` hours before the next.
 - **SPREAD-4** At each day's end every infiltrated organisation grows by `max(1, floor(infiltration * spread.dailyGrowthPercent / 100))` (`spread.dailyGrowthPercent = 4`), capped; the growth counts as citizens taken (`score.taken`).
 - **SPREAD-5** An organisation at or above `spread.lobbyAt = 30` lobbies against the agency (FUND-2).
 - **SPREAD-6** An organisation that reaches `spread.turnAt = 60` at a day's end **turns**: its standing drops to 0, the turn is public (an event, and `turned` is visible), its buildings hold `raid.turnedGuards` more hostiles (RAID-3). A raid that pushes it below `spread.lobbyAt` turns it back.
@@ -91,7 +91,7 @@
 - **CEND-6** After the end, `tick` is accepted and changes nothing; every other order is rejected.
 
 ## 11. View and queries (CVIEW, CQRY)
-- **CVIEW-1** `cityView(state, 'agency')` hides infiltration (shown as -1), biomass, the organism's ready tick, the seeds and takings in the score, whether each slip is genuine, and a travelling raid's hostiles.
+- **CVIEW-1** `cityView(state, 'agency')` hides infiltration (shown as -1), biomass, the organism's ready tick, the seeds and takings in the score, whether each slip is genuine, a travelling raid's hostiles, and which stock and orders are sabotaged (SHOP-3).
 - **CVIEW-2** `cityView(state, 'hostile')` hides nothing but the dice: the organism knows the city, the agency's watchers and raids included.
 - **CVIEW-3** Neither view carries the RNG words.
 - **CQRY-1** `clock`: day, month, hour, minute, night.
@@ -108,6 +108,7 @@
 - **CAI-4** `hostileRandom` seeds a random legal organisation.
 - **CAI-5** `agencyPassive` only resolves a raid at the door; `agencyRandom` on the hour, 8% of the time, gives a random legal order.
 - **CAI-6** `agencyCareful` (the sim's competent player and a future autopilot): resolves at the door; recruits back to 8 when it can spare the money; raids turned organisations first, then a building whose fresh report (under 4 days) says `some` or `heavy`, or `low` with a suspicion of 8 or more, with up to 6 ready agents once at least 4 are home; and sends spare agents to watch the most suspicious unwatched buildings, by a suspicion score from the week's slips (weighted by kind) and fresh reports.
+- **CAI-7** The careful agency also researches in a fixed order (restraints, the host's tells, antiserum, questioning, shell plate, arc carbine, hand scanner, evacuation, taker cage, the amber core, tracing the source) whenever the lab is idle and the next project it can start is found, questions captives, and builds kit up to a squad's worth when it has the cost plus a recruit's and 20 to spare. It never buys from the supplier.
 
 ## 13. Invariants (CINV) - checked by `sim:city` every city day
 - **CINV-1** No NaN or Infinity; every number an integer.
@@ -118,6 +119,7 @@
 - **CINV-6** At most `signs.keep` slips, ids increasing.
 - **CINV-7** The organisations and buildings match `city.json`.
 - **CINV-8** An end is never in the future.
+- **CINV-9** The shelf never goes below 0; no project is done twice or worked on once done; sabotaged stock never exceeds the stock; a raid's takers and fighters never exceed its hostiles.
 
 ## 14. Sim (CSIM)
 - **CSIM-1** `npm run sim:city` plays seeded campaigns (40 per driver by default) of each agency driver against the planner. Drivers decide on the hour and whenever a squad is at the door; the invariants run every city day.
@@ -125,7 +127,38 @@
 - **CSIM-3** Seed 1 with the careful driver replays from its log to the same hash.
 
 ### Sim baseline (2026-11-21, 40 campaigns per driver, seeds 1-40)
-Filled by the run recorded in `STATUS.md`. Tuning history (KB rule 30, one change at a time, 20 campaigns each): first guesses gave careful 100% in 4 days (the source was cleansed before the spread began), so CEND-4 became a 90-day act with SPREAD-7's floor (careful 40%); `spread.dailyGrowthPercent` 5 -> 4 (35%, no change); `roster.deathPercent` 50 -> 30 (30%, fewer squad wipes but more spread losses); `watch.hours` 24 -> 12 (70%, target met).
+| Agency driver | Wins | Mean days | Raids | Raids won | Clean raids | Agents killed | Citizens taken | End confidence | Ends |
+|---|---|---|---|---|---|---|---|---|---|
+| passive | 0.0% | 28.2 | 0 | 0 | 0 | 0 | 254 | 7 | turned 40 |
+| random | 0.0% | 30.6 | 8.2 | 4.3 | 2.4 | 1.6 | 253 | 6 | confidence 28, turned 12 |
+| careful | 90.0% | 87.5 | 167.8 | 126.8 | 20.8 | 13.3 | 214 | 85 | contained 36, turned 3, spread 1 |
+
+With M5b's lab and workshop (CAI-7). Seed 1 (careful) replays to `546f89e8`. Before M5b (M5a alone, 2026-11-21) the careful agency won 77.5%. **The careful agency sits on the 90% edge of CSIM-2's band:** research makes act 1 easier for a bot that works every hour, which may be right for act 1 and is an owner call (STATUS Open). M5b tuning (40 campaigns each): research as first guessed gave 92.5%; `shop.carbineWin` 3 -> 1 changed nothing (the bot rarely has money for kit) and was reverted; `lab.tellsAccuracy` 10 -> 5 gave 97.5% (noise) and was reverted; `spread.dailyGrowthPercent` 4 -> 5 changed nothing (a careful agency holds every organisation in the 1-point minimum) and was reverted; `spread.seedAmount` 5 -> 7 gave 90.0% (kept); 7 -> 9 gave 92.5% (louder seeds are found sooner) and was reverted. M5a tuning history (KB rule 30, one change at a time, 20 campaigns each): first guesses gave careful 100% in 4 days (the source was cleansed before the spread began), so CEND-4 became a 90-day act with SPREAD-7's floor (careful 40%); `spread.dailyGrowthPercent` 5 -> 4 (35%, no change); `roster.deathPercent` 50 -> 30 (30%, fewer squad wipes but more spread losses); `watch.hours` 24 -> 12 (70%, target met).
+
+## 16. The client: save and the join (CSAV, CJOIN) - M6, M7
+- **CSAV-1** The campaign saves under `ekc-campaign` (KB rule 22; `PLAN.md` Q5's real-time form): on start, on every accepted order, on every pause, whenever the city pauses itself (CSAV-3), and every 600 ticks of play. The envelope holds the key, a version, the time, the state, its `hashCity` and the tray.
+- **CSAV-2** Continue reopens the save paused, and only if its key, version, shape and hash agree; otherwise the title says why and offers to discard it.
+- **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, or the act ends.
+- **CJOIN-1** At a door the player may **fight it**: the battle opens on the raid site the building names (CITY-4).
+- **CJOIN-2** When the battle's report closes, its result returns as a fought result (RES-6): won if the agency won, the downed battle agents mapped in order onto the raid's agents, the battle's hostiles and citizens down. Leaving the battle without a report resolves the raid automatically.
+
+## 17. The lab (LAB) - M5b: evidence-gated research (`PLAN.md` D24 c)
+- **LAB-1** The **shelf** holds evidence: `host`, `taker` and `fighter` bodies, amber `core`s, and live `liveHost` and `liveTaker` captives. A resolved raid shelves its hostiles down, filled hosts first, then takers, then fighters (RAID-7); every taker and fighter body also yields one core.
+- **LAB-2** The lab works one project at a time (`src/data/city/research.json`). `research { project }` is legal when the lab is idle, the project is not done, its `requires` are done, the shelf holds its `needs` (not used up) and its `consumes` (used up when it starts). The project advances one hour of work per city hour and is done at its `hours`.
+- **LAB-3** **Capture:** with `restraints` done, a won raid takes `lab.capturePerRaid = 1` host alive instead of shelving its body; with `taker-cage` done, one taker too.
+- **LAB-4** **Watching:** `host-tells` adds `lab.tellsAccuracy = 10` to a watch's accuracy; `hand-scanner` adds `lab.scannerAccuracy = 5` more and `lab.scannerSpot = 30` to the spotting chance.
+- **LAB-5** **Questioning:** with `interrogation` done, `question` uses one live host and names the most infiltrated organisation (ties in data order): a genuine `confession` slip, and every building of that organisation gets a true report.
+- **LAB-6** **Losses:** `antiserum` multiplies `roster.deathPercent` by `lab.antiserumDeathPercent = 50` percent; `evacuation` multiplies the auto-resolver's citizens killed by `lab.evacuationCivilianPercent = 50` percent (floored).
+- **LAB-7** **The source:** `core-study` (the amber core) has no effect of its own in act 1 and opens `source-trace`, which lifts SPREAD-7's floor, so raids can cleanse the source to 0.
+
+## 18. The workshop (SHOP) - M5b
+- **SHOP-1** `shell-plate` and `arc-carbine` research give designs. `build { item }` starts one item when the workshop is idle and the design is done: a plate costs `shop.plateCost = 30` and `shop.plateHours = 24` hours, a carbine `shop.carbineCost = 25` and `shop.carbineHours = 18` hours. The money is paid at the start; the item joins the stock when done.
+- **SHOP-2** `order { item }` buys a designed item from the supplier organisation (`kind: "arms"`) for `shop.supplierPricePercent = 80` percent of the cost, delivered after `shop.supplierHours = 6` hours. It is legal while the supplier has not turned.
+- **SHOP-3** **Sabotage:** an order placed while the supplier's infiltration is at least `shop.sabotageAt = 20` is sabotaged: it arrives and counts in the stock, but gives nothing, and `shop.sabotageBiomassPercent = 50` percent of its price feeds the organism's biomass. Which items are sabotaged is hidden from the agency (CVIEW-1).
+- **SHOP-4** **On a raid** (auto-resolved only), the first agents carry the stock, one item of each kind per agent; the working ones (the stock less the sabotaged, shared out in proportion) add `shop.plateWin = 2` (plate) and `shop.carbineWin = 3` (carbine) per agent to the win chance, and a plated agent's down chance falls by `shop.plateDownCutPercent = 40` percent.
+
+## 19. Raid composition (RAID-7)
+- **RAID-7** Of a raid's hostiles, a quarter (floored, at least 1 when there are 2 or more) are takers once the organisation is at `raid.takersAt = 20`, and a quarter (floored) are fighters once it is at `raid.fightersAt = 40`; the rest are hosts. Turned guards count as hosts.
 
 ## 15. Rulings log
 - RULING: CITY-4 | buildings fight on the three D20 raid maps by their floor count until M7 | the battle engine's ARCH-1 names a battle file; per-building maps are M7's join. provisional
@@ -136,3 +169,7 @@ Filled by the run recorded in `STATUS.md`. Tuning history (KB rule 30, one chang
 - RULING: FUND-1 | money may go negative at a month's end | salaries are owed whatever the grant; the debt blocks recruiting (ROSTER-3). provisional
 - RULING: RES-6 | a fought result's hostiles down are clamped to the city's hostile count | until M7 the raid maps carry their own rosters, which may differ from RAID-3. provisional
 - RULING: SIGN-2 | a slip carries ids, never text | the client words each kind (D25: too perfect by day, the hum by night), so wording changes need no engine change. provisional
+- RULING: CJOIN-2 | the battle fields its site's own six agents and roster; downed battle agents map in order onto the raid's agents, extras ignored | ARCH-1 names a battle file and is frozen; a roster override is the next contract change. provisional
+- RULING: CSAV-1 | the save holds the whole city state (with its log), not a replay log alone | replaying 90 days of ticks takes seconds on a phone; the state is about 30 KB. provisional
+- RULING: SHOP-4 | equipment changes only the auto-resolver; a fought battle uses the site's own weapons | the battle's roster and kit come from its file until the CJOIN-2 roster change. provisional
+- RULING: LAB-2 | field trials (`docs/strategic-layer.md` 3) wait for a later slice; a built item works at once | the first cut keeps the workshop to cost and time, so the sim can measure research alone. provisional

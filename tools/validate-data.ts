@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { BATTLES, BUILDING_STYLES, DEFAULT_MATERIAL, LEGEND, MAPS, MATERIALS, PROP_KINDS, TUNING, UNITS, WEAPONS } from '../src/data';
 import { STANCES, SIDES } from '../src/engine';
-import { BUILDING_KINDS, CITY, CITY_TUNING, RAID_SITE_BATTLES } from '../src/data/city';
+import { BUILDING_KINDS, CITY, CITY_TUNING, EVIDENCE, RAID_SITE_BATTLES, RESEARCH } from '../src/data/city';
 
 const errors: string[] = [];
 const err = (m: string) => errors.push(m);
@@ -242,6 +242,16 @@ for (const m of spec.matchAll(/^- RULING: .+\. (\w+)$/gm)) {
   }
   for (const o of CITY.orgs) if (!CITY.buildings.some((b) => b.org === o.id)) err(`organisation ${o.id} owns no building`);
   if (CITY.agency.names.length < CITY_TUNING.roster.cap) err('city: fewer agent names than the roster cap');
+  // LAB-2: the projects' references.
+  const pids = new Set(RESEARCH.projects.map((p) => p.id));
+  if (pids.size !== RESEARCH.projects.length) err('research: duplicate project ids');
+  for (const p of RESEARCH.projects) {
+    for (const r of p.requires ?? []) if (!pids.has(r)) err(`research ${p.id} requires unknown ${r}`);
+    for (const k of [...Object.keys(p.needs ?? {}), ...Object.keys(p.consumes ?? {})]) if (!(EVIDENCE as string[]).includes(k)) err(`research ${p.id}: unknown evidence ${k}`);
+    if (!isInt(p.hours) || p.hours < 1) err(`research ${p.id}: hours`);
+    if (!cspec.includes(`\`${p.id}\``)) err(`research ${p.id} has no rule in docs/spec/20-city.md`);
+  }
+  for (const it of RESEARCH.items) if (!pids.has(it.design)) err(`item ${it.id}: unknown design ${it.design}`);
   console.log(`City: ${new Set(cids).size} rule ids, ${[...cspec.matchAll(/^- RULING: /gm)].length} rulings; ${CITY.districts.length} districts, ${CITY.orgs.length} organisations, ${CITY.buildings.length} buildings.`);
 }
 

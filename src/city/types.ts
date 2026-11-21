@@ -1,5 +1,5 @@
 // City state and action shapes (docs/spec/20-city.md section 0). Plain JSON (CARCH-5); integers only (CARCH-6).
-import type { CityTuning } from '../data/city';
+import type { CityTuning, Evidence } from '../data/city';
 import type { RngState } from '../engine/rng';
 
 export type { CityTuning };
@@ -12,8 +12,9 @@ export type Band = 'clean' | 'low' | 'some' | 'heavy';
 export const BANDS: Band[] = ['clean', 'low', 'some', 'heavy'];
 
 /** SIGN-2 */
-export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted';
-export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted'];
+export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted' | 'confession';
+export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted', 'confession'];
+export type ItemId = 'shell-plate' | 'arc-carbine';
 
 export interface Org {
   id: string;
@@ -73,6 +74,9 @@ export interface Raid {
   arriveTick: number;
   /** RAID-3: fixed when the squad arrives, from the infiltration then. */
   hostiles: number;
+  /** RAID-7: how many of them are takers and fighters (the rest are hosts). */
+  takers: number;
+  fighters: number;
   arrived: boolean;
 }
 
@@ -112,6 +116,12 @@ export interface CityState {
   /** SPREAD-3: the first tick the enemy may act again. */
   hostileReadyTick: number;
   score: CityScore;
+  /** LAB-1: the evidence shelf. */
+  shelf: Record<Evidence, number>;
+  /** LAB-2 */
+  lab: { project: string | null; progress: number; done: string[] };
+  /** SHOP-1..4: the workshop's job, the stock, and the supplier's deliveries; `sabotaged` is hidden from the agency (CVIEW-1). */
+  shop: { item: ItemId | null; progress: number; stock: Record<ItemId, number>; sabotaged: Record<ItemId, number>; orders: { item: ItemId; arriveTick: number; sabotaged: boolean }[] };
   over: CityOver | null;
   log: CityLogEntry[];
 }
@@ -123,6 +133,10 @@ export type CityAction =
   | { type: 'raid'; side: 'agency'; building: string; agents: string[] }
   | { type: 'resolve'; side: 'agency'; result?: RaidResult }
   | { type: 'recruit'; side: 'agency' }
+  | { type: 'research'; side: 'agency'; project: string }
+  | { type: 'build'; side: 'agency'; item: ItemId }
+  | { type: 'order'; side: 'agency'; item: ItemId }
+  | { type: 'question'; side: 'agency' }
   | { type: 'seed'; side: 'hostile'; org: string };
 
 export type CityLogEntry = Exclude<CityAction, { type: 'tick' }> | { type: 'tick'; count: number };
@@ -144,6 +158,13 @@ export type CityEvent =
   | { type: 'seeded'; org: string; amount: number; cost: number }
   | { type: 'turned'; org: string }
   | { type: 'confidence'; delta: number; why: string }
+  | { type: 'researchStarted'; project: string }
+  | { type: 'researchDone'; project: string }
+  | { type: 'shelved'; host: number; taker: number; fighter: number; core: number; liveHost: number; liveTaker: number }
+  | { type: 'buildStarted'; item: ItemId; cost: number }
+  | { type: 'built'; item: ItemId }
+  | { type: 'ordered'; item: ItemId; cost: number; arriveTick: number }
+  | { type: 'delivered'; item: ItemId }
   | { type: 'cityOver'; over: CityOver };
 
 export type CityStepResult =

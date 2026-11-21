@@ -19,6 +19,9 @@ const MUSIC_CUES: Record<MusicState, string> = {
   victory: 'the report, building cleared: one fanfare, then silence',
   defeat: 'the report, raid lost: one solemn sting, then silence',
   silent: '',
+  'city-calm': 'the city switchboard by day: a bright civic newsreel',
+  'city-night': 'the city at night: the same theme thinner, a low drone under it',
+  'city-crisis': 'a squad in the air or at a door: brass and timpani',
 };
 
 function SoundsPage() {

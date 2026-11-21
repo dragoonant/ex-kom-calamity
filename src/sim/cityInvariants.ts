@@ -37,6 +37,12 @@ export function cityInvariants(s: CityState): string[] {
   for (let i = 1; i < s.slips.length; i++) if (s.slips[i]!.id <= s.slips[i - 1]!.id) out.push('slip ids not increasing');
   // CINV-7
   if (s.orgs.length !== CITY.orgs.length || s.buildings.length !== CITY.buildings.length) out.push('city shape changed');
+  // CINV-9: the shelf, the lab and the workshop stay sane.
+  for (const [k, v] of Object.entries(s.shelf)) if (!Number.isInteger(v) || v < 0) out.push(`shelf ${k} is ${v}`);
+  if (new Set(s.lab.done).size !== s.lab.done.length) out.push('a project is done twice');
+  if (s.lab.project && s.lab.done.includes(s.lab.project)) out.push('the lab works on a done project');
+  for (const k of ['shell-plate', 'arc-carbine'] as const) if (s.shop.sabotaged[k] > s.shop.stock[k] || s.shop.stock[k] < 0) out.push(`stock of ${k} is broken`);
+  if (s.raid && s.raid.arrived && s.raid.takers + s.raid.fighters > s.raid.hostiles) out.push('raid composition exceeds its hostiles');
   // CINV-8
   if (s.over && s.over.tick > s.tick) out.push('over in the future');
   return out;
