@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { AudioIndex, MusicEntry, SfxEntry, TakeInfo } from '../../src/client/audio/bank';
-import { MUSIC, SFX, musicFile, sfxFile, sfxPrompt, type MusicSpec, type SfxSpec, MUSIC_MODEL, SFX_MODEL } from './manifest';
+import { CITY_MUSIC, CITY_SFX, MUSIC, SFX, musicFile, sfxFile, sfxPrompt, type CityMusicState, type CitySoundName, type MusicSpec, type SfxSpec, MUSIC_MODEL, SFX_MODEL } from './manifest';
 
 export const AUDIO_DIR = join(process.cwd(), 'public', 'audio');
 export const INDEX_PATH = join(AUDIO_DIR, 'index.json');
@@ -75,11 +75,11 @@ export function promptHash(parts: unknown[]): string {
   return h.toString(16).padStart(8, '0');
 }
 
-export function sfxHash(spec: SfxSpec, take: number): string {
+export function sfxHash(spec: SfxSpec<string>, take: number): string {
   return promptHash([SFX_MODEL, sfxPrompt(spec, take), spec.seconds, spec.influence, !!spec.loop]);
 }
 
-export function musicHash(spec: MusicSpec): string {
+export function musicHash(spec: MusicSpec<string>): string {
   return promptHash([MUSIC_MODEL, spec.prompt, spec.seconds]);
 }
 
@@ -95,18 +95,38 @@ export function takeInfo(file: string, level: number, loop: boolean, hash: strin
   return { file, seconds: r(s.seconds), offset: r(offset), end: r(end), peakDb: r(s.peakDb), rmsDb: r(s.rmsDb), crestDb: r(s.crestDb), gainDb: r(gainDb), promptHash: hash };
 }
 
-export function readIndex(): AudioIndex | null {
+/** The index with the city layer's section (docs/audio.md section 6). The client's parseIndex keeps only `sfx` and
+ *  `music` today, so `city` waits there, measured, until a city screen reads it. */
+export interface CityIndexSection {
+  sfx: Partial<Record<CitySoundName, SfxEntry>>;
+  music: Partial<Record<CityMusicState, MusicEntry>>;
+}
+export type FullIndex = AudioIndex & { city?: CityIndexSection };
+
+/** How a loop's end meets its start: the sample jump at the seam and the RMS of the last and first 50 ms, in dB. */
+export function seamOf(samples: Float32Array, rate: number): { jump: number; headRmsDb: number; tailRmsDb: number } {
+  const n = Math.max(1, Math.min(samples.length, Math.round(rate * 0.05)));
+  const rms = (from: number) => {
+    let sum = 0;
+    for (let i = from; i < from + n; i++) sum += samples[i]! * samples[i]!;
+    return db(Math.sqrt(sum / n));
+  };
+  if (samples.length < 2) return { jump: 0, headRmsDb: -120, tailRmsDb: -120 };
+  return { jump: Math.abs(samples[samples.length - 1]! - samples[0]!), headRmsDb: rms(0), tailRmsDb: rms(samples.length - n) };
+}
+
+export function readIndex(): FullIndex | null {
   if (!existsSync(INDEX_PATH)) return null;
   try {
-    return JSON.parse(readFileSync(INDEX_PATH, 'utf8')) as AudioIndex;
+    return JSON.parse(readFileSync(INDEX_PATH, 'utf8')) as FullIndex;
   } catch {
     return null;
   }
 }
 
 /** Measures every file the manifest names that exists and writes the index. Returns it. */
-export function writeIndex(log: (line: string) => void = () => undefined): AudioIndex {
-  const index: AudioIndex = { version: 1, madeAt: new Date().toISOString().slice(0, 10), sfx: {}, music: {} };
+export function writeIndex(log: (line: string) => void = () => undefined): FullIndex {
+  const index: FullIndex = { version: 1, madeAt: new Date().toISOString().slice(0, 10), sfx: {}, music: {} };
   for (const spec of SFX) {
     const takes: TakeInfo[] = [];
     for (let i = 0; i < spec.takes; i++) {
@@ -127,6 +147,35 @@ export function writeIndex(log: (line: string) => void = () => undefined): Audio
       log(`${t.file.padEnd(28)} ${t.seconds.toFixed(1)} s  peak ${t.peakDb.toFixed(1)} dB  rms ${t.rmsDb.toFixed(1)} dB  gain ${t.gainDb >= 0 ? '+' : ''}${t.gainDb.toFixed(1)} dB`);
     }
   }
+  const city: CityIndexSection = { sfx: {}, music: {} };
+  const seamLog = (file: string) => {
+    const { samples, rate } = decode(join(AUDIO_DIR, file));
+    const m = seamOf(samples, rate);
+    log(`  seam ${file}: jump ${m.jump.toFixed(4)}, last 50 ms ${m.tailRmsDb.toFixed(1)} dB, first 50 ms ${m.headRmsDb.toFixed(1)} dB`);
+  };
+  for (const spec of CITY_SFX) {
+    const takes: TakeInfo[] = [];
+    for (let i = 0; i < spec.takes; i++) {
+      const t = takeInfo(sfxFile(spec.name, i), spec.level, !!spec.loop, sfxHash(spec, i));
+      if (t) takes.push(t);
+    }
+    if (takes.length) {
+      city.sfx[spec.name] = { level: spec.level, loop: !!spec.loop, takes };
+      for (const t of takes) {
+        log(`${t.file.padEnd(32)} ${t.seconds.toFixed(2)} s  peak ${t.peakDb.toFixed(1)} dB  rms ${t.rmsDb.toFixed(1)} dB  crest ${t.crestDb.toFixed(1)} dB  trim ${t.offset.toFixed(3)}..${t.end.toFixed(3)}  gain ${t.gainDb >= 0 ? '+' : ''}${t.gainDb.toFixed(1)} dB`);
+        if (spec.loop) seamLog(t.file);
+      }
+    }
+  }
+  for (const spec of CITY_MUSIC) {
+    const t = takeInfo(musicFile(spec.state), spec.level, spec.loop, musicHash(spec));
+    if (t) {
+      city.music[spec.state] = { level: spec.level, loop: spec.loop, take: t };
+      log(`${t.file.padEnd(32)} ${t.seconds.toFixed(1)} s  peak ${t.peakDb.toFixed(1)} dB  rms ${t.rmsDb.toFixed(1)} dB  crest ${t.crestDb.toFixed(1)} dB  gain ${t.gainDb >= 0 ? '+' : ''}${t.gainDb.toFixed(1)} dB`);
+      if (spec.loop) seamLog(t.file);
+    }
+  }
+  if (Object.keys(city.sfx).length || Object.keys(city.music).length) index.city = city;
   writeFileSync(INDEX_PATH, JSON.stringify(index, null, 2) + '\n');
   return index;
 }
@@ -135,5 +184,6 @@ const isMain = process.argv[1]?.replace(/\\/g, '/').endsWith('tools/audio/measur
 if (isMain) {
   const idx = writeIndex((l) => console.log(l));
   const n = Object.values(idx.sfx).reduce((a, e) => a + (e?.takes.length ?? 0), 0);
-  console.log(`index: ${n} sfx takes under ${Object.keys(idx.sfx).length} names, ${Object.keys(idx.music).length} music states -> public/audio/index.json`);
+  const cn = Object.values(idx.city?.sfx ?? {}).reduce((a, e) => a + (e?.takes.length ?? 0), 0);
+  console.log(`index: ${n} sfx takes under ${Object.keys(idx.sfx).length} names, ${Object.keys(idx.music).length} music states; city: ${cn} sfx takes under ${Object.keys(idx.city?.sfx ?? {}).length} names, ${Object.keys(idx.city?.music ?? {}).length} music states -> public/audio/index.json`);
 }
