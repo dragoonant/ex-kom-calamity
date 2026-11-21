@@ -107,6 +107,8 @@ export function RiggedModel({ url, pose, frozen }: { url: string; pose: MutableR
       o.raycast = NO_RAYCAST; // KB rule 25
       // A skinned mesh's bounds are its bind pose; the moving figure may leave them, so it is never culled.
       if ((o as THREE.SkinnedMesh).isSkinnedMesh) o.frustumCulled = false;
+      // The board's sun throws figure shadows on the street (Scene.tsx BoardSun).
+      if ((o as THREE.Mesh).isMesh) o.castShadow = true;
     });
     const m = new THREE.AnimationMixer(s);
     const clip = (n: string) => gltf.animations.find((a) => a.name === n);

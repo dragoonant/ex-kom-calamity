@@ -78,14 +78,19 @@ describe('D21 cracks on damaged tiles (tileset.ts)', () => {
   });
 });
 
-describe('D21 shake switch (viewSettings.ts)', () => {
+describe('D21 shake switch and the D24 shadows switch (viewSettings.ts)', () => {
   it('reads the default from nothing, round-trips, and rejects nonsense', () => {
     const mem = new Map<string, string>();
     const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
     expect(readViewSettings(null)).toEqual(DEFAULT_VIEW);
-    expect(readViewSettings(storage)).toEqual({ shake: true });
-    expect(writeViewSettings(storage, { shake: false })).toBe(true);
-    expect(readViewSettings(storage)).toEqual({ shake: false });
+    expect(readViewSettings(storage)).toEqual({ shake: true, shadows: true });
+    expect(writeViewSettings(storage, { shake: false, shadows: true })).toBe(true);
+    expect(readViewSettings(storage)).toEqual({ shake: false, shadows: true });
+    expect(writeViewSettings(storage, { shake: true, shadows: false })).toBe(true);
+    expect(readViewSettings(storage)).toEqual({ shake: true, shadows: false });
+    // A save from before the shadows switch keeps its shake and takes the shadows default.
+    mem.set('ekc-view', '{"shake": false}');
+    expect(readViewSettings(storage)).toEqual({ shake: false, shadows: true });
     mem.set('ekc-view', '{"shake": "loud"}');
     expect(readViewSettings(storage)).toEqual(DEFAULT_VIEW);
     mem.set('ekc-view', 'nope');

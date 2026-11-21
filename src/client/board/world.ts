@@ -49,6 +49,22 @@ export function clampRig(): void {
  */
 export const shake = { amp: 0, enabled: true };
 
+/** The shadows switch (viewSettings.ts); Scene.tsx reads it when it mounts, setShadows flips it live. */
+export const view = { shadows: true };
+
+/** Turns the board's shadow map on or off; every lit material recompiles once. */
+export function setShadows(on: boolean): void {
+  view.shadows = on;
+  const r = live.renderer;
+  if (!r || r.shadowMap.enabled === on) return;
+  r.shadowMap.enabled = on;
+  live.scene?.traverse((o) => {
+    const m = (o as THREE.Mesh).material;
+    if (Array.isArray(m)) m.forEach((x) => (x.needsUpdate = true));
+    else if (m) m.needsUpdate = true;
+  });
+}
+
 /** Adds a jolt; nearby and big events call this with up to about 0.4. */
 export function kickShake(amount: number): void {
   if (!shake.enabled) return;

@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { MATERIALS, type BuildingDef, type BuildingStyle, type MapDef, type PropDef, type PropKind } from '../../data';
 import type { State, Tile } from '../../engine';
+import { EDGE, SIDE, TOP, patchPane, patchSurface } from './surface';
 
 export const LEVEL_H = 2.0;
 /** Wall height on the active (cut-away) level: low enough to see into the rooms (M2). */
@@ -42,12 +43,12 @@ export interface StylePalette {
 }
 
 export const STYLE_PALETTE: Record<BuildingStyle | 'street', StylePalette> = {
-  residential: { wall: '#b86a4c', partition: '#e6dcc6', trim: '#efe6cf', plinth: '#6b4a3c', floor: '#d9c9a8', floorAlt: '#c9b48e', roof: '#7d7466', door: '#5f3e2c', glow: '#ffc478', glass: '#8fb2bd', wood: '#8a5a3c', woodLight: '#c9a070', metal: '#9aa3a8', accent: '#3f7f82' },
-  office: { wall: '#c4b79b', partition: '#eee8d8', trim: '#f4efe2', plinth: '#5a6066', floor: '#cfd3cf', floorAlt: '#b9c1bd', roof: '#6e7378', door: '#3f7f82', glow: '#dfe9c8', glass: '#9cc2cc', wood: '#6f5a46', woodLight: '#b9a68a', metal: '#8d959b', accent: '#d9a62e' },
-  bank: { wall: '#9c8d78', partition: '#ece4d2', trim: '#d9dde0', plinth: '#3b3f44', floor: '#b9a98f', floorAlt: '#8f7f66', roof: '#6b6a66', door: '#2f5f62', wood: '#5a3b2a', woodLight: '#a8805a', glow: '#ffd27a', glass: '#a9c3c9', metal: '#6f7a80', accent: '#a93a2b' },
-  depot: { wall: '#7d8a94', partition: '#d9d2c0', trim: '#aab3b8', plinth: '#3b3f44', floor: '#9a9a94', floorAlt: '#8b8b85', roof: '#5f666c', door: '#d9a62e', glow: '#fff1c0', glass: '#8fa6ad', wood: '#8a6b4a', woodLight: '#c2a27a', metal: '#5f6a70', accent: '#d9533f' },
-  automat: { wall: '#e0c9a6', partition: '#f4ece0', trim: '#fff5e0', plinth: '#a93a2b', floor: '#f0e6d2', floorAlt: '#3f7f82', roof: '#8a8072', door: '#d9533f', glow: '#ffe9a0', glass: '#b6d6dc', wood: '#a67c52', woodLight: '#e0bf8f', metal: '#d9dde0', accent: '#3fae63' },
-  street: { wall: '#a8624a', partition: '#d9d2c0', trim: '#c9b98f', plinth: '#5a6066', floor: '#aab3a8', floorAlt: '#9aa39a', roof: '#8a7f73', door: '#b8743a', glow: '#ffd98a', glass: '#a9d6e2', wood: '#7a5a3c', woodLight: '#b08a5a', metal: '#6f7a80', accent: '#3f7f82' },
+  residential: { wall: '#b86a4c', partition: '#e6dcc6', trim: '#efe6cf', plinth: '#6b4a3c', floor: '#d9c9a8', floorAlt: '#c9b48e', roof: '#9a9284', door: '#5f3e2c', glow: '#ffc478', glass: '#8fb2bd', wood: '#8a5a3c', woodLight: '#c9a070', metal: '#9aa3a8', accent: '#3f7f82' },
+  office: { wall: '#c4b79b', partition: '#eee8d8', trim: '#f4efe2', plinth: '#5a6066', floor: '#cfd3cf', floorAlt: '#b9c1bd', roof: '#959a9c', door: '#3f7f82', glow: '#dfe9c8', glass: '#9cc2cc', wood: '#6f5a46', woodLight: '#b9a68a', metal: '#8d959b', accent: '#d9a62e' },
+  bank: { wall: '#b9ab92', partition: '#ece4d2', trim: '#d9dde0', plinth: '#3b3f44', floor: '#b9a98f', floorAlt: '#8f7f66', roof: '#9a978e', door: '#2f5f62', wood: '#5a3b2a', woodLight: '#a8805a', glow: '#ffd27a', glass: '#a9c3c9', metal: '#6f7a80', accent: '#a93a2b' },
+  depot: { wall: '#7d8a94', partition: '#d9d2c0', trim: '#aab3b8', plinth: '#3b3f44', floor: '#9a9a94', floorAlt: '#8b8b85', roof: '#8a9196', door: '#d9a62e', glow: '#fff1c0', glass: '#8fa6ad', wood: '#8a6b4a', woodLight: '#c2a27a', metal: '#5f6a70', accent: '#d9533f' },
+  automat: { wall: '#e0c9a6', partition: '#f4ece0', trim: '#fff5e0', plinth: '#a93a2b', floor: '#f0e6d2', floorAlt: '#3f7f82', roof: '#a39a8a', door: '#d9533f', glow: '#ffe9a0', glass: '#b6d6dc', wood: '#a67c52', woodLight: '#e0bf8f', metal: '#d9dde0', accent: '#3fae63' },
+  street: { wall: '#a8624a', partition: '#d9d2c0', trim: '#c9b98f', plinth: '#5a6066', floor: '#b7b2a3', floorAlt: '#5d5a55', roof: '#8a7f73', door: '#b8743a', glow: '#ffd98a', glass: '#a9d6e2', wood: '#7a5a3c', woodLight: '#b08a5a', metal: '#6f7a80', accent: '#3f7f82' },
 };
 
 /** Overlays shared by every style. */
@@ -62,7 +63,66 @@ export const OVERLAY = {
   stair: new THREE.Color('#d9a62e'),
   doorOpen: new THREE.Color('#d7b07a'),
   pavingLine: new THREE.Color('#98a198'),
+  /** Kerb stones between the pavement and the road, and the road's centre dashes. */
+  kerb: new THREE.Color('#d4cfc0'),
+  dash: new THREE.Color('#ece4c8'),
 };
+
+/** Surface patterns per style (surface.ts): the outer wall's face and the floor's. */
+export const STYLE_SURFACE: Record<BuildingStyle | 'street', { wall: number; floor: number }> = {
+  residential: { wall: SIDE.brick, floor: TOP.planks },
+  office: { wall: SIDE.render, floor: TOP.terrazzo },
+  bank: { wall: SIDE.ashlar, floor: TOP.terrazzo },
+  depot: { wall: SIDE.steel, floor: TOP.concrete },
+  automat: { wall: SIDE.glazed, floor: TOP.tiles },
+  street: { wall: SIDE.brick, floor: TOP.paving },
+};
+
+/** The awning colour over street-storey windows, by style; none for the bank and the depot. */
+export const AWNING: Partial<Record<BuildingStyle, [string, string]>> = {
+  residential: ['#3f7f82', '#efe6cf'],
+  office: ['#d9a62e', '#efe6cf'],
+  automat: ['#d9533f', '#fff5e0'],
+};
+
+// ---------------------------------------------------------------------------------------------------------
+// The street around a building: pavement within two tiles of a footprint, road beyond (dressing only).
+
+const streetCache = new WeakMap<MapDef, Uint8Array>();
+
+/** Chebyshev distance from each footprint cell to the nearest building, capped at 9; 0 inside a building. */
+export function streetDistance(map: MapDef): Uint8Array {
+  const hit = streetCache.get(map);
+  if (hit) return hit;
+  const idx = buildingIndex(map);
+  const w = map.width;
+  const d = map.depth;
+  const out = new Uint8Array(w * d).fill(9);
+  for (let y = 0; y < d; y++)
+    for (let x = 0; x < w; x++) {
+      if ((idx.cell[y * w + x] ?? -1) >= 0) {
+        out[y * w + x] = 0;
+        continue;
+      }
+      let best = 9;
+      for (const b of idx.buildings) {
+        const dx = x < b.x ? b.x - x : x >= b.x + b.w ? x - (b.x + b.w - 1) : 0;
+        const dy = y < b.y ? b.y - y : y >= b.y + b.d ? y - (b.y + b.d - 1) : 0;
+        best = Math.min(best, Math.max(dx, dy));
+      }
+      out[y * w + x] = best;
+    }
+  streetCache.set(map, out);
+  return out;
+}
+
+/** Pavement reaches this many tiles from a building; the road lies beyond. */
+export const PAVEMENT = 2;
+
+export function isRoad(map: MapDef, x: number, y: number): boolean {
+  if (!map.buildings?.length) return false;
+  return (streetDistance(map)[y * map.width + x] ?? 0) > PAVEMENT;
+}
 
 // ---------------------------------------------------------------------------------------------------------
 // Which building a tile belongs to, by footprint (MAP-8), cached per map.
@@ -143,7 +203,7 @@ export function openingYaw(tiles: readonly Tile[], width: number, depth: number,
 // ---------------------------------------------------------------------------------------------------------
 // Instance layers. One InstancedMesh per layer across every drawn level; `fill` writes matrices and colours.
 
-export type LayerKind = 'trim' | 'plinth' | 'glass' | 'mullion' | 'leaf' | 'step' | 'chunk' | 'scorch' | 'crack' | 'kerb' | 'gravel';
+export type LayerKind = 'trim' | 'plinth' | 'glass' | 'mullion' | 'leaf' | 'step' | 'chunk' | 'scorch' | 'crack' | 'kerb' | 'gravel' | 'awning';
 
 export interface Layer {
   kind: LayerKind;
@@ -153,6 +213,8 @@ export interface Layer {
   count: number;
   matrices: Float32Array;
   colours: Float32Array;
+  /** Per instance `aSurf` (surface.ts): pattern codes, or a pane's lit flag and draw. */
+  surf: Float32Array;
   capacity: number;
 }
 
@@ -163,8 +225,12 @@ const S = new THREE.Vector3();
 const C = new THREE.Color();
 const E = new THREE.Euler();
 
-function push(layer: Layer, x: number, y: number, z: number, sx: number, sy: number, sz: number, colour: THREE.Color | string, yaw = 0, pitch = 0, roll = 0): void {
+function push(layer: Layer, x: number, y: number, z: number, sx: number, sy: number, sz: number, colour: THREE.Color | string, yaw = 0, pitch = 0, roll = 0, surf0 = 0, surf1 = 0): void {
   if (layer.count >= layer.capacity) return;
+  layer.surf[layer.count * 4] = surf0;
+  layer.surf[layer.count * 4 + 1] = surf1;
+  layer.surf[layer.count * 4 + 2] = 0;
+  layer.surf[layer.count * 4 + 3] = 0;
   E.set(pitch, yaw, roll);
   Q.setFromEuler(E);
   M.compose(P.set(x, y, z), Q, S.set(sx, sy, sz));
@@ -219,24 +285,25 @@ export function pushCracks(layer: Layer, cx: number, y0: number, cz: number, h: 
 }
 
 function std(opts: THREE.MeshStandardMaterialParameters): THREE.MeshStandardMaterial {
-  return new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, ...opts });
+  return patchSurface(new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0.05, ...opts }));
 }
 
 /** The materials each layer draws with. The glass glows (window light at evening, D11). */
 export function makeLayers(capacity: Record<LayerKind, number>): Record<LayerKind, Layer> {
-  const mk = (kind: LayerKind, material: THREE.Material, geometry: THREE.BufferGeometry = BOX): Layer => ({
-    kind,
-    geometry,
-    material,
-    count: 0,
-    matrices: new Float32Array(Math.max(1, capacity[kind]) * 16),
-    colours: new Float32Array(Math.max(1, capacity[kind]) * 3),
-    capacity: Math.max(1, capacity[kind]),
-  });
+  const mk = (kind: LayerKind, material: THREE.Material): Layer => {
+    const cap = Math.max(1, capacity[kind]);
+    const surf = new Float32Array(cap * 4);
+    // Each layer owns its box so its instanced surface attributes are its own.
+    const geometry = BOX.clone();
+    geometry.setAttribute('aSurf', new THREE.InstancedBufferAttribute(surf, 4));
+    geometry.setAttribute('aAlt', new THREE.InstancedBufferAttribute(new Float32Array(cap * 3).fill(1), 3));
+    return { kind, geometry, material, count: 0, matrices: new Float32Array(cap * 16), colours: new Float32Array(cap * 3), surf, capacity: cap };
+  };
   return {
     trim: mk('trim', std({ roughness: 0.6 })),
     plinth: mk('plinth', std({ roughness: 0.9 })),
-    glass: mk('glass', std({ roughness: 0.15, metalness: 0.2, emissive: new THREE.Color('#ffffff'), emissiveIntensity: 0.55, transparent: true, opacity: 0.85 })),
+    // Panes glow by their own colour when lit, read as deep glass when dark (surface.ts patchPane).
+    glass: mk('glass', patchPane(new THREE.MeshStandardMaterial({ roughness: 0.2, metalness: 0.15, emissive: new THREE.Color('#ffffff') }))),
     mullion: mk('mullion', std({ roughness: 0.5, metalness: 0.3 })),
     leaf: mk('leaf', std({ roughness: 0.7 })),
     step: mk('step', std({ roughness: 0.85 })),
@@ -246,6 +313,7 @@ export function makeLayers(capacity: Record<LayerKind, number>): Record<LayerKin
     crack: mk('crack', new THREE.MeshBasicMaterial({ color: '#ffffff' })),
     kerb: mk('kerb', std({ roughness: 0.9 })),
     gravel: mk('gravel', std({ roughness: 1 })),
+    awning: mk('awning', std({ roughness: 0.75, side: THREE.DoubleSide })),
   };
 }
 
@@ -269,16 +337,20 @@ export function layerCapacity(state: Pick<State, 'tiles' | 'width' | 'depth'>): 
   }
   // Every breakable tile may end as rubble (3 chunks) or damaged (1 scorch band); windows add two mullions.
   return {
-    trim: walls + windows + doors,
-    plinth: walls,
+    // A cornice or string course per wall and window, a sill per window, a lintel and a canopy per door.
+    trim: walls + windows * 2 + doors * 2,
+    plinth: walls * 2 + windows,
     glass: windows,
-    mullion: windows * 2,
+    // Frame top and bottom, a centre bar and a transom per window; a handle per door; a rail per stair.
+    mullion: windows * 4 + doors + stairs,
+    awning: windows * 2 + doors * 2,
     leaf: doors,
     step: stairs * 4,
     chunk: breakable * 3,
     scorch: breakable,
     crack: breakable * CRACK_SEGMENTS_MAX,
-    kerb: Math.ceil(ground / 6) + 64,
+    // Kerb stones on two sides of a pavement tile at most, a dash per road tile.
+    kerb: ground * 2 + 64,
     gravel: Math.ceil(roofish / 8) + 64,
   };
 }
@@ -288,6 +360,29 @@ export interface FillInput {
   map: MapDef;
   /** The cut-away level: levels above it are not drawn, this one has low walls. */
   active: number;
+}
+
+/**
+ * The side of an opening (window or door) that faces out of its building: a unit step towards the street, the
+ * open air or another footprint, or null when both sides are rooms. Used for awnings, canopies and the roof cornice.
+ */
+export function outsideOf(state: Pick<State, 'tiles' | 'width' | 'depth'>, idx: BuildingIndex, t: Tile): [number, number] | null {
+  const w = state.width;
+  const own = idx.cell[t.y * w + t.x] ?? -1;
+  const base = t.level * w * state.depth;
+  for (const [dx, dz] of [
+    [0, 1],
+    [0, -1],
+    [1, 0],
+    [-1, 0],
+  ] as const) {
+    const x = t.x + dx;
+    const y = t.y + dz;
+    if (x < 0 || y < 0 || x >= w || y >= state.depth) return [dx, dz];
+    const n = state.tiles[base + y * w + x]!;
+    if ((idx.cell[y * w + x] ?? -1) !== own || n.kind === 'void' || n.kind === 'ground') return [dx, dz];
+  }
+  return null;
 }
 
 /**
@@ -301,9 +396,12 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
   const w = state.width;
   const perLevel = w * state.depth;
   const topLevel = Math.min(active, state.levels - 1);
+  const dist = streetDistance(map);
+  const hasStreet = (map.buildings?.length ?? 0) > 0;
   for (let level = 0; level <= topLevel; level++) {
     const y0 = level * LEVEL_H;
-    const wallH = level === active ? WALL_H_ACTIVE : LEVEL_H;
+    const full = level < active;
+    const wallH = full ? LEVEL_H : WALL_H_ACTIVE;
     const base = level * perLevel;
     for (let i = 0; i < perLevel; i++) {
       const t = state.tiles[base + i]!;
@@ -313,41 +411,72 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
       const { style, building } = styleAt(idx, w, t.x, t.y);
       const pal = STYLE_PALETTE[style];
       const isRoof = !!building && level === building.floors;
+      // The top storey under the roof carries the building's cornice (outer walls and windows).
+      const isEaves = !!building && full && level === building.floors - 1;
       const dmg = damageFraction(t);
       switch (t.kind) {
         case 'wall': {
           // Cornice on top, plinth at the foot; partitions get a lighter, thinner cornice.
           const partition = t.material === 'plaster';
-          push(layers.trim, cx, y0 + wallH - 0.1, cz, partition ? 1.0 : 1.08, 0.08, partition ? 1.0 : 1.08, partition ? pal.partition : pal.trim);
-          if (!partition) push(layers.plinth, cx, y0 + 0.03, cz, 1.06, 0.14, 1.06, pal.plinth);
+          if (partition) push(layers.trim, cx, y0 + wallH - 0.1, cz, 1.0, 0.08, 1.0, pal.partition);
+          else if (isEaves) {
+            push(layers.trim, cx, y0 + wallH - 0.16, cz, 1.2, 0.2, 1.2, pal.trim);
+            push(layers.plinth, cx, y0 + wallH - 0.32, cz, 1.1, 0.08, 1.1, pal.trim);
+          } else push(layers.trim, cx, y0 + wallH - 0.1, cz, isRoof ? 1.12 : 1.06, isRoof ? 0.12 : 0.07, isRoof ? 1.12 : 1.06, pal.trim);
+          if (!partition && level === 0) push(layers.plinth, cx, y0 + 0.12, cz, 1.06, 0.3, 1.06, pal.plinth);
+          // Quoins: the corners of a masonry building are dressed stone, standing proud of the wall.
+          if (!partition && building && t.material !== 'steel' && !isRoof && (t.x === building.x || t.x === building.x + building.w - 1) && (t.y === building.y || t.y === building.y + building.d - 1))
+            push(layers.plinth, cx, y0 + wallH / 2 - 0.07, cz, 1.1, wallH, 1.1, pal.trim, 0, 0, 0, SIDE.ashlar);
           // D21: a weakened wall cracks first (more fissures as it weakens) and chars only when nearly gone.
           if (dmg > 0) pushCracks(layers.crack, cx, y0, cz, wallH, dmg, base + i, 0.505);
           if (dmg > 0.5) push(layers.scorch, cx, y0 + wallH * 0.3, cz, 1.03, wallH * 0.4 * (dmg - 0.3), 1.03, OVERLAY.scorch);
           break;
         }
         case 'window': {
-          // Pane in the upper part of the opening, a cross mullion, a sill; lit at evening by a stable draw.
-          // The pane lies in the wall's own line: turned a quarter when the wall runs north-south.
+          // A full-height wall body (the pick mesh) glazed flush on both faces: a pane in the upper part of the
+          // storey, a frame, a centre bar and a transom, a projecting sill; lit at evening by a stable draw. The
+          // pane lies in the wall's own line, turned a quarter when the wall runs north-south (openingYaw).
           const lit = hash01(base + i) < 0.62;
-          const h = wallH * 0.55;
+          const h = wallH * 0.52;
+          const yc = y0 + wallH * 0.6;
           const yaw = openingYaw(state.tiles, w, state.depth, t);
-          push(layers.glass, cx, y0 + wallH * 0.62, cz, 0.86, h, 0.14, lit ? pal.glow : pal.glass, yaw);
-          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.08, h + 0.02, 0.18, pal.trim, yaw);
-          push(layers.mullion, cx, y0 + wallH * 0.62, cz, 0.9, 0.06, 0.18, pal.trim, yaw);
-          push(layers.trim, cx, y0 + wallH * 0.33, cz, 1.08, 0.08, 1.08, pal.trim);
-          if (dmg > 0) pushCracks(layers.crack, cx, y0 + wallH * 0.38, cz, h, dmg * 0.6, base + i, 0.08, true, yaw);
+          const draw = hash01(base + i + 31);
+          push(layers.glass, cx, yc, cz, 0.84, h, 1.03, lit ? pal.glow : pal.glass, yaw, 0, 0, lit ? 1 : 0, draw);
+          push(layers.mullion, cx, yc + h / 2 + 0.03, cz, 0.94, 0.06, 1.07, pal.trim, yaw);
+          push(layers.mullion, cx, yc - h / 2 - 0.03, cz, 0.94, 0.06, 1.07, pal.trim, yaw);
+          push(layers.mullion, cx, yc, cz, 0.05, h, 1.06, pal.trim, yaw);
+          push(layers.mullion, cx, yc + h * 0.18, cz, 0.84, 0.035, 1.06, pal.trim, yaw);
+          push(layers.trim, cx, yc - h / 2 - 0.08, cz, 0.98, 0.06, 1.18, pal.trim, yaw);
+          // String course or cornice continues across the window head.
+          if (isEaves) {
+            push(layers.trim, cx, y0 + wallH - 0.16, cz, 1.2, 0.2, 1.2, pal.trim);
+            push(layers.plinth, cx, y0 + wallH - 0.32, cz, 1.1, 0.08, 1.1, pal.trim);
+          } else push(layers.trim, cx, y0 + wallH - 0.1, cz, 1.06, 0.07, 1.06, pal.trim);
+          if (level === 0) push(layers.plinth, cx, y0 + 0.12, cz, 1.06, 0.3, 1.06, pal.plinth);
+          // A striped awning over the street storey's windows, where the style has one.
+          const aw = building ? AWNING[building.style ?? 'residential'] : undefined;
+          const out = aw && level === 0 && full ? outsideOf(state, idx, t) : null;
+          if (aw && out) pushAwning(layers.awning, cx, y0 + wallH * 0.93, cz, out, 0.9, 0.55, aw, t.x + t.y);
+          if (dmg > 0) pushCracks(layers.crack, cx, yc - h / 2, cz, h, dmg * 0.6, base + i, 0.52, true, yaw);
           break;
         }
         case 'door': {
           // Lintel over the frame; the leaf swings open on its hinge when used (MAP-3).
-          push(layers.trim, cx, y0 + wallH * 0.86, cz, 1.0, 0.1, 1.0, pal.trim);
+          push(layers.trim, cx, y0 + wallH * 0.9, cz, 1.0, wallH * 0.2, 1.0, pal.trim);
           const leafH = wallH * 0.78;
           if (t.open) {
             // Hinged at the west jamb, swung into the tile's south half.
-            push(layers.leaf, cx - 0.36, y0 + leafH / 2, cz + 0.3, 0.1, leafH, 0.68, pal.door);
+            push(layers.leaf, cx - 0.36, y0 + leafH / 2, cz + 0.3, 0.1, leafH, 0.68, pal.door, 0, 0, 0, SIDE.boards);
           } else {
-            push(layers.leaf, cx, y0 + leafH / 2, cz, 0.76, leafH, 0.12, pal.door);
+            push(layers.leaf, cx, y0 + leafH / 2, cz, 0.76, leafH, 0.12, pal.door, 0, 0, 0, SIDE.boards);
             push(layers.mullion, cx + 0.22, y0 + leafH * 0.5, cz + 0.08, 0.08, 0.08, 0.06, pal.metal);
+          }
+          // An outer door on the street storey gets a canopy in the style's awning colour, or a stone hood.
+          const out = level === 0 && full && building ? outsideOf(state, idx, t) : null;
+          if (out) {
+            const aw = AWNING[building!.style ?? 'residential'];
+            if (aw) pushAwning(layers.awning, cx, y0 + wallH * 0.97, cz, out, 1.4, 0.9, aw, 0);
+            else push(layers.trim, cx + out[0] * 0.3, y0 + wallH * 0.86, cz + out[1] * 0.3, out[0] ? 0.6 : 1.5, 0.12, out[0] ? 1.5 : 0.6, pal.trim);
           }
           if (dmg > 0) push(layers.scorch, cx, y0 + leafH * 0.4, cz, 0.5, leafH * 0.5 * dmg + 0.1, 0.16, OVERLAY.scorch);
           break;
@@ -379,9 +508,27 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
           break;
         }
         case 'ground': {
-          // Kerb lines: a pale paving seam every sixth tile, running north-south and east-west.
-          if (t.x % 6 === 0 && t.y % 6 !== 0) push(layers.kerb, cx - 0.49, y0 + 0.001, cz, 0.04, 0.012, 1, OVERLAY.pavingLine);
-          if (t.y % 6 === 0) push(layers.kerb, cx, y0 + 0.001, cz - 0.49, 1, 0.012, 0.04, OVERLAY.pavingLine);
+          if (!hasStreet) {
+            // A map without buildings keeps the old paving seams.
+            if (t.x % 6 === 0 && t.y % 6 !== 0) push(layers.kerb, cx - 0.49, y0 + 0.001, cz, 0.04, 0.012, 1, OVERLAY.pavingLine);
+            if (t.y % 6 === 0) push(layers.kerb, cx, y0 + 0.001, cz - 0.49, 1, 0.012, 0.04, OVERLAY.pavingLine);
+            break;
+          }
+          const dHere = dist[t.y * w + t.x] ?? 9;
+          const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= state.depth ? -1 : (dist[y * w + x] ?? 9));
+          if (dHere === PAVEMENT) {
+            // Kerb stones where the pavement meets the road.
+            if (at(t.x - 1, t.y) > PAVEMENT) push(layers.kerb, cx - 0.45, y0 + 0.04, cz, 0.12, 0.09, 1.0, OVERLAY.kerb);
+            if (at(t.x + 1, t.y) > PAVEMENT) push(layers.kerb, cx + 0.45, y0 + 0.04, cz, 0.12, 0.09, 1.0, OVERLAY.kerb);
+            if (at(t.x, t.y - 1) > PAVEMENT) push(layers.kerb, cx, y0 + 0.04, cz - 0.45, 1.0, 0.09, 0.12, OVERLAY.kerb);
+            if (at(t.x, t.y + 1) > PAVEMENT) push(layers.kerb, cx, y0 + 0.04, cz + 0.45, 1.0, 0.09, 0.12, OVERLAY.kerb);
+          } else if (dHere === PAVEMENT + 1) {
+            // A dashed centre line between the two lanes of the ring road, every other tile.
+            if (at(t.x - 1, t.y) === PAVEMENT + 2 && t.y % 2 === 0) push(layers.kerb, cx - 0.5, y0 + 0.004, cz, 0.07, 0.01, 0.6, OVERLAY.dash);
+            if (at(t.x + 1, t.y) === PAVEMENT + 2 && t.y % 2 === 0) push(layers.kerb, cx + 0.5, y0 + 0.004, cz, 0.07, 0.01, 0.6, OVERLAY.dash);
+            if (at(t.x, t.y - 1) === PAVEMENT + 2 && t.x % 2 === 0) push(layers.kerb, cx, y0 + 0.004, cz - 0.5, 0.6, 0.01, 0.07, OVERLAY.dash);
+            if (at(t.x, t.y + 1) === PAVEMENT + 2 && t.x % 2 === 0) push(layers.kerb, cx, y0 + 0.004, cz + 0.5, 0.6, 0.01, 0.07, OVERLAY.dash);
+          }
           break;
         }
         default:
@@ -391,12 +538,36 @@ export function fillLayers(layers: Record<LayerKind, Layer>, input: FillInput): 
   }
 }
 
+/** A sloped two-colour awning on the outside face of an opening: a stripe of alternate colours and a valance. */
+function pushAwning(layer: Layer, cx: number, y: number, cz: number, out: [number, number], width: number, depth: number, colours: [string, string], seed: number): void {
+  const along = out[0] === 0; // the opening's wall runs along x when it faces north or south
+  const stripes = 4;
+  const sw = width / stripes;
+  const pitch = 0.5;
+  for (let k = 0; k < stripes; k++) {
+    const u = -width / 2 + sw * (k + 0.5);
+    const col = colours[(k + seed) % 2]!;
+    const ox = out[0] * (0.5 + depth / 2 * Math.cos(pitch));
+    const oz = out[1] * (0.5 + depth / 2 * Math.cos(pitch));
+    const x = cx + ox + (along ? u : 0);
+    const z = cz + oz + (along ? 0 : u);
+    const yy = y - (depth / 2) * Math.sin(pitch);
+    // Tilt down and away from the wall.
+    if (along) push(layer, x, yy, z, sw * 0.98, 0.03, depth, col, 0, out[1] * pitch, 0);
+    else push(layer, x, yy, z, depth, 0.03, sw * 0.98, col, 0, 0, -out[0] * pitch);
+  }
+  // Valance along the front edge.
+  const fx = cx + out[0] * (0.5 + depth * Math.cos(pitch));
+  const fz = cz + out[1] * (0.5 + depth * Math.cos(pitch));
+  push(layer, fx, y - depth * Math.sin(pitch) - 0.06, fz, along ? width : 0.03, 0.14, along ? 0.03 : width, colours[0]);
+}
+
 /** The pick mesh's colour for a tile before overlays: the body of a wall, the slab of a floor, the roof, the street. */
-export function baseColour(t: Tile, style: BuildingStyle | 'street', isRoof: boolean, out: THREE.Color): THREE.Color {
+export function baseColour(t: Tile, style: BuildingStyle | 'street', isRoof: boolean, out: THREE.Color, road = false): THREE.Color {
   const pal = STYLE_PALETTE[style];
   switch (t.kind) {
     case 'ground':
-      return out.set(pal.floor);
+      return out.set(road ? STYLE_PALETTE.street.floorAlt : pal.floor);
     case 'floor':
       if (isRoof) return out.set(pal.roof);
       // Chequer for the automat, a carpet runner stripe for the bank, plain elsewhere.
@@ -416,6 +587,84 @@ export function baseColour(t: Tile, style: BuildingStyle | 'street', isRoof: boo
     default:
       return out.set('#000000');
   }
+}
+
+const ALT_A = new THREE.Color();
+const ALT_B = new THREE.Color();
+
+function blocksFloor(n: Tile | undefined): boolean {
+  return !!n && (n.kind === 'wall' || n.kind === 'window' || (n.kind === 'door' && !n.open));
+}
+
+/**
+ * The pick mesh's surface for a tile (surface.ts): side pattern, top pattern, which faces look into a room (they
+ * take the partition's plaster) and which floor edges meet a wall (shaded), written into `surf` at `o * 4` and the
+ * interior face's colour ratio into `alt` at `o * 3`.
+ */
+export function tileSurface(state: Pick<State, 'tiles' | 'width' | 'depth'>, map: MapDef, t: Tile, surf: Float32Array, alt: Float32Array, o: number): void {
+  const idx = buildingIndex(map);
+  const w = state.width;
+  const base = t.level * w * state.depth;
+  const at = (x: number, y: number): Tile | undefined => (x < 0 || y < 0 || x >= w || y >= state.depth ? undefined : state.tiles[base + y * w + x]);
+  const { style, building } = styleAt(idx, w, t.x, t.y);
+  const looks = STYLE_SURFACE[style];
+  const isRoof = !!building && t.level === building.floors;
+  let side = 0;
+  let top = 0;
+  let inner = 0;
+  let edges = 0;
+  alt[o * 3] = 1;
+  alt[o * 3 + 1] = 1;
+  alt[o * 3 + 2] = 1;
+  const dirs = [
+    [-1, 0, EDGE.W],
+    [1, 0, EDGE.E],
+    [0, -1, EDGE.N],
+    [0, 1, EDGE.S],
+  ] as const;
+  switch (t.kind) {
+    case 'wall':
+    case 'window': {
+      side = t.material === 'plaster' ? SIDE.plaster : t.material === 'steel' ? SIDE.steel : looks.wall;
+      if (side !== SIDE.plaster && !isRoof) {
+        for (const [dx, dz, bit] of dirs) {
+          const n = at(t.x + dx, t.y + dz);
+          if (!n || n.kind === 'void' || n.kind === 'ground' || blocksFloor(n)) continue;
+          if ((idx.cell[(t.y + dz) * w + t.x + dx] ?? -1) >= 0) inner |= bit;
+        }
+        if (inner) {
+          const pal = STYLE_PALETTE[style];
+          ALT_A.set(pal.partition);
+          ALT_B.set(t.material === 'steel' ? STYLE_PALETTE.depot.wall : pal.wall);
+          alt[o * 3] = ALT_A.r / Math.max(0.02, ALT_B.r);
+          alt[o * 3 + 1] = ALT_A.g / Math.max(0.02, ALT_B.g);
+          alt[o * 3 + 2] = ALT_A.b / Math.max(0.02, ALT_B.b);
+        }
+      }
+      break;
+    }
+    case 'floor':
+      top = isRoof ? TOP.roofing : looks.floor;
+      break;
+    case 'ground':
+      top = isRoad(map, t.x, t.y) ? TOP.asphalt : TOP.paving;
+      break;
+    case 'rubble':
+      top = TOP.concrete;
+      break;
+    case 'door':
+      side = SIDE.plain;
+      break;
+    default:
+      break;
+  }
+  if (t.kind === 'floor' || t.kind === 'ground' || t.kind === 'stair') {
+    for (const [dx, dz, bit] of dirs) if (blocksFloor(at(t.x + dx, t.y + dz))) edges |= bit;
+  }
+  surf[o * 4] = side;
+  surf[o * 4 + 1] = top;
+  surf[o * 4 + 2] = inner;
+  surf[o * 4 + 3] = edges;
 }
 
 // ---------------------------------------------------------------------------------------------------------

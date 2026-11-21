@@ -49,7 +49,9 @@ describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
     const layers = makeLayers(layerCapacity(s));
     fillLayers(layers, { state: s, map, active: 6 });
     expect(layers.glass.count).toBe(323);
-    expect(layers.mullion.count).toBe(323 * 2);
+    // Four bars a window (frame top and bottom, centre bar, transom), a handle per closed door, a rail per stair
+    // (before D24 the buffer was sized for the windows alone, so the handles and rails were dropped).
+    expect(layers.mullion.count).toBe(323 * 4 + 113 + 42);
     expect(layers.leaf.count).toBe(113);
     expect(layers.step.count).toBe(42 * 4);
     expect(layers.chunk.count).toBe(0);
