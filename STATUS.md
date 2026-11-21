@@ -12,6 +12,7 @@
 | City (M5a) | `docs/spec/20-city.md`: 98 rule ids, 10 rulings, every tuning number cited (`validate:data` checks it). `src/city/`: the clock (10 min ticks, 6 per real second), ten organisations with hidden infiltration, the organism's biomass economy and `seed` order, symptom slips (missing, purchase, power, too perfect, vote, the hum, spotted) with noise, watching (12 h, a band 80% right), raids with a calibrated resolver, money, confidence, the roster; act 1 is 90 days won by containment. `src/ai/city.ts`: the organism's planner, passive, random and careful agency drivers | `tests/city.test.ts` (88), `tests/city-client.test.ts` (5), `npm run sim:city` |
 | City lab and workshop (M5b) | Spec sections 17 to 19: the evidence shelf (bodies, cores, live captives), eleven evidence-gated projects in `src/data/city/research.json` (restraints, tells, questioning, hand scanner, antiserum, taker cage, evacuation, shell plate, arc carbine, the amber core, tracing the source), the workshop (build, or buy from the arms supplier, which sabotages in secret once infiltrated and feeds the organism), raid composition by infiltration; the console's LAB AND WORKSHOP tab and lab reports in the tray | `tests/city-lab.test.ts` (15), `e2e/city.spec.ts` (the lab test) |
 | City air war (M5c) | Spec section 20: from day 30 the organism launches scouts (decoys) and seeders (a landing seeds +10); flying cars intercept with PRESS or SHADOW; a craft falls where it is, billed if on a building; wrecks are raided for takers and amber drive cores, or scatter after a day. Board: pearl-and-chitin craft, cars, tracers, smoking wrecks; console: the SKY tab; the city pauses when a seeder crosses in; crisis music and craft sounds | `tests/city-air.test.ts` (11), `e2e/city.spec.ts` (the seeder test), `docs/art/shots/m5c-intercept-desktop.png` |
+| City acts 2 and 3 | Spec section 21: a contained act 1 opens act 2 (Open sky: faster feeding, twice the launches, scouts hunting headquarters); tracing the source opens act 3 (Perfect day: carriers, assaults on a found headquarters, the final raid on the source's tower, which wins the campaign); acts 2 and 3 have time limits. Console: act cards, the assault cover with FIGHT IT, the source marked; amber ring round a found headquarters | `tests/city-acts.test.ts` (10), `e2e/city.spec.ts` (the act 3 test) |
 | City client (M6, M7) | NEW CAMPAIGN on the title; `src/client/city/`: the 3D city (24 procedural buildings shaped after the round 9 picks, day and night from the clock, too-perfect gleam and amber hum drawn only from the agency's own slips, turned organisations glowing amber, a flying patrol car to the raid, watch lamps, one instanced pick mesh per KB rule 25), the switchboard (clock and speeds, funds, grant, confidence meter, roster lamps that pick the squad, file card with WATCH and RAID, message tray, door and end covers), save and Continue under `ekc-campaign` (CSAV-1..3), FIGHT IT opens the real battle on the building's raid site and its result returns (CJOIN-1, 2); city music (day, night, crisis) and switchboard sounds from the D23 city set | `e2e/city.spec.ts` (5), `window.__ekcCity` |
 | Spec | `docs/spec/10-rules.md`: 141 rule ids, 57 rulings, every tuning number cited as `section.key = N`. MAP-10 (one-building raid sites, D20), VIEW-5 (the last hostiles marked), MAP-9 (styles and props as set dressing the rules never read); five art rulings (ART-1..5) in `docs/art/tile-set.md` section 7; thirteen figure rulings (GATE-1, GATE-2, HOST-1, CREATURE-1, TAKER-1, FIGHTER-1, BASE-1, LOD-1, RIG-1, RIG-2, and from M4d CITIZEN-1, CITIZEN-2, BUDGET-1) in `docs/art/figure-models.md`, summarized in `docs/figures.md` 4.1; RULING AGENT-1 is closed | `npm run validate:data` checks the props and the styles; `tests/coverage.test.ts` fails on an id without a test |
 | Data | Three raid sites written by `npm run map:make` from the block's own building plans (MAP-10): `sunbeam-automat-site` 22 x 18 x 2 (`automat-raid`: 3 hosts, 1 taker, 1 fighter), `depot-7-site` 32 x 23 x 3 (`depot-raid`: 4, 1, 2), `civic-savings-site` 26 x 24 x 4 (`savings-raid`: 4, 2, 2), each with citizens, props and street dressing; `RAID_SITES` in `src/data/index.ts`. `halcyon-block` and `block-raid` are byte-identical to M4 and no longer offered. `tuning.sight.markLastHostiles = 2` | `npm run validate:data` prints the maps and battles |
@@ -28,14 +29,14 @@
 | Audio | 36 generated takes under 23 names and 5 music tracks (`tools/audio/manifest.ts` through ElevenLabs, `npm run audio:gen`, idempotent by prompt hash; `npm run audio:measure` writes the index with peak, RMS, crest, trims and gain); the gunshots measured 18 to 28 dB crest, so the synth-transient layer (`CREST_FLOOR_DB`) stays idle | `sounds.html`, `docs/audio.md` 2 |
 
 ## Balance baselines (KB rule 30)
-### City (`npm run sim:city`, 40 campaigns per driver, seeds 1-40, against the planner, 2026-11-21)
-| Agency driver | Wins | Mean days | Raids | Clean raids | Agents killed | End confidence |
-|---|---|---|---|---|---|---|
-| passive | 0.0% | 30 | 0 | 0 | 0 | 14 |
-| random | 0.0% | 36.4 | 9.6 | 2.6 | 1.4 | 6 |
-| careful | 90.0% | 85.9 | 164.1 | 19.7 | 12.5 | 89 |
+### City (`npm run sim:city`, 40 whole campaigns per driver, seeds 1-40, against the planner, 2026-11-21)
+| Agency driver | Wins | Reached act 2 | Reached act 3 | Mean days | Raids | Agents killed | End confidence |
+|---|---|---|---|---|---|---|---|
+| passive | 0.0% | 0% | 0% | 28.2 | 0 | 0 | 7 |
+| random | 0.0% | 0% | 0% | 30.3 | 7.8 | 1.6 | 5 |
+| careful | 67.5% | 90% | 75% | 124.5 | 255.6 | 19.1 | 81 |
 
-With M5b's lab and workshop and M5c's air war. Targets (CSIM-2): passive never, random at most 10%, careful 55-90%: PASS, **careful on the 90% edge** (77.5% before M5b). Four numbers moved from their first guesses, one at a time (spec section 14).
+Targets (CSIM-2, now for the whole campaign): passive never, random at most 10%, careful 40-85%: PASS. Act 1 alone had the careful bot at 90% (spec section 14).
 
 D20 adds maps and a view field, no roll and no AI change. The M3 rows stand (rerun 2026-11-18; the bench row again on 2026-11-20):
 
@@ -88,7 +89,7 @@ None.
 
 ## Next
 1. M5b's remainder: field trials for prototypes (RULING LAB-2), and research that changes fought battles (needs the CJOIN-2 roster).
-2. Act 2 ("Open sky") and act 3 ("Perfect day"): the air war moved out of act 1's mid-point (RULING AIR-2), carriers, HQ defence, the final raid on the source.
+2. Per-building battle maps, a headquarters map (RULING ACT-5) and open-ground wreck maps (RULING AIR-8); acts 2 and 3 tuned by playing.
 3. M7's roster: the battle fields the city's agents and the hostiles from RAID-3 (an ARCH-1 change with a golden remake).
 4. The GPU pass when the owner's machine is attached: craft and building models from the round 9 picks, the alien repaint (D25), tile textures, the figures' redo list.
 5. The balance pass on the battle (PLAN Q9).

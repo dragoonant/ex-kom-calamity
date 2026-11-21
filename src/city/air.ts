@@ -32,13 +32,18 @@ export function buildingUnder(x: number, y: number): string | null {
 }
 
 export function craftCost(s: CityState, kind: CraftKind): number {
-  return kind === 'scout' ? s.tuning.air.scoutCost : s.tuning.air.seederCost;
+  return kind === 'scout' ? s.tuning.air.scoutCost : kind === 'seeder' ? s.tuning.air.seederCost : s.tuning.act.carrierCost;
+}
+
+function speedOf(s: CityState, kind: CraftKind): number {
+  return kind === 'scout' ? s.tuning.air.scoutSpeed : kind === 'seeder' ? s.tuning.air.seederSpeed : s.tuning.act.carrierSpeed;
 }
 
 /** AIR-2: why the organism cannot launch now, or null. */
 export function launchBlock(s: CityState, kind: CraftKind, target: string): string | null {
   if (clockOf(s.tuning, s.tick).day < s.tuning.air.startDay) return 'the organism has no craft yet';
   if (s.tick < s.hostileLaunchTick) return 'the organism is not ready to launch';
+  if (kind === 'carrier' && s.act < 3) return 'carriers fly only in act 3'; // ACT-5
   if (s.biomass < craftCost(s, kind)) return 'not enough biomass';
   if (!CITY.buildings.some((b) => b.id === target)) return `no building ${target}`;
   return null;
@@ -52,11 +57,11 @@ export function launch(s: CityState, kind: CraftKind, target: string, events: Ci
   const along = nextInt(s.rng, CITY.size * 10 + 1);
   const max = CITY.size * 10;
   const [x, y] = edge === 0 ? [along, 0] : edge === 1 ? [max, along] : edge === 2 ? [along, max] : [0, along];
-  const hp = kind === 'scout' ? a.scoutHp : a.seederHp;
+  const hp = kind === 'scout' ? a.scoutHp : kind === 'seeder' ? a.seederHp : s.tuning.act.carrierHp;
   const c: Craft = { id: `craft${s.nextCraft++}`, kind, x, y, tx: def.x * 10 + 5, ty: def.y * 10 + 5, target, hp, maxHp: hp, posture: 'press' };
   s.craft.push(c);
   s.biomass -= craftCost(s, kind);
-  s.hostileLaunchTick = s.tick + a.launchEveryHours * ticksPerHour(s.tuning);
+  s.hostileLaunchTick = s.tick + (s.act >= 2 ? s.tuning.act.launchEveryHours : a.launchEveryHours) * ticksPerHour(s.tuning); // ACT-2
   events.push({ type: 'launched', craft: c.id, kind, x, y });
 }
 
@@ -109,12 +114,13 @@ export function airHour(s: CityState, events: CityEvent[]): void {
     }
     c.hp = Math.max(0, c.hp - hits * a.carDamage);
     const carsHit: string[] = [];
-    if (c.kind === 'seeder') {
+    if (c.kind !== 'scout') {
+      const dmg = c.kind === 'carrier' ? Math.floor((a.craftDamage * s.tuning.act.carrierDamagePercent) / 100) : a.craftDamage;
       for (const car of engaged) {
         const r = nextInt(s.rng, 100);
         rolls.push(r);
         if (r < a.craftHitPercent) {
-          car.hp = Math.max(0, car.hp - a.craftDamage);
+          car.hp = Math.max(0, car.hp - dmg);
           carsHit.push(car.id);
           if (car.hp === 0) {
             car.status = 'lost';
@@ -129,7 +135,7 @@ export function airHour(s: CityState, events: CityEvent[]): void {
       // AIR-6: it falls where it is.
       const building = buildingUnder(c.x, c.y);
       const crashId = `crash${c.id.slice(5)}`;
-      s.crashes.push({ id: crashId, kind: c.kind, x: c.x, y: c.y, building, survivors: c.kind === 'seeder' ? a.seederSurvivors : a.scoutSurvivors, until: s.tick + a.crashHours * ticksPerHour(s.tuning) });
+      s.crashes.push({ id: crashId, kind: c.kind, x: c.x, y: c.y, building, survivors: c.kind === 'seeder' ? a.seederSurvivors : c.kind === 'carrier' ? s.tuning.act.carrierSurvivors : a.scoutSurvivors, until: s.tick + a.crashHours * ticksPerHour(s.tuning) });
       s.craft = s.craft.filter((x) => x.id !== c.id);
       events.push({ type: 'downed', craft: c.id, kind: c.kind, x: c.x, y: c.y, building, crash: crashId });
       if (building) {
@@ -148,14 +154,21 @@ export function airHour(s: CityState, events: CityEvent[]): void {
   }
   // AIR-2: craft move; a seeder that reaches its target lands and seeds it; a scout turns away.
   for (const c of [...s.craft]) {
-    const speed = c.kind === 'scout' ? a.scoutSpeed : a.seederSpeed;
-    if (!moveToward(c, c.tx, c.ty, speed)) continue;
+    if (!moveToward(c, c.tx, c.ty, speedOf(s, c.kind))) {
+      // ACT-4: a scout passing near headquarters from act 2 finds it.
+      if (c.kind === 'scout' && s.act >= 2 && !s.hqFound && dist(c.x, c.y, CITY.agency.hq.x * 10 + 5, CITY.agency.hq.y * 10 + 5) <= s.tuning.act.hqScoutRange) {
+        s.hqFound = true;
+        events.push({ type: 'hqFound', craft: c.id });
+        pushSlip(s, { kind: 'found', building: null, org: null, district: null, genuine: true }, events);
+      }
+      continue;
+    }
     s.craft = s.craft.filter((x) => x.id !== c.id);
     const def = CITY.buildings.find((b) => b.id === c.target)!;
-    if (c.kind === 'seeder') {
+    if (c.kind !== 'scout') {
       const o = orgOf(s, def.org);
       const before = o?.infiltration ?? 0;
-      if (o) o.infiltration = Math.min(s.tuning.spread.cap, o.infiltration + a.seederAmount);
+      if (o) o.infiltration = Math.min(s.tuning.spread.cap, o.infiltration + (c.kind === 'carrier' ? s.tuning.act.carrierAmount : a.seederAmount));
       events.push({ type: 'landed', craft: c.id, kind: c.kind, building: def.id, amount: (o?.infiltration ?? 0) - before });
       pushSlip(s, { kind: 'landing', building: def.id, org: def.org, district: def.district, genuine: true }, events);
     } else events.push({ type: 'landed', craft: c.id, kind: c.kind, building: def.id, amount: 0 });

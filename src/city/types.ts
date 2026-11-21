@@ -12,12 +12,12 @@ export type Band = 'clean' | 'low' | 'some' | 'heavy';
 export const BANDS: Band[] = ['clean', 'low', 'some', 'heavy'];
 
 /** SIGN-2 */
-export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted' | 'confession' | 'landing';
-export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted', 'confession', 'landing'];
+export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted' | 'confession' | 'landing' | 'found';
+export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted', 'confession', 'landing', 'found'];
 export type ItemId = 'shell-plate' | 'arc-carbine';
 
 /** AIR-1: positions are in tenths of a city cell (integers, CARCH-6). */
-export type CraftKind = 'scout' | 'seeder';
+export type CraftKind = 'scout' | 'seeder' | 'carrier';
 export interface Craft {
   id: string;
   kind: CraftKind;
@@ -129,7 +129,7 @@ export interface CityScore {
 
 export interface CityOver {
   winner: CitySide;
-  reason: 'contained' | 'spread' | 'confidence' | 'turned' | 'squad';
+  reason: 'source' | 'spread' | 'confidence' | 'turned' | 'squad' | 'hq' | 'time';
   tick: number;
 }
 
@@ -159,6 +159,13 @@ export interface CityState {
   /** SHOP-1..4: the workshop's job, the stock, and the supplier's deliveries; `sabotaged` is hidden from the agency (CVIEW-1). */
   shop: { item: ItemId | null; progress: number; stock: Record<ItemId, number>; sabotaged: Record<ItemId, number>; orders: { item: ItemId; arriveTick: number; sabotaged: boolean }[] };
   /** AIR-1..7 */
+  /** ACT-1: the act, the day it began, and whether the organism has found headquarters (ACT-4). */
+  act: 1 | 2 | 3;
+  actDay: number;
+  hqFound: boolean;
+  /** ACT-5: an assault on headquarters waiting to be met, and when the next may come. */
+  defence: { hostiles: number; takers: number; fighters: number } | null;
+  assaultReadyTick: number;
   craft: Craft[];
   cars: Car[];
   crashes: Crash[];
@@ -183,6 +190,8 @@ export type CityAction =
   | { type: 'posture'; side: 'agency'; craft: string; posture: 'press' | 'shadow' }
   | { type: 'buyCar'; side: 'agency' }
   | { type: 'launch'; side: 'hostile'; kind: CraftKind; target: string }
+  | { type: 'assault'; side: 'hostile' }
+  | { type: 'defend'; side: 'agency'; result?: RaidResult }
   | { type: 'seed'; side: 'hostile'; org: string };
 
 export type CityLogEntry = Exclude<CityAction, { type: 'tick' }> | { type: 'tick'; count: number };
@@ -220,6 +229,10 @@ export type CityEvent =
   | { type: 'landed'; craft: string; kind: CraftKind; building: string; amount: number }
   | { type: 'scattered'; crash: string; org: string | null; amount: number }
   | { type: 'carBought'; car: string; cost: number }
+  | { type: 'actBegan'; act: 2 | 3; day: number }
+  | { type: 'hqFound'; craft: string }
+  | { type: 'assault'; hostiles: number }
+  | { type: 'defended'; result: RaidResult; auto: boolean; roll: number | null; winChance: number | null }
   | { type: 'cityOver'; over: CityOver };
 
 export type CityStepResult =

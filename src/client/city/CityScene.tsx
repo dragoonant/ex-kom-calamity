@@ -229,6 +229,12 @@ function Markers({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }) 
             <meshBasicMaterial color={PAL.red} />
           </mesh>
         ))}
+      {view.hqFound && (
+        <mesh position={[hq.pos.x, 0.1, hq.pos.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+          <ringGeometry args={[CELL * 0.55, CELL * 0.62, 40]} />
+          <meshBasicMaterial color="#e0a030" />
+        </mesh>
+      )}
       <group ref={car} visible={false}>
         <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]}>
           <capsuleGeometry args={[0.45, 1.3, 6, 12]} />
@@ -288,9 +294,10 @@ function Sky({ view }: { view: CityState }) {
   return (
     <group ref={group}>
       {view.craft.map((c, i) => {
-        const want = new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'seeder' ? 13 : 16, c.y * AIR_SCALE);
+        const want = new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'scout' ? 16 : c.kind === 'carrier' ? 18 : 13, c.y * AIR_SCALE);
+        const big = c.kind === 'carrier' ? 2.1 : 1;
         return (
-          <group key={c.id} position={want.clone()} userData={{ want, bob: i + 1 }}>
+          <group key={c.id} position={want.clone()} scale={big} userData={{ want, bob: i + 1 }}>
             {c.kind === 'scout' ? (
               <>
                 <mesh geometry={scoutGeo} material={pearl} raycast={() => null} />
@@ -303,7 +310,7 @@ function Sky({ view }: { view: CityState }) {
               <>
                 <mesh geometry={seederGeo} material={chitin} scale={[1.3, 0.8, 1]} raycast={() => null} />
                 <mesh geometry={seederGeo} material={pearl} scale={[0.9, 0.5, 0.7]} position={[0, 0.5, 0]} raycast={() => null} />
-                {[-0.6, 0, 0.6].map((dx) => (
+                {(c.kind === 'carrier' ? [-1, -0.5, 0, 0.5, 1] : [-0.6, 0, 0.6]).map((dx) => (
                   <mesh key={dx} geometry={podGeo} material={amber} position={[dx, -0.9, dx === 0 ? 0.4 : -0.2]} raycast={() => null} />
                 ))}
               </>
@@ -339,7 +346,7 @@ function Sky({ view }: { view: CityState }) {
             view.cars
               .filter((car) => car.craft === c.id)
               .map((car) => {
-                const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE), new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'seeder' ? 13 : 16, c.y * AIR_SCALE)]);
+                const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE), new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'scout' ? 16 : c.kind === 'carrier' ? 18 : 13, c.y * AIR_SCALE)]);
                 return <primitive key={`${c.id}-${car.id}`} object={new THREE.Line(g, tracer)} />;
               }),
           )}

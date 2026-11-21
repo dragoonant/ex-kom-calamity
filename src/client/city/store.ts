@@ -19,7 +19,7 @@ import type { StorageLike } from '../save';
 import { traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
-export const CAMPAIGN_VERSION = 2; // 2: M5b's shelf, lab and workshop
+export const CAMPAIGN_VERSION = 3; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts
 export type CitySpeed = 1 | 4 | 12;
 export const CITY_SPEEDS: CitySpeed[] = [1, 4, 12];
 const MAX_TRAY = 60;
@@ -44,6 +44,8 @@ export interface CampaignSummary {
 
 /** A battle the player chose to fight from the door (M7); the result comes back through finishFight. */
 export interface PendingFight {
+  /** A raid at a door, or an assault on headquarters (ACT-5). */
+  kind: 'raid' | 'defence';
   building: string;
   /** The building whose raid map the battle is fought on: the raid's own, or the one a wreck fell on (RULING AIR-8). */
   site: string;
@@ -135,7 +137,7 @@ export const useCity = create<CityClient>((set, get) => {
     const slips = traySlipsFor(events, cityView(next, 'agency'), nextTrayId);
     const tray = slips.length ? [...get().tray, ...slips].slice(-MAX_TRAY) : get().tray;
     // Auto-pause when the squad reaches a door, an organisation turns, or the act ends.
-    const stop = events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || (e.type === 'launched' && e.kind === 'seeder'));
+    const stop = events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || e.type === 'actBegan' || e.type === 'assault' || e.type === 'hqFound' || (e.type === 'launched' && e.kind !== 'scout'));
     set({ game: next, view: cityView(next, 'agency'), tray, lastEvents: events, eventSeq: get().eventSeq + (events.length ? 1 : 0), ...(stop ? { paused: true } : {}), ...extra });
     if (stop) get().saveNow();
   };
@@ -222,7 +224,7 @@ export const useCity = create<CityClient>((set, get) => {
         if (!r.ok || r.state === s) break; // RAID-4 or the end: time stands still
         s = r.state;
         all.push(...r.events);
-        if (r.events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || (e.type === 'launched' && e.kind === 'seeder'))) break;
+        if (r.events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || e.type === 'actBegan' || e.type === 'assault' || e.type === 'hqFound' || (e.type === 'launched' && e.kind !== 'scout'))) break;
       }
       commit(s, all);
       sinceSave += n;
@@ -271,9 +273,17 @@ export const useCity = create<CityClient>((set, get) => {
 
     beginFight() {
       const g = get().game;
+      if (g?.defence) {
+        // ACT-5: headquarters is fought on the Civic Savings map (RULING ACT-5) with the agents at home.
+        const home = g.agents.filter((a) => a.status === 'ready').map((a) => a.id).slice(0, g.tuning.raid.maxAgents);
+        const fight: PendingFight = { kind: 'defence', building: 'hq', site: 'city-hall', agents: home, hostiles: g.defence.hostiles };
+        set({ fight });
+        get().saveNow();
+        return fight;
+      }
       if (!g?.raid?.arrived) return null;
       const crash = g.crashes.find((c) => c.id === g.raid!.building);
-      const fight: PendingFight = { building: g.raid.building, site: crash ? (crash.building ?? 'automat-row') : g.raid.building, agents: [...g.raid.agents], hostiles: g.raid.hostiles };
+      const fight: PendingFight = { kind: 'raid', building: g.raid.building, site: crash ? (crash.building ?? 'automat-row') : g.raid.building, agents: [...g.raid.agents], hostiles: g.raid.hostiles };
       set({ fight });
       get().saveNow();
       return fight;
@@ -283,7 +293,8 @@ export const useCity = create<CityClient>((set, get) => {
       const f = get().fight;
       set({ fight: null });
       if (!f) return;
-      get().order(result ? { type: 'resolve', side: 'agency', result } : { type: 'resolve', side: 'agency' });
+      if (f.kind === 'defence') get().order(result ? { type: 'defend', side: 'agency', result } : { type: 'defend', side: 'agency' });
+      else get().order(result ? { type: 'resolve', side: 'agency', result } : { type: 'resolve', side: 'agency' });
     },
 
     saveNow() {
