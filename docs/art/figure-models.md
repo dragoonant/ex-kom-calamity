@@ -227,6 +227,7 @@ the legs found by splitting the lowest 20% of the mesh into three angular cluste
 | Citizen coats | the Lab transfer lands at a tan cream, not the roster's enamel cream `#e7dcc1` over graphite | the same hand re-grade as the agents' |
 | Preload weight | 14 preloaded files, about 70 MB, before the title's site switches open | preload the full models only on `?gallery`, or the re-UV weld above |
 | Rig | proximity skinning | only with a re-topologized mesh, as a separate owner decision |
+| Alien repaint (D25) | coral reads as undersea (owner, 2026-11-21); the sea-glass skin goes with it | repaint `host`, `taker`, `fighter` textures to the `PLAN.md` Q22 palette (pearl skin, amber threads, crown growths to filament ridges, whip arms and cap to chitin), shapes unchanged; repaint the stand-ins in `src/client/board/placeholders.tsx` to match; gallery check by eye |
 
 ## 8. Pass 2 (M4d, 2026-11-20): the tier 1 agent and the two citizen bodies
 

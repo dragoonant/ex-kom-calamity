@@ -21,10 +21,17 @@ The alien is one organism in three bodies (D14). On the city layer it is a plann
 - **Infiltration** per organisation, 0 to 100%. It is **never shown** to the player as a number. The player sees **symptoms**, printed as slips on the switchboard (D11):
   - missing-persons reports clustered on one district
   - an organisation's odd purchases (cold storage, mineral salts, amber resin)
-  - a power-draw spike at night in one building
+  - **too perfect**: no sick days in 60 days, no complaints filed, staff who arrive and leave in step, a lawn greener than its neighbours'
+  - a power-draw spike at night in one building; its lamps flicker amber in time with another building across town
   - a council vote or a price rise that goes against the agency
   - a supplier's shipment that arrives short, or sabotaged
 - **What a high infiltration does:** the organisation lobbies to cut the agency's funding, raises its prices to you, refuses you its buildings, sells you sabotaged gear, and past a threshold *(tune 60%)* turns: its guards fight beside the hosts in raids on its buildings.
+
+### 1.1 How the spread looks: too perfect, and the hum (owner, 2026-11-21, `PLAN.md` D25)
+No coral anywhere (it reads as undersea). The spread has two faces, both of pillar 5 (bright surface, rot underneath):
+- **By day, too perfect.** An infiltrated building looks *better* than its street: spotless glass, fresh enamel, a greener lawn, every window lit at once, staff who smile and walk in step. On the city map the most polished building on a block is the one to suspect. Drawn with light and paint on the tiles we have.
+- **By night, the hum.** The organism threads through the city's wiring and broadcast grid: amber threads in the walls, lamps that flicker amber in time with other infected buildings across the city, radios that carry a tone the hosts hum. At high infiltration a district's lamps pulse together; on the city map at night the player can *see* the network, if they look.
+- **In the air war**, craft feed off power pylons, so the grid is something to defend as well as a clue.
 
 **Why it is fun:** whom you raid is a deduction. Raid a clean building and you pay a scandal (confidence and the owner's standing fall); raid a rotten one and the battle is what its infiltration says it is. The tactical layer already has the content for this: a 15% building is a raid with 2 hosts among 12 citizens (the reveal game of HIDE-1..5); a 70% building is a nest with takers and a fighter.
 
@@ -39,7 +46,7 @@ Three branches, one per body, and a spine through the amber core that ends the g
 |---|---|---|
 | **Host** (the hidden body) | host corpse, then a live host | *Tells*: reveal range 3 → 4 tiles (HIDE). *Hand scanner*: an action that tests one citizen in sight. *Sight flare*: a thrown item that reveals every host in a radius for a few seconds. *Questioning*: a captured host names its cell |
 | **Taker** (the organism) | taker corpse, then a live one | *Antiserum*: an agent bitten in battle can be saved if pulled out within N seconds *(tune)*. *Evacuation protocol*: citizens run from takers (the Q18 rule, unlocked by research rather than switched on). *Lure*: a charge that draws takers |
-| **Fighter** (the grown soldier) | fighter corpse, whip arm, chitin | *Coral plate*: the tier 2 moulded suit's armour (D7). *Whip-cutter*: a melee arm that cuts walls cleanly. *Stilt study*: fighters' legs break under heavy fire (a crippled state) |
+| **Fighter** (the grown soldier) | fighter corpse, tendril, chitin | *Shell plate*: the tier 2 moulded suit's armour, from the fighter's dark chitin (D7). *Whip-cutter*: a melee arm that cuts walls cleanly. *Stilt study*: fighters' legs break under heavy fire (a crippled state) |
 | **Spine: the amber core** | cores from every body, a wreck's drive | *Arc carbine* (first energy weapon) → *core cell* (the flying suit's power, tier 3, D7) → *the source*: where the organism started (the endgame) |
 
 - **Capturing needs a tool first:** the first project of the game is a *stun baton* and a *restraint* (an agent carries a captive like a charge). The battle choice becomes: kill the host from safety, or close in and risk a bite to bring it home.
@@ -55,7 +62,7 @@ Three steps, each a decision:
 
 The supplier is the twist: buying from an arms maker is cheaper and faster than building, but **an infiltrated supplier delivers sabotaged gear** (a weapon that jams, a charge that is a dud) and its money feeds the enemy's biomass. Building at home is the safe, slow road. The symptom slips (section 1) warn you, if you read them.
 
-The first line, all placeholders: stun baton; restraint; improved charge (shaped breach, smoke); sight flare; hand scanner; arc carbine; whip-cutter; coral plate; core cell. Each one changes how a raid is played, not only its numbers.
+The first line, all placeholders: stun baton; restraint; improved charge (shaped breach, smoke); sight flare; hand scanner; arc carbine; whip-cutter; shell plate; core cell. Each one changes how a raid is played, not only its numbers.
 
 ## 4. The air war: flying cars over the city
 The agency's craft are flying patrol cars (`docs/concept/samples/craft-patrol-s71.jpg`). They carry the squad to a raid **and** fight in the sky. The air war is the same tick engine and the same real time with pause, drawn over the 3D city.
@@ -85,14 +92,14 @@ So the dogfight is about *herding* a craft toward the ground you want to fight o
 ## 6. The squad lives on the city layer
 - **A roster** of named agents with experience, wounds that take days to heal, and a memorial wall on the console.
 - **Bitten agents:** a bite in battle may infect *(tune)*; the agent goes to quarantine, and without antiserum turns on a clock. Late in the game, with the city heavily infiltrated, **one recruit may already be a host**: the paranoia beat, handled by the hand scanner.
-- **Suits are the reward** (pillar 4): tier 1 security gear → tier 2 moulded suit (coral plate research) → tier 3 flying suit (core cell). The flying suit changes battles: agents land on roofs and fight on any level.
+- **Suits are the reward** (pillar 4): tier 1 security gear → tier 2 moulded suit (shell plate research) → tier 3 flying suit (core cell). The flying suit changes battles: agents land on roofs and fight on any level.
 
 ## 7. Three acts
 | Act | The enemy | New on the city layer | Battles |
 |---|---|---|---|
 | 1. **Whispers** | Hidden: takers seed hosts, hosts steer organisations | Symptoms, watching, the first raids, the stun baton | Raids on one building (D20), small, mostly hosts |
 | 2. **Open sky** | Seeder and scout craft over the city; the first organisation turns | Craft, intercepts, crash sites, the workshop line | Crash sites, seeding rescues, raids on a turned organisation |
-| 3. **The bloom** | Coral grows on infiltrated buildings at night; carriers drop fighters | The source located through the spine; the agency HQ is found | Carrier crashes, HQ defence, the final assault on the source |
+| 3. **Perfect day** | Whole districts turn too perfect by day and hum amber in unison by night; carriers drop fighters | The source located through the spine; the agency HQ is found | Carrier crashes, HQ defence, the final assault on the source |
 
 **The story proposal (ours, not the inspiration's):** the organism did not arrive by spacecraft this year. It was in the ground before the city, and the miracle material the City of Tomorrow was built on, the amber, is the organism's core. The city's wealth is the alien (pillar 5: bright surface, rot underneath). The organisation that first sold the amber is the source of the infiltration, and its tower is the last raid.
 
@@ -121,10 +128,11 @@ Suggested slices, each shippable:
 3. **M5c** the air war: craft, intercept with pause, crash location, crash-site battles.
 4. **M6** the 3D city on the switchboard; **M7** the join (a chosen raid opens the real battle, results flow back, one campaign save).
 
-## Owner decisions (2026-11-21, `PLAN.md` D24)
+## Owner decisions (2026-11-21, `PLAN.md` D24, D25)
 | # | Question | Answer |
 |---|---|---|
 | S1 | How hidden is infiltration? | Symptoms only, narrowed to a band by watching and research; never a number |
 | S2 | Air combat form | Live, real time with pause over the 3D city; where the craft falls decides the next battle |
 | S3 | Research gating | Evidence-gated, with live capture worth most |
 | S4 | Campaign length | Three acts, about 10 to 15 hours *(tune)* |
+| S5 | Coral | Out everywhere: the spread is "too perfect + the hum" (section 1.1); the aliens are repainted, not remodelled (D25) |
