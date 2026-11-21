@@ -29,6 +29,7 @@ Inspiration, stated openly (KB rule 3): X-COM Apocalypse. The owner, 2026-11-17:
 - The agency's income depends on the city's confidence in it (**proposal**).
 - Ground and air craft respond to alerts; in the open phase alien craft appear over the city (D6).
 - Research turns recovered material into the suit tiers of D7 (**proposal**).
+- The full strategic-layer proposal (hidden enemy economy, evidence-gated research, weapons with field trials, the air war, three acts): `docs/strategic-layer.md` (2026-11-21).
 
 ## 5. Keep it our own (KB rules 3, 18, 29)
 | Stay clear of | What we do instead |

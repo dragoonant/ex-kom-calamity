@@ -27,6 +27,8 @@ The owner chose the house figure style of KB rule 7, animated (D8: it "should wo
 | Taker | The organism that takes hosts: sea-glass body with an amber core on dark chitin legs | `alien-taker-s51` / `alien-taker-s52` (locked, D14) |
 | Fighter (in the game since M3, template `fighter`) | Headless sea-glass column with an amber core on three dark chitin stilt legs, four coral whip arms | `gemini-alien-fighter-a`, **the first fighter in the game** (owner, 2026-11-17, D14); `alien-fighter-s61` (two-legged, crested) is a later or elite type |
 
+**D25 (2026-11-21):** coral is out. The three alien rows above describe the models as generated; on the next GPU pass they are repainted, not remodelled, to the pearl skin and amber threads of `PLAN.md` Q22 (crown growths to amber filament ridges, whip arms to chitin tendrils, the deep-green cap to chitin). The stand-ins follow in the same pass.
+
 ## 3. Placeholders (M2, M3; rebuilt in M4 pass 1)
 M2 drew procedural stand-ins in the colours above to the measurements in section 1; M3 added the fighter's. **M4 pass 1 rebuilds them** in `src/client/board/placeholders.tsx`, shared by the board (`Figures.tsx`) and the gallery (`?gallery`, `src/client/Gallery.tsx`), with every part named (`head`, `torso`, `leg`, `arm`, `boot`, `pauldron`, `core`, ...) so the gallery **measures the built mesh** instead of trusting the constants (KB rule 13). They carry no pointer handlers and no raycast (KB rule 25) and are only ever replaced, never shown while a model loads (KB rule 26). No image is generated in this pass (the GPU pass does that, section 4).
 

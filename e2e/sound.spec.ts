@@ -68,7 +68,7 @@ test('the console plays from engine events, the paddle and the switches; mute an
   });
   const bank = (await page.evaluate(() => window.__ekc!.audio()!)).bank;
   expect(bank.sfx).toBeGreaterThanOrEqual(23);
-  expect(bank.music).toBe(5);
+  expect(bank.music).toBe(8); // five battle states and the city's three (docs/audio.md 6)
   // A breach: blast and breach events become one 'breach' sound; the pause paddle clacks both ways.
   await page.evaluate(() => {
     const h = window.__ekc!;

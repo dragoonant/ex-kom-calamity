@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "madeAt": "2026-11-20",
+  "madeAt": "2026-11-21",
   "sfx": {
     "fire-pistol": {
       "level": -1,
@@ -611,6 +611,322 @@
         "crestDb": 14.977,
         "gainDb": 6.296,
         "promptHash": "386e45f3"
+      }
+    }
+  },
+  "city": {
+    "sfx": {
+      "city-slip": {
+        "level": -10,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-slip-1.mp3",
+            "seconds": 1.28,
+            "offset": 0.068,
+            "end": 1.179,
+            "peakDb": -10.739,
+            "rmsDb": -33.239,
+            "crestDb": 22.499,
+            "gainDb": 0.739,
+            "promptHash": "ab6b12c5"
+          },
+          {
+            "file": "sfx/city-slip-2.mp3",
+            "seconds": 1.28,
+            "offset": 0.037,
+            "end": 1.237,
+            "peakDb": -7.386,
+            "rmsDb": -29.68,
+            "crestDb": 22.294,
+            "gainDb": -2.614,
+            "promptHash": "ab6b12c5"
+          }
+        ]
+      },
+      "city-alert": {
+        "level": -8,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-alert-1.mp3",
+            "seconds": 1.2,
+            "offset": 0,
+            "end": 0.791,
+            "peakDb": -5.643,
+            "rmsDb": -20.805,
+            "crestDb": 15.162,
+            "gainDb": -2.357,
+            "promptHash": "a840c570"
+          },
+          {
+            "file": "sfx/city-alert-2.mp3",
+            "seconds": 1.2,
+            "offset": 0,
+            "end": 0.904,
+            "peakDb": -8.931,
+            "rmsDb": -23.503,
+            "crestDb": 14.572,
+            "gainDb": 0.931,
+            "promptHash": "a840c570"
+          }
+        ]
+      },
+      "city-alert-urgent": {
+        "level": -5,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-alert-urgent-1.mp3",
+            "seconds": 1.76,
+            "offset": 0,
+            "end": 1.47,
+            "peakDb": 1.506,
+            "rmsDb": -20.153,
+            "crestDb": 21.659,
+            "gainDb": -6.506,
+            "promptHash": "70e44a2c"
+          }
+        ]
+      },
+      "city-toggle": {
+        "level": -9,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-toggle-1.mp3",
+            "seconds": 0.6,
+            "offset": 0,
+            "end": 0.223,
+            "peakDb": 0.213,
+            "rmsDb": -26.272,
+            "crestDb": 26.485,
+            "gainDb": -9.213,
+            "promptHash": "4674b018"
+          },
+          {
+            "file": "sfx/city-toggle-2.mp3",
+            "seconds": 0.6,
+            "offset": 0.026,
+            "end": 0.284,
+            "peakDb": 0.807,
+            "rmsDb": -30.042,
+            "crestDb": 30.849,
+            "gainDb": -9.807,
+            "promptHash": "4674b018"
+          }
+        ]
+      },
+      "city-research-done": {
+        "level": -8,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-research-done-1.mp3",
+            "seconds": 2,
+            "offset": 0.001,
+            "end": 0.766,
+            "peakDb": 1.958,
+            "rmsDb": -29.176,
+            "crestDb": 31.134,
+            "gainDb": -9.958,
+            "promptHash": "0f1f52e3"
+          }
+        ]
+      },
+      "city-workshop-done": {
+        "level": -6,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-workshop-done-1.mp3",
+            "seconds": 2,
+            "offset": 0.031,
+            "end": 1.483,
+            "peakDb": 1.425,
+            "rmsDb": -24.122,
+            "crestDb": 25.546,
+            "gainDb": -7.425,
+            "promptHash": "415fcb74"
+          }
+        ]
+      },
+      "city-car-launch": {
+        "level": -4,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-car-launch-1.mp3",
+            "seconds": 4,
+            "offset": 0.02,
+            "end": 3.994,
+            "peakDb": -2.843,
+            "rmsDb": -15.335,
+            "crestDb": 12.492,
+            "gainDb": -1.157,
+            "promptHash": "5dc71840"
+          }
+        ]
+      },
+      "city-car-loop": {
+        "level": -12,
+        "loop": true,
+        "takes": [
+          {
+            "file": "sfx/city-car-loop-1.mp3",
+            "seconds": 4,
+            "offset": 0,
+            "end": 4,
+            "peakDb": -5.751,
+            "rmsDb": -18.113,
+            "crestDb": 12.362,
+            "gainDb": -6.249,
+            "promptHash": "1ff3359f"
+          }
+        ]
+      },
+      "city-alien-craft": {
+        "level": -6,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-alien-craft-1.mp3",
+            "seconds": 4,
+            "offset": 0.341,
+            "end": 3.163,
+            "peakDb": -25.989,
+            "rmsDb": -41.955,
+            "crestDb": 15.966,
+            "gainDb": 12,
+            "promptHash": "046a9f37"
+          }
+        ]
+      },
+      "city-hum": {
+        "level": -16,
+        "loop": true,
+        "takes": [
+          {
+            "file": "sfx/city-hum-1.mp3",
+            "seconds": 6,
+            "offset": 0,
+            "end": 6,
+            "peakDb": -34.856,
+            "rmsDb": -48.071,
+            "crestDb": 13.215,
+            "gainDb": 12,
+            "promptHash": "b9fbd8ca"
+          }
+        ]
+      },
+      "city-craft-hit": {
+        "level": -3,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-craft-hit-1.mp3",
+            "seconds": 1.2,
+            "offset": 0.002,
+            "end": 1.059,
+            "peakDb": 0.184,
+            "rmsDb": -17.618,
+            "crestDb": 17.802,
+            "gainDb": -3.184,
+            "promptHash": "8d3df1ee"
+          },
+          {
+            "file": "sfx/city-craft-hit-2.mp3",
+            "seconds": 1.2,
+            "offset": 0.001,
+            "end": 1.124,
+            "peakDb": -1.25,
+            "rmsDb": -16.145,
+            "crestDb": 14.895,
+            "gainDb": -1.75,
+            "promptHash": "8d3df1ee"
+          }
+        ]
+      },
+      "city-crash": {
+        "level": -1,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-crash-1.mp3",
+            "seconds": 3.48,
+            "offset": 0.017,
+            "end": 2.686,
+            "peakDb": 0.041,
+            "rmsDb": -20.028,
+            "crestDb": 20.069,
+            "gainDb": -1.041,
+            "promptHash": "183a51b3"
+          }
+        ]
+      },
+      "city-month-end": {
+        "level": -8,
+        "loop": false,
+        "takes": [
+          {
+            "file": "sfx/city-month-end-1.mp3",
+            "seconds": 1.76,
+            "offset": 0.079,
+            "end": 0.986,
+            "peakDb": -9.171,
+            "rmsDb": -33.344,
+            "crestDb": 24.172,
+            "gainDb": 1.171,
+            "promptHash": "3bc94176"
+          }
+        ]
+      }
+    },
+    "music": {
+      "city-calm": {
+        "level": -7,
+        "loop": true,
+        "take": {
+          "file": "music/city-calm.mp3",
+          "seconds": 80.039,
+          "offset": 0,
+          "end": 80.039,
+          "peakDb": 0.937,
+          "rmsDb": -13.572,
+          "crestDb": 14.508,
+          "gainDb": -7.937,
+          "promptHash": "5fd8ed76"
+        }
+      },
+      "city-night": {
+        "level": -9,
+        "loop": true,
+        "take": {
+          "file": "music/city-night.mp3",
+          "seconds": 80.039,
+          "offset": 0,
+          "end": 80.039,
+          "peakDb": -1.747,
+          "rmsDb": -15.617,
+          "crestDb": 13.87,
+          "gainDb": -7.253,
+          "promptHash": "de715c42"
+        }
+      },
+      "city-crisis": {
+        "level": -7,
+        "loop": true,
+        "take": {
+          "file": "music/city-crisis.mp3",
+          "seconds": 70.034,
+          "offset": 0,
+          "end": 70.034,
+          "peakDb": -0.259,
+          "rmsDb": -17.058,
+          "crestDb": 16.799,
+          "gainDb": -6.741,
+          "promptHash": "5ba456db"
+        }
       }
     }
   }

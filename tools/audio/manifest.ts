@@ -7,8 +7,28 @@
 import type { SoundName } from '../../src/client/audio/synth';
 import type { MusicState } from '../../src/client/audio/music';
 
-export interface SfxSpec {
-  name: SoundName;
+/** The city (strategic) layer's sounds (docs/strategic-layer.md; docs/audio.md section 6). Not yet synth names: the
+ *  client has no city screen to play them on, so they sit in their own list and their own index section (`city`). */
+export type CitySoundName =
+  | 'city-slip'
+  | 'city-alert'
+  | 'city-alert-urgent'
+  | 'city-toggle'
+  | 'city-research-done'
+  | 'city-workshop-done'
+  | 'city-car-launch'
+  | 'city-car-loop'
+  | 'city-alien-craft'
+  | 'city-hum'
+  | 'city-craft-hit'
+  | 'city-crash'
+  | 'city-month-end';
+
+/** The city layer's music: the switchboard by day, by night, and with an alien craft over the city. */
+export type CityMusicState = 'city-calm' | 'city-night' | 'city-crisis';
+
+export interface SfxSpec<N extends string = SoundName> {
+  name: N;
   /** One prompt for every take, or one prompt per take (raid-over: a cleared and a lost building). */
   prompt: string | string[];
   /** Takes per name: shots and hits get several so a volley is not stamped. */
@@ -21,8 +41,8 @@ export interface SfxSpec {
   level: number;
 }
 
-export interface MusicSpec {
-  state: MusicState;
+export interface MusicSpec<S extends string = MusicState> {
+  state: S;
   prompt: string;
   seconds: number;
   loop: boolean;
@@ -78,14 +98,40 @@ export const MUSIC: MusicSpec[] = [
   { state: 'defeat', seconds: 12, loop: false, level: -6, prompt: `Instrumental. A short solemn mid-century orchestral sting of loss: low brass and strings falling to a dark minor chord, a soft timpani stroke, then silence. One statement, no vocals.` },
 ];
 
-export function sfxFile(name: SoundName, take: number): string {
+// The city (strategic) layer, 2026-11-21 (docs/audio.md section 6). The same D11 register, moved up from the raid to the
+// switchboard: enamel, relays, lamps, teleprinter slips; 1950s civic, never electronic-futuristic. The alien sounds
+// follow D25: no sea or reef, the network is an electrical hum with an amber warmth. Kept apart from SFX and MUSIC
+// because those lists mirror the synth's names and the raid's music states one to one (tests/audio.test.ts).
+export const CITY_SFX: SfxSpec<CitySoundName>[] = [
+  { name: 'city-slip', takes: 2, seconds: 1.3, influence: 0.6, level: -10, prompt: `A 1950s teleprinter printing a short message slip: a fast burst of typebar clatter and a ratcheting paper feed, a tear of paper, then the slip dropping softly into a metal desk tray. Short, starting immediately. ${NO}` },
+  { name: 'city-alert', takes: 2, seconds: 1.2, influence: 0.6, level: -8, prompt: `A 1950s civil-defence switchboard alert: a faint relay click, then a two-tone electric chime, a higher then a lower note struck on small brass bars by an electromagnetic striker, clean and warm. Short, starting immediately. No other music, no voices.` },
+  { name: 'city-alert-urgent', takes: 1, seconds: 1.8, influence: 0.6, level: -5, prompt: `A 1950s civil-defence switchboard emergency signal: a relay clack, then three harsh electric horn tones from a small enamel klaxon on the console, falling in pitch, buzzing and insistent, with a lamp relay chattering underneath. Starting immediately. No other music, no voices.` },
+  { name: 'city-toggle', takes: 2, seconds: 0.6, influence: 0.75, level: -9, prompt: `A heavy bakelite toggle switch on a 1950s enamel control panel snapped over, followed at once by a solid relay clicking in behind the panel. One throw only, very short, starting immediately. ${NO}` },
+  { name: 'city-research-done', takes: 1, seconds: 2.0, influence: 0.6, level: -8, prompt: `A 1950s laboratory: a small pleasant desk bell rung once with a clear ring, then a manual typewriter carriage return, the ding of the margin bell and the ratchet of the carriage sliding back. Starting immediately. No other music, no voices.` },
+  { name: 'city-workshop-done', takes: 1, seconds: 2.0, influence: 0.6, level: -6, prompt: `A 1950s machine workshop: a pneumatic press hissing as it drives down, a heavy stamped metal clunk as it strikes a steel part, then a short release hiss. Starting immediately. ${NO}` },
+  { name: 'city-car-launch', takes: 1, seconds: 4.0, influence: 0.5, level: -4, prompt: `A 1950s streamlined flying car lifting off from a rooftop pad: ducted fans in its wheel arches spooling up from a low whine to a strong steady rushing roar, a rising gust of air, then the sound lifting away overhead. Mechanical and propeller-like, not a jet engine. Starting immediately. ${NO}` },
+  { name: 'city-car-loop', takes: 1, seconds: 4.0, influence: 0.55, loop: true, level: -12, prompt: `The steady hum of a 1950s flying car cruising in level flight, heard from inside: four ducted fans turning at a constant speed, an even rushing drone with a soft mechanical whir and light wind. Constant and seamless, no changes in pitch, no events. ${NO}` },
+  { name: 'city-alien-craft', takes: 1, seconds: 4.0, influence: 0.5, level: -6, prompt: `An unknown craft hanging low over a city at night: a deep slow resonant drone like air moving through a huge hollow shell, swelling and breathing, with a faint electrical hum and a soft beating between two close low tones. Organic and heavy, not a whoosh or a laser. ${NO}` },
+  { name: 'city-hum', takes: 1, seconds: 6.0, influence: 0.5, loop: true, level: -16, prompt: `A faint steady mains electrical hum at 60 hertz from the wiring inside an old building at night, with a slow warm pulse swelling and fading every two seconds like many lamps flickering together, subtly unsettling. Quiet, constant and seamless, no events. ${NO}` },
+  { name: 'city-craft-hit', takes: 2, seconds: 1.2, influence: 0.6, level: -3, prompt: `A burst of three heavy cannon rounds hitting an armoured aircraft hull in the air: sharp metallic impacts with ringing clangs and spraying fragments, wind rushing past. Short, starting immediately. ${NO}` },
+  { name: 'city-crash', takes: 1, seconds: 3.5, influence: 0.5, level: -1, prompt: `A heavy aircraft crashing into a city street: a roaring descent cut by a huge metal impact on pavement, tearing sheet metal, shattering glass, scraping and tumbling debris, then settling rubble. Starting immediately. ${NO}` },
+  { name: 'city-month-end', takes: 1, seconds: 1.8, influence: 0.6, level: -8, prompt: `A 1950s mechanical cash register: keys pressed, a crank and the bright ring of its bell as the drawer slides open, then a rubber stamp thumped firmly onto a ledger page. Starting immediately. No other music, no voices.` },
+];
+
+export const CITY_MUSIC: MusicSpec<CityMusicState>[] = [
+  { state: 'city-calm', seconds: 80, loop: true, level: -7, prompt: `Instrumental. A bright 1950s civic newsreel theme for a futuristic city by day, heard on a civil-defence switchboard: a light orchestra with gentle light strings, vibraphone, celesta and soft woodwinds over a relaxed walking pulse, major key, optimistic, calm and unhurried, never bombastic. No vocals. Steady throughout and loopable: no slow fade-in, no fade-out ending.` },
+  { state: 'city-night', seconds: 80, loop: true, level: -9, prompt: `Instrumental. A slower, thinner night version of a 1950s civic newsreel theme: sparse solo vibraphone and a few muted strings at a slow tempo, a quiet clarinet line, over a low uneasy sustained drone and a faint electrical hum underneath, major melody shadowed by an ambiguous bass, hushed. No vocals. Steady throughout and loopable: no fade-in, no fade-out ending.` },
+  { state: 'city-crisis', seconds: 70, loop: true, level: -7, prompt: `Instrumental. A 1950s civil-defence emergency underscore for an unknown craft over the city: urgent muted brass stabs, rolling timpani, driving tremolo strings and a snare pulse, minor key, tense and alarmed but controlled, a newsreel orchestra in crisis. No vocals. Steady throughout and loopable: no fade-in, no fade-out ending.` },
+];
+
+export function sfxFile(name: SoundName | CitySoundName, take: number): string {
   return `sfx/${name}-${take + 1}.mp3`;
 }
 
-export function musicFile(state: MusicState): string {
+export function musicFile(state: MusicState | CityMusicState): string {
   return `music/${state}.mp3`;
 }
 
-export function sfxPrompt(spec: SfxSpec, take: number): string {
+export function sfxPrompt(spec: SfxSpec<string>, take: number): string {
   return Array.isArray(spec.prompt) ? (spec.prompt[take] ?? spec.prompt[0]!) : spec.prompt;
 }

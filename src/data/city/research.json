@@ -1,0 +1,20 @@
+{
+  "_": "The lab's projects (docs/spec/20-city.md section 17, LAB). needs: evidence on the shelf, not used up; consumes: live specimens used when the project starts; requires: projects done first; hours: city hours of work. Names are placeholders (D10). Each project's effect is a rule in the spec, keyed by id.",
+  "projects": [
+    { "id": "restraints", "name": "Stun baton and restraints", "branch": "host", "needs": { "host": 1 }, "hours": 24 },
+    { "id": "host-tells", "name": "The host's tells", "branch": "host", "needs": { "host": 2 }, "hours": 36 },
+    { "id": "interrogation", "name": "Questioning a captive", "branch": "host", "needs": { "liveHost": 1 }, "requires": ["restraints"], "hours": 24 },
+    { "id": "hand-scanner", "name": "Hand scanner", "branch": "host", "consumes": { "liveHost": 1 }, "requires": ["host-tells"], "hours": 48 },
+    { "id": "antiserum", "name": "Bite antiserum", "branch": "taker", "needs": { "taker": 1 }, "hours": 36 },
+    { "id": "taker-cage", "name": "Taker cage", "branch": "taker", "needs": { "taker": 1 }, "requires": ["restraints"], "hours": 24 },
+    { "id": "evacuation", "name": "Evacuation drill", "branch": "taker", "needs": { "taker": 2 }, "requires": ["antiserum"], "hours": 36 },
+    { "id": "shell-plate", "name": "Shell plate", "branch": "fighter", "needs": { "fighter": 1, "core": 1 }, "hours": 72 },
+    { "id": "arc-carbine", "name": "Arc carbine", "branch": "core", "needs": { "core": 2 }, "hours": 72 },
+    { "id": "core-study", "name": "The amber core", "branch": "core", "needs": { "core": 3 }, "hours": 48 },
+    { "id": "source-trace", "name": "Tracing the source", "branch": "core", "needs": { "core": 5 }, "consumes": { "liveTaker": 1 }, "requires": ["core-study"], "hours": 96 }
+  ],
+  "items": [
+    { "id": "shell-plate", "name": "Shell plate suit", "design": "shell-plate" },
+    { "id": "arc-carbine", "name": "Arc carbine", "design": "arc-carbine" }
+  ]
+}

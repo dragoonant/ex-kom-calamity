@@ -1,0 +1,273 @@
+{
+ "note": "Round 9, city and craft, made 2026-11-21 with FLUX.1-dev through the Hugging Face router (tools/concept/render.py), judging samples only. Palette per PLAN D5/D11 and the D25/Q22 alien repaint (pearl #d4dadb, amber #e0a030, dark chitin; no coral, no green). Figures and objects are described in measurements and materials only (KB rule 23). Same shape as ../prompts.json; extra kinds take their prefix from style_<kind>. Items with first_seeds were re-rolled once: first_seeds used first_prompt/first_kind, the added seeds use prompt/kind.",
+ "style_figure": "Photograph of a premium hand-painted tabletop miniature figure, serious and highly detailed, matte realistic paint with crisp edge highlights and subtle shading. Full figure standing directly on the ground with no base, front three-quarter view, centred, whole figure in frame, plain pure white background, soft even studio light.",
+ "style_creature": "Photograph of a premium hand-painted tabletop miniature of a creature, serious and highly detailed, matte realistic paint with crisp edge highlights, unsettling mood. Whole creature in frame standing directly on the ground with no base, front three-quarter view, centred, plain pure white background, soft even studio light.",
+ "style_model": "Photograph of a premium hand-painted scale model, serious and highly detailed, matte realistic paint with crisp edge highlights. The whole object is in frame with a wide empty margin on every side, centred, seen from 45 degrees to the front-left and slightly above, so the nose and the full length of one side both show, plain pure white background, soft even studio light, no base, no stand, no other objects. No lettering, no badges, no logos.",
+ "style_building": "Isometric three-quarter view from 35 degrees above of one single building made as a premium hand-painted architectural scale model, serious and detailed, matte realistic paint with crisp edges, standing on a small square slab of pavement. The whole building is in frame with a wide empty margin, centred, plain pure white background, soft even studio light. A 1950s vision of the future: cream enamel walls, teal trim, mustard accents, graphite window frames, polished chrome bands.",
+ "style_mood": "Wide cinematic concept painting of a 1950s vision of the future, rich colour, soft painterly texture, clean detailed shapes. Palette of enamel cream, teal, mustard, graphite and chrome.",
+ "items": [
+  {
+   "id": "patrol-car-a",
+   "kind": "model",
+   "seeds": [
+    11,
+    12,
+    15
+   ],
+   "w": 1152,
+   "h": 896,
+   "prompt": "Subject: a four-seat flying patrol car of a 1950s vision of the future, about 5 metres long, 2 metres wide and 1.5 metres tall. Rounded enamel body painted bright signal red with a gloss black lower half, polished chrome bumper bar and a chrome trim strip along each side, two tall swept tail fins at the back, a large clear bubble canopy over four seats, two round headlamps in the nose. On each side a short stub wing carries a round pod 1.2 metres across with a ducted lift fan inside behind a chrome ring. No wheels; it hovers a little above the ground. No wheels at all.",
+   "first_seeds": [
+    11,
+    12
+   ],
+   "first_kind": "model",
+   "note": "first seeds 11, 12 were rendered before style_model said 45 degrees and no badges",
+   "reroll": "seeds 15 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "patrol-car-b",
+   "kind": "model",
+   "seeds": [
+    13,
+    14
+   ],
+   "w": 1152,
+   "h": 896,
+   "prompt": "Subject: a four-seat flying patrol car of a 1950s vision of the future, about 5 metres long. A central teardrop cabin body in bright signal red enamel with a gloss black belly and black nose cone, a long clear bubble canopy over two rows of seats, polished chrome trim lines and a chrome intake ring, three swept tail fins at the back. A short straight wing passes through the middle of the body and carries at each tip a large round pod 1.4 metres across with a ducted lift fan inside behind a chrome grille. No wheels; it hovers a little above the ground."
+  },
+  {
+   "id": "transport-van",
+   "kind": "model",
+   "seeds": [
+    21,
+    22
+   ],
+   "w": 1152,
+   "h": 896,
+   "prompt": "Subject: an armoured transport van of a 1950s vision of the future that carries a squad of six agents, about 6 metres long, 2.4 metres wide and 2.5 metres tall, on four wheels half hidden under rounded wheel spats. Rounded loaf-shaped armoured body in bright signal red enamel with a gloss black lower skirt and black bumpers, a chrome trim strip along the sides, a narrow wraparound windscreen in a chrome frame, three small round porthole windows in each side, a round beacon lamp on the roof, small tail fins over the rear lamps. A ground vehicle, wheels on the ground."
+  },
+  {
+   "id": "alien-scout",
+   "kind": "alien",
+   "seeds": [
+    31,
+    32,
+    37
+   ],
+   "w": 1152,
+   "h": 896,
+   "prompt": "Subject: a small fast alien flier about 6 metres long, shaped like a giant elongated seed pod or a smooth cocoon: a spindle three times as long as it is wide, tapering to a soft point at both ends. Smooth milky pearl-white skin like polished porcelain with a cool grey sheen. Five raised ribs of dark glossy brown-black beetle-shell chitin wrap around it like hoops from nose to tail. Thin glowing amber filament lines, like the glowing wire in a lamp bulb, run under the translucent skin between the ribs.",
+   "first_seeds": [
+    31,
+    32
+   ],
+   "first_kind": "model",
+   "first_prompt": "Subject: a small fast alien craft about 6 metres long and 2 metres wide, shaped like an elongated seed pod: a smooth spindle tapering to a point at both ends, three times as long as it is wide, slightly flattened. Smooth cool pearl-white skin with a faint blue-grey sheen, five thin ribs of dark glossy brown-black chitin curving around it from nose to tail, thin glowing amber filament lines like the wire in a lit lamp bulb running under the skin along its length. No windows, no fins, no engines, no rim. Floating in mid-air, tilted slightly.",
+   "reroll": "seeds 37 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "alien-seeder",
+   "kind": "alien",
+   "seeds": [
+    33,
+    34,
+    39
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: a slow armoured alien flier about 12 metres long and 6 metres tall: a bulbous swollen body like a giant beetle with its legs tucked away, armoured with heavy overlapping curved plates of dark glossy brown-black beetle-shell chitin, with large smooth panels of milky pearl-white skin like polished porcelain between the plates. Hanging under its belly, a tight bunch of a dozen round translucent amber pods, each glowing softly from inside like a lit lamp bulb, like a bunch of grapes.",
+   "first_seeds": [
+    33,
+    34
+   ],
+   "first_kind": "model",
+   "first_prompt": "Subject: a slow armoured alien craft about 12 metres long, 8 metres wide and 6 metres tall: a bulbous rounded hull like a swollen beetle body, armoured with heavy overlapping plates of dark glossy brown-black chitin, smooth cool pearl-white panels with a faint blue-grey sheen set between the plates, and hanging under its belly a tight cluster of a dozen round translucent amber pods each 1 metre across, glowing softly from inside like lit lamp bulbs. No windows, no legs. Floating in mid-air.",
+   "reroll": "seeds 39 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "alien-carrier",
+   "kind": "alien",
+   "seeds": [
+    35,
+    36,
+    57
+   ],
+   "w": 1344,
+   "h": 768,
+   "prompt": "Subject: a huge alien flier about 60 metres long: a long narrow body like a giant segmented larva with no legs, made of twelve ribbed rings of dark glossy brown-black beetle-shell chitin, tapering at both ends, no tower, no deck. Smooth milky pearl-white plates like polished porcelain cover the top of every ring. Along each flank run two long straight rows of small round glowing amber lights like lamp bulbs. The whole body in frame.",
+   "first_seeds": [
+    35,
+    36
+   ],
+   "first_kind": "model",
+   "first_prompt": "Subject: a large alien carrier craft about 60 metres long and 10 metres wide: a long narrow ribbed hull made of twelve segment rings of dark glossy brown-black chitin, tapered at both ends, with smooth cool pearl-white plates with a faint blue-grey sheen along the top of every segment, and two long straight rows of small round glowing amber lights along each flank. No windows, no wings, no legs. Floating in mid-air, the whole craft in frame.",
+   "reroll": "seeds 57 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "bldg-office",
+   "kind": "building",
+   "seeds": [
+    41,
+    42
+   ],
+   "w": 896,
+   "h": 1152,
+   "prompt": "Subject: a 20-storey office tower with streamlined rounded setbacks, stepping inward three times as it rises, horizontal ribbon windows wrapping around its rounded corners, teal bands between the floors, a slim chrome spire on the top."
+  },
+  {
+   "id": "bldg-bank",
+   "kind": "building",
+   "seeds": [
+    43,
+    44,
+    55
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: a 3-storey bank like a small temple: a wide flight of steps up to a deep open porch held up by six tall smooth round cream columns standing in a row across the whole front, a flat roof slab with a chrome band above the columns, tall windows in graphite frames behind the columns, a round clock over the doors, a mustard stone base.",
+   "first_seeds": [
+    43,
+    44
+   ],
+   "first_kind": "building",
+   "first_prompt": "Subject: a 4-storey bank with a broad flight of front steps and a row of six tall smooth round columns across the front, a flat cornice with a chrome band, tall windows in graphite frames, a round clock above the doors, a mustard stone base.",
+   "reroll": "seeds 55 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "bldg-broadcast",
+   "kind": "building",
+   "seeds": [
+    45,
+    46
+   ],
+   "w": 896,
+   "h": 1152,
+   "prompt": "Subject: a 6-storey broadcast station with a rounded corner and a long horizontal fin sign above the entrance, and a tall steel lattice radio mast three times the height of the building rising from its roof, with two ring platforms and a round lamp at the very top."
+  },
+  {
+   "id": "bldg-apartments",
+   "kind": "building",
+   "seeds": [
+    47,
+    48
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: a 10-storey apartment block, a long slab with rows of rounded cantilevered balconies with teal railings, cream and mustard wall panels, a roof garden with small round trees."
+  },
+  {
+   "id": "bldg-power",
+   "kind": "building",
+   "seeds": [
+    49,
+    50
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: a city power station: a long low turbine hall with tall curved windows and two short rounded chimney stacks with chrome rings, beside it three tall steel lattice pylons carrying power lines, a fenced yard with a large transformer."
+  },
+  {
+   "id": "bldg-hq",
+   "kind": "building",
+   "seeds": [
+    51,
+    52
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: the headquarters of a civil-defence agency, an 8-storey building with rounded corners in cream enamel with bold bright signal red and gloss black bands, a flat roof carrying a large round landing pad painted bright signal red with a white ring marking, a small round control cabin beside the pad, a large round lamp over the entrance."
+  },
+  {
+   "id": "mood-dusk",
+   "kind": "mood",
+   "seeds": [
+    61,
+    62
+   ],
+   "w": 1344,
+   "h": 768,
+   "prompt": "Wide view from high above of a gleaming city of tomorrow at dusk: streamlined towers in cream enamel with teal and mustard trim and chrome bands catching the last orange light, a curving elevated monorail track with a lit train, small rounded flying cars with glowing tail lamps flying between the towers, warm white windows starting to light, a deep teal sky with a band of orange at the horizon. Optimistic and clean."
+  },
+  {
+   "id": "mood-hum",
+   "kind": "mood",
+   "seeds": [
+    63,
+    64,
+    67
+   ],
+   "w": 1344,
+   "h": 768,
+   "prompt": "Night view from high above a city of tomorrow: streamlined cream towers with rounded setbacks and ring platforms, an elevated monorail, dark streets with rows of lamps, a deep indigo-blue sky. Every window in the city is lit a soft pale white, except one tall tower in the centre of the view whose every window glows the same deep amber at once, like a lantern, the only amber thing in the picture, with thin amber threads of light running from its base out along the streets. Quiet, uneasy mood.",
+   "first_seeds": [
+    63,
+    64
+   ],
+   "first_kind": "mood",
+   "first_prompt": "Wide view from high above of a city of tomorrow at night: streamlined towers with warm white lit windows, dark streets with rows of lamps, and in the middle of the view one office tower whose every single window glows the same deep amber colour at once, with faint amber threads of light running down its walls into the street, while every other building stays warm white. Deep blue-black sky. Quiet, uneasy mood.",
+   "reroll": "seeds 67 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "mood-lobby",
+   "kind": "mood",
+   "seeds": [
+    65,
+    66
+   ],
+   "w": 1344,
+   "h": 768,
+   "prompt": "Interior of a spotless, too-perfect office lobby: polished cream terrazzo floor with a teal inlay grid, a curved mustard reception desk, chrome globe lamps, perfectly symmetrical potted plants, gleaming glass. Twelve office staff in identical mustard jackets and grey trousers stand in two exact straight rows facing the viewer, evenly spaced, all with the same wide fixed smile, hands at their sides, perfectly still. Eerie, uncanny, far too clean. Realistic, soft even light."
+  },
+  {
+   "id": "alien-host-r9",
+   "kind": "figure",
+   "seeds": [
+    71,
+    72,
+    77
+   ],
+   "w": 896,
+   "h": 1152,
+   "prompt": "Subject: an office clerk of a 1950s vision of the future whose head has been replaced by an alien head. Mustard suit jacket, white shirt, narrow black tie, grey trousers, black shoes, dark grey gloves. The head is smooth, bulbous and hairless like a large egg, milky pearl-white with a cool blue-grey sheen like polished porcelain, two large pale blue eyes, a wide lipless mouth of small sharp teeth. Three thick raised ridges run over the top of the head from the brow to the back of the skull, each one glowing bright amber from inside like the hot filament of a lamp bulb. A bright amber glow shines out of the throat above the shirt collar. Arms hanging at the sides.",
+   "first_seeds": [
+    71,
+    72
+   ],
+   "first_kind": "figure",
+   "first_prompt": "Subject: an office clerk of a 1950s vision of the future whose head has been replaced by an alien head. Mustard suit jacket, white shirt, narrow black tie, grey trousers, black shoes, dark grey gloves. The head is smooth, bulbous and hairless, cool pearl-white with a faint blue-grey sheen, two large pale blue eyes, a wide mouth of small sharp teeth. Three raised ridges like glowing amber lamp filaments run over the crown from the brow to the back of the skull. A soft amber glow shines from the throat above the collar. Arms hanging at the sides.",
+   "reroll": "seeds 77 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  },
+  {
+   "id": "alien-taker-r9",
+   "kind": "creature",
+   "seeds": [
+    73,
+    74
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: a small alien organism the size of a house cat. A low, wide, smooth bell-shaped body, cool pearl-white with a faint blue-grey sheen, standing on six thin jointed legs of dark glossy brown-black chitin. On top of the bell sits a round glowing amber core like a lit lamp bulb set into the skin, with fine amber filament lines spreading from it under the skin. A cluster of short dark chitin feelers under the bell. No eyes, no face."
+  },
+  {
+   "id": "alien-fighter-r9",
+   "kind": "creature",
+   "seeds": [
+    75,
+    76,
+    79
+   ],
+   "w": 1024,
+   "h": 1024,
+   "prompt": "Subject: a tall alien fighting organism, taller than a person, grown rather than born, and not shaped like a person at all. Its body is one upright smooth column like a tall vase or a closed flower bud, with a rounded closed top and nothing on top of it: no head, no neck, no face, no eyes, no mouth, no horns. Milky pearl-white like polished porcelain with a cool grey sheen, wrapped in overlapping smooth plates, a round glowing amber core showing through at mid-height. A ring-shaped collar of dark glossy chitin near the top, from which four long thin smooth tendril arms of dark glossy chitin with thin amber lines hang down to knee height. It stands on exactly three long thin stilt legs of dark glossy chitin, spaced evenly around the base like a camera tripod.",
+   "first_seeds": [
+    75,
+    76
+   ],
+   "first_kind": "creature",
+   "first_prompt": "Subject: a tall alien fighting organism, taller than a person, grown rather than born, and not shaped like a person at all. Its body is an upright headless column like a tall vase, cool pearl-white with a faint blue-grey sheen, wrapped in overlapping smooth plates, with a glowing amber core showing through the plates at mid-height and thin amber filament lines spreading from it. The top of the column is capped with dark glossy brown-black chitin. Four long smooth tendril arms of dark glossy chitin with thin amber lines hang from a collar near the top. It stands on exactly three long thin stilt legs of dark glossy chitin spaced evenly like a camera tripod. No head, no face, no eyes, no mouth.",
+   "reroll": "seeds 79 re-rolled once with the fixed prompt after the first seeds failed the gate"
+  }
+ ],
+ "style_alien": "Photograph of a premium hand-painted miniature of a living alien flying organism, grown rather than built, all smooth organic surfaces: no metal, no rivets, no panel lines, no guns, no windows, no cockpit, no canopy, no fins, no engines, no lettering. Matte realistic paint with crisp edge highlights. The whole object is in frame with a wide empty margin, centred, seen from 45 degrees to the front-left and slightly above, floating in mid-air, plain pure white background, soft even studio light."
+}

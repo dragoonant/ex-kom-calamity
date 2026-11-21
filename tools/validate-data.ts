@@ -4,6 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { BATTLES, BUILDING_STYLES, DEFAULT_MATERIAL, LEGEND, MAPS, MATERIALS, PROP_KINDS, TUNING, UNITS, WEAPONS } from '../src/data';
 import { STANCES, SIDES } from '../src/engine';
+import { BUILDING_KINDS, CITY, CITY_TUNING, EVIDENCE, RAID_SITE_BATTLES, RESEARCH } from '../src/data/city';
 
 const errors: string[] = [];
 const err = (m: string) => errors.push(m);
@@ -201,6 +202,57 @@ const idSet = new Set(ids);
 for (const m of spec.matchAll(/^- RULING: ([A-Z]+-\d+) \| /gm)) if (!idSet.has(m[1]!)) err(`ruling references unknown id ${m[1]}`);
 for (const m of spec.matchAll(/^- RULING: .+\. (\w+)$/gm)) {
   if (!['open', 'provisional', 'owner-confirmed'].includes(m[1]!)) err(`ruling status word "${m[1]}" is not open/provisional/owner-confirmed`);
+}
+
+// --- the city (docs/spec/20-city.md): tuning cited both ways, the city data's references and shape.
+{
+  const cspec = readFileSync(new URL('../docs/spec/20-city.md', import.meta.url), 'utf8');
+  const ct = CITY_TUNING as unknown as Record<string, Record<string, number>>;
+  const ccited = new Set<string>();
+  for (const [section, values] of Object.entries(ct)) {
+    for (const [k, v] of Object.entries(values)) if (!isInt(v) || v < 0) err(`city tuning.${section}.${k} is not a non-negative integer`);
+  }
+  for (const m of cspec.matchAll(/`([a-z]+)\.([A-Za-z0-9]+) = (\d+)`/g)) {
+    const [, section, key, val] = m;
+    ccited.add(`${section}.${key}`);
+    const actual = ct[section!]?.[key!];
+    if (actual === undefined) err(`city spec cites tuning.${section}.${key} which does not exist`);
+    else if (actual !== Number(val)) err(`city spec says ${section}.${key} = ${val} but city tuning.json has ${actual}`);
+  }
+  for (const [section, values] of Object.entries(ct)) for (const k of Object.keys(values)) if (!ccited.has(`${section}.${k}`)) err(`city tuning.${section}.${k} is not cited in docs/spec/20-city.md`);
+  const cids = [...cspec.matchAll(/\*\*([A-Z]+-\d+)\*\*/g)].map((m) => m[1]!);
+  const cdup = cids.filter((x, i) => cids.indexOf(x) !== i);
+  if (cdup.length) err(`city spec has duplicate rule ids: ${[...new Set(cdup)].join(', ')}`);
+  for (const m of cspec.matchAll(/^- RULING: ([A-Z]+-\d+) \| /gm)) if (!cids.includes(m[1]!)) err(`city ruling references unknown id ${m[1]}`);
+  for (const m of cspec.matchAll(/^- RULING: .+\. (\w+)$/gm)) if (!['open', 'provisional', 'owner-confirmed'].includes(m[1]!)) err(`city ruling status "${m[1]}"`);
+  const orgIds = new Set(CITY.orgs.map((o) => o.id));
+  const distIds = new Set(CITY.districts.map((d) => d.id));
+  if (CITY.orgs.filter((o) => o.source).length !== 1) err('city: exactly one organisation must be the source (CITY-2)');
+  const cells = new Set<string>();
+  for (const b of CITY.buildings) {
+    if (!orgIds.has(b.org)) err(`building ${b.id}: unknown organisation ${b.org}`);
+    if (!distIds.has(b.district)) err(`building ${b.id}: unknown district ${b.district}`);
+    if (!(BUILDING_KINDS as readonly string[]).includes(b.kind)) err(`building ${b.id}: unknown kind ${b.kind}`);
+    if (!(b.site in RAID_SITE_BATTLES) || !BATTLES[RAID_SITE_BATTLES[b.site]]) err(`building ${b.id}: site ${b.site} has no battle`);
+    if (b.x < 0 || b.y < 0 || b.x >= CITY.size || b.y >= CITY.size) err(`building ${b.id}: off the grid`);
+    const d = CITY.districts.find((x) => x.id === b.district);
+    if (d && (b.x < d.x || b.y < d.y || b.x >= d.x + d.w || b.y >= d.y + d.d)) err(`building ${b.id}: not inside district ${d.id}`);
+    if (cells.has(`${b.x},${b.y}`)) err(`building ${b.id}: shares a cell`);
+    cells.add(`${b.x},${b.y}`);
+  }
+  for (const o of CITY.orgs) if (!CITY.buildings.some((b) => b.org === o.id)) err(`organisation ${o.id} owns no building`);
+  if (CITY.agency.names.length < CITY_TUNING.roster.cap) err('city: fewer agent names than the roster cap');
+  // LAB-2: the projects' references.
+  const pids = new Set(RESEARCH.projects.map((p) => p.id));
+  if (pids.size !== RESEARCH.projects.length) err('research: duplicate project ids');
+  for (const p of RESEARCH.projects) {
+    for (const r of p.requires ?? []) if (!pids.has(r)) err(`research ${p.id} requires unknown ${r}`);
+    for (const k of [...Object.keys(p.needs ?? {}), ...Object.keys(p.consumes ?? {})]) if (!(EVIDENCE as string[]).includes(k)) err(`research ${p.id}: unknown evidence ${k}`);
+    if (!isInt(p.hours) || p.hours < 1) err(`research ${p.id}: hours`);
+    if (!cspec.includes(`\`${p.id}\``)) err(`research ${p.id} has no rule in docs/spec/20-city.md`);
+  }
+  for (const it of RESEARCH.items) if (!pids.has(it.design)) err(`item ${it.id}: unknown design ${it.design}`);
+  console.log(`City: ${new Set(cids).size} rule ids, ${[...cspec.matchAll(/^- RULING: /gm)].length} rulings; ${CITY.districts.length} districts, ${CITY.orgs.length} organisations, ${CITY.buildings.length} buildings.`);
 }
 
 // --- report

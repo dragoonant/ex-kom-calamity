@@ -300,3 +300,51 @@ html:has(.sounds), body:has(.sounds) { overflow: auto; }
   .tray { height: 140px; }
   .title-name { font-size: 26px; letter-spacing: 0.18em; }
 }
+
+/* City switchboard (M6): the same console, four panels, and a hinged cover for the door and the end. */
+.city .console { flex: none; height: 250px; }
+.city .panel-time { overflow-y: auto; }
+.city .panel-time .switch-row { flex-wrap: nowrap; }
+.city .panel-time .toggle { padding: 5px 8px; }
+.city-console .console-row { grid-template-columns: 168px minmax(0, 1.2fr) minmax(0, 1.3fr) minmax(0, 1.5fr); }
+.city .lamps { max-height: 112px; overflow-y: auto; }
+.city .agent:disabled { cursor: default; opacity: 0.72; }
+.card-title { font-family: var(--display); font-size: 13px; letter-spacing: 0.12em; color: var(--teal-deep); margin-bottom: 3px; }
+.meter { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+.meter-label { font-family: var(--display); font-size: 10px; letter-spacing: 0.12em; color: var(--graphite-soft); }
+.meter-bar { flex: 1 1 auto; height: 10px; border-radius: 5px; background: #fff; border: 1px solid var(--enamel-edge); overflow: hidden; }
+.meter-fill { display: block; height: 100%; background: var(--teal); }
+.meter-alert { background: var(--coral); }
+.slip-picked { outline: 2px solid var(--agency-red); }
+.tray .slip { cursor: pointer; }
+.cover {
+  position: absolute;
+  left: 50%;
+  bottom: 262px;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: min(560px, calc(100% - 32px));
+  background: linear-gradient(var(--paper), var(--enamel));
+  border: 3px solid var(--chrome);
+  box-shadow: 0 0 0 1px var(--chrome-dark), 0 10px 30px rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cover-title { font-family: var(--display); font-size: 15px; letter-spacing: 0.14em; color: var(--agency-red); }
+.title-campaign { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+@media (max-width: 820px) {
+  .city .console { height: 52%; overflow-y: auto; }
+  .city-console .console-row { grid-template-columns: 1fr 1fr; }
+  .cover { bottom: auto; top: 12px; }
+}
+.city .panel-card { overflow-y: auto; }
+.city .tab { padding: 4px 9px; font-size: 11px; }
+.lab-list { max-height: 92px; overflow-y: auto; }
+.lab-project { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; font-size: 11px; }
+.lab-why { font-size: 9px; letter-spacing: 0; text-transform: none; color: var(--graphite-soft); }
+.sky-row { border-top: 1px solid var(--enamel-edge); padding-top: 4px; margin-top: 4px; }
+.car-lamp { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; font-size: 10px; }
+.tab-alert { border-color: var(--coral); box-shadow: 0 2px 0 var(--coral-deep); }

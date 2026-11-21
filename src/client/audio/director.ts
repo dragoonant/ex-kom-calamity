@@ -10,8 +10,10 @@ import { WEAPONS } from '../../data';
 import type { Fx } from '../fx';
 import type { StorageLike } from '../save';
 import { useClient } from '../store';
+import { useCity } from '../city/store';
+import { cityQuery, type CityEvent } from '../../city';
 import { SampleBank, type BankReport } from './bank';
-import { MusicPlayer, musicStateFor, type MusicReport } from './music';
+import { MusicPlayer, musicStateFor, type MusicReport, type MusicState } from './music';
 import { DEFAULT_AUDIO, readAudioSettings, writeAudioSettings, type AudioSettings } from './settings';
 import { play, type SoundName } from './synth';
 
@@ -80,7 +82,7 @@ export class Director {
         prevPaused = s.paused;
       }
       this.music.duck(s.screen === 'battle' && s.paused);
-      this.music.set(musicStateFor(s.screen, s.agency?.marks !== undefined, s.report?.over?.winner));
+      this.music.set(this.cityMusic() ?? musicStateFor(s.screen, s.agency?.marks !== undefined, s.report?.over?.winner));
       // Order and refusal slips (the console's own feedback), never a hostile's (AI-9 keeps those out of the tray).
       const last = s.slips[s.slips.length - 1];
       if (last && last.id !== prevSlipId) {
@@ -94,6 +96,22 @@ export class Director {
     });
     const s0 = useClient.getState();
     this.music.set(musicStateFor(s0.screen, s0.agency?.marks !== undefined, s0.report?.over?.winner));
+    // The city (M6): its music by clock and crisis, and a switchboard sound per kind of event.
+    let lastCitySeq = useCity.getState().eventSeq;
+    const unsubCity = useCity.subscribe((c) => {
+      if (c.eventSeq !== lastCitySeq) {
+        lastCitySeq = c.eventSeq;
+        if (c.active) this.playCity(c.lastEvents);
+      }
+      const b = useClient.getState();
+      this.music.duck(c.active && !c.fight ? c.paused : b.screen === 'battle' && b.paused);
+      this.music.set(this.cityMusic() ?? musicStateFor(b.screen, b.agency?.marks !== undefined, b.report?.over?.winner));
+    });
+    const prevUnsub = this.unsub;
+    this.unsub = () => {
+      prevUnsub?.();
+      unsubCity();
+    };
     // The index is one small fetch; the takes decode after the first gesture, when a context exists.
     void this.bank.load();
     const unlock = () => void this.unlock();
@@ -237,6 +255,52 @@ export class Director {
       play(ctx, this.master, name, ctx.currentTime, variant);
     } catch {
       // A failed node graph is a missed sound, never an error in the game.
+    }
+  }
+
+  /** The city's music while the switchboard shows and no fight is open: crisis with a squad out, night, or day. */
+  private cityMusic(): MusicState | null {
+    const c = useCity.getState();
+    if (!c.active || c.fight || !c.view) return null;
+    if (c.view.raid || c.view.craft.some((x) => x.kind === 'seeder')) return 'city-crisis';
+    return cityQuery.clock(c.view).night ? 'city-night' : 'city-calm';
+  }
+
+  /** A city sound from the bank by name (no synth stands behind these: a missing take is silence). */
+  citySound(name: string, variant = this.variant++): void {
+    this.played[name] = (this.played[name] ?? 0) + 1;
+    const ctx = this.context();
+    if (!ctx || !this.master || ctx.state !== 'running' || this.settings.muted || this.settings.source === 'synth') return;
+    try {
+      const h = this.bank.play(ctx, this.master, name as SoundName, ctx.currentTime, variant);
+      if (h) this.sampled[name] = (this.sampled[name] ?? 0) + 1;
+    } catch {
+      // a missed sound, never an error
+    }
+  }
+
+  private playCity(events: CityEvent[]): void {
+    const once = new Set<string>();
+    const fire = (n: string) => {
+      if (once.has(n)) return;
+      once.add(n);
+      this.citySound(n);
+    };
+    for (const e of events) {
+      if (e.type === 'slip') fire(e.slip.kind === 'hum' || e.slip.kind === 'spotted' ? 'city-alert' : 'city-slip');
+      else if (e.type === 'watched') fire('city-alert');
+      else if (e.type === 'raidOrdered') fire('city-car-launch');
+      else if (e.type === 'raidArrived' || e.type === 'turned') fire('city-alert-urgent');
+      else if (e.type === 'raidResolved') fire(e.result.won && !e.scandal ? 'city-research-done' : 'city-crash');
+      else if (e.type === 'month') fire('city-month-end');
+      else if (e.type === 'recruited' || e.type === 'built' || e.type === 'carBought') fire('city-workshop-done');
+      else if (e.type === 'researchDone') fire('city-research-done');
+      else if (e.type === 'launched') {
+        fire('city-alert-urgent');
+        fire('city-alien-craft');
+      } else if (e.type === 'intercepting') fire('city-car-launch');
+      else if (e.type === 'dogfight' && e.hits) fire('city-craft-hit');
+      else if (e.type === 'downed' || e.type === 'carLost') fire('city-crash');
     }
   }
 

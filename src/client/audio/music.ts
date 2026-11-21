@@ -7,7 +7,9 @@ import type { Screen } from '../store';
 import type { Winner } from '../../engine';
 import { dbToGain, type SampleBank, type TakeInfo } from './bank';
 
-export type MusicState = 'calm' | 'battle' | 'tense' | 'victory' | 'defeat' | 'silent';
+export type MusicState = 'calm' | 'battle' | 'tense' | 'victory' | 'defeat' | 'silent' | CityMusicState;
+/** The city's three states (docs/audio.md 6): the switchboard by day, at night, and with a squad in the air or at a door. */
+export type CityMusicState = 'city-calm' | 'city-night' | 'city-crisis';
 
 export const MUSIC_STATES: MusicState[] = ['calm', 'battle', 'tense', 'victory', 'defeat'];
 
