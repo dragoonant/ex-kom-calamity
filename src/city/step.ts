@@ -1,0 +1,382 @@
+// CARCH-2: the city's pure step (docs/spec/20-city.md). Never mutates its input, never throws on a bad action.
+import { CITY } from '../data/city';
+import { nextInt } from '../engine/rng';
+import { newAgent } from './game';
+import { appendCityLog } from './replay';
+import {
+  bandOf,
+  buildingDef,
+  downChance,
+  grantOf,
+  hostilesFor,
+  livingAgents,
+  orgOf,
+  orgDef,
+  orgOfBuilding,
+  totalInfiltration,
+  winChance,
+} from './rules';
+import { absoluteTicks, clockOf, ticksPerDay, ticksPerHour } from './time';
+import { BANDS, type CityAction, type CityEvent, type CityState, type CityStepResult, type RaidResult, type Slip, type SlipKind } from './types';
+
+function clone(s: CityState): CityState {
+  // The log's entries are never mutated (appendCityLog returns a new array), so it is shared rather than copied.
+  const { log, ...rest } = s;
+  const c = JSON.parse(JSON.stringify(rest)) as CityState;
+  c.log = log;
+  return c;
+}
+
+function reject(state: CityState, reason: string): CityStepResult {
+  return { ok: false, state, reason };
+}
+
+function accept(state: CityState, action: CityAction, events: CityEvent[]): CityStepResult {
+  state.log = appendCityLog(state.log, action);
+  return { ok: true, state, events };
+}
+
+function addConfidence(s: CityState, delta: number, why: string, events: CityEvent[]): void {
+  if (delta === 0) return;
+  const before = s.confidence;
+  s.confidence = Math.max(0, Math.min(100, s.confidence + delta));
+  if (s.confidence !== before) events.push({ type: 'confidence', delta: s.confidence - before, why });
+}
+
+function finish(s: CityState, winner: 'agency' | 'hostile', reason: NonNullable<CityState['over']>['reason'], events: CityEvent[]): void {
+  if (s.over) return;
+  s.over = { winner, reason, tick: s.tick };
+  events.push({ type: 'cityOver', over: s.over });
+}
+
+/** SIGN-1..5: the slips one hour prints. */
+function hourSigns(s: CityState, events: CityEvent[]): void {
+  const sg = s.tuning.signs;
+  const night = clockOf(s.tuning, s.tick).night;
+  const print = (kind: SlipKind, buildingId: string | null, genuine: boolean) => {
+    const def = buildingId ? buildingDef(buildingId) : undefined;
+    // SIGN-2: what a kind names. A missing-persons slip names only the district; purchase and vote name the organisation.
+    const slip: Slip = {
+      id: s.nextSlip++,
+      tick: s.tick,
+      kind,
+      building: kind === 'missing' || kind === 'purchase' || kind === 'vote' ? null : (buildingId ?? null),
+      org: kind === 'missing' ? null : (def?.org ?? null),
+      district: def?.district ?? null,
+      genuine,
+    };
+    s.slips.push(slip);
+    if (s.slips.length > sg.keep) s.slips.splice(0, s.slips.length - sg.keep);
+    events.push({ type: 'slip', slip });
+  };
+  const eligible = (infiltration: number, genuine: boolean): SlipKind[] => {
+    const k: SlipKind[] = [];
+    if (infiltration >= sg.missingMin || !genuine) k.push('missing');
+    if (infiltration >= sg.purchaseMin || !genuine) k.push('purchase');
+    if (night && (infiltration >= sg.powerMin || !genuine)) k.push('power');
+    if (!night && (infiltration >= sg.perfectMin || !genuine)) k.push('perfect');
+    if (infiltration >= sg.voteMin || !genuine) k.push('vote');
+    if (night && genuine && infiltration >= sg.humMin) k.push('hum'); // SIGN-4: never noise
+    return k;
+  };
+  // SIGN-1: each building of an infiltrated organisation rolls in data order.
+  for (const b of CITY.buildings) {
+    const org = orgOf(s, b.org);
+    if (!org || org.infiltration <= 0) continue;
+    const chance = org.infiltration * sg.permillePerPoint;
+    if (nextInt(s.rng, 1000) >= chance) continue;
+    const kinds = eligible(org.infiltration, true);
+    if (kinds.length === 0) continue;
+    print(kinds[nextInt(s.rng, kinds.length)]!, b.id, true);
+  }
+  // SIGN-3: one noise roll per hour, on a clean building.
+  if (nextInt(s.rng, 1000) < sg.noisePermille) {
+    const clean = CITY.buildings.filter((b) => (orgOf(s, b.org)?.infiltration ?? 0) <= 0);
+    if (clean.length > 0) {
+      const b = clean[nextInt(s.rng, clean.length)]!;
+      const kinds = eligible(0, false);
+      print(kinds[nextInt(s.rng, kinds.length)]!, b.id, false);
+    }
+  }
+}
+
+/** SPREAD-4..6, FUND-4, CEND-2, CEND-4: what the end of a day does. */
+function dayEnd(s: CityState, day: number, events: CityEvent[]): void {
+  const sp = s.tuning.spread;
+  const total = totalInfiltration(s);
+  const biomass = Math.floor((total * sp.biomassPer100Points) / 100);
+  s.biomass += biomass;
+  for (const o of s.orgs) {
+    if (o.infiltration <= 0) continue;
+    const growth = Math.max(1, Math.floor((o.infiltration * sp.dailyGrowthPercent) / 100));
+    const next = Math.min(sp.cap, o.infiltration + growth);
+    s.score.taken += next - o.infiltration;
+    o.infiltration = next;
+    if (!o.turned && o.infiltration >= sp.turnAt) {
+      o.turned = true;
+      o.standing = 0;
+      events.push({ type: 'turned', org: o.id });
+    }
+  }
+  const loss = Math.floor((total * s.tuning.fund.missingPer100Points) / 100);
+  addConfidence(s, -loss, 'missing persons', events);
+  events.push({ type: 'day', tick: s.tick, day, biomass, confidenceLoss: loss });
+  const e = s.tuning.end;
+  const turned = s.orgs.filter((o) => o.turned).length;
+  if (turned * 100 >= e.turnedLosePercent * s.orgs.length) finish(s, 'hostile', 'turned', events);
+  // CEND-4: act 1 ends after end.actDays; the agency wins if the spread is contained and nothing has turned.
+  if (day >= e.actDays) {
+    const contained = totalInfiltration(s) <= e.containedTotal && !s.orgs.some((o) => o.turned);
+    finish(s, contained ? 'agency' : 'hostile', contained ? 'contained' : 'spread', events);
+  }
+}
+
+/** FUND-1..3, ROSTER-5, CEND-1 */
+function monthEnd(s: CityState, month: number, events: CityEvent[]): void {
+  const grant = grantOf(s);
+  const salaries = s.tuning.roster.salaryPerMonth * livingAgents(s).length;
+  s.money += grant - salaries;
+  events.push({ type: 'month', tick: s.tick, month, grant, salaries });
+  if (s.confidence < s.tuning.end.confidenceFloor) finish(s, 'hostile', 'confidence', events);
+}
+
+/** CEND-3 */
+function squadCheck(s: CityState, events: CityEvent[]): void {
+  if (livingAgents(s).length === 0 && s.money < s.tuning.roster.recruitCost) finish(s, 'hostile', 'squad', events);
+}
+
+function tick(state: CityState, action: CityAction): CityStepResult {
+  // CEND-6, RAID-4: after the end, or while a squad stands at the door, a tick changes nothing.
+  if (state.over || (state.raid && state.raid.arrived)) return { ok: true, state, events: [] };
+  const s = clone(state);
+  const events: CityEvent[] = [];
+  s.tick += 1;
+  const tph = ticksPerHour(s.tuning);
+  // ROSTER-4, WATCH-2: watches end and wounds heal, in roster order.
+  for (const a of s.agents) {
+    if (a.status === 'wounded' && s.tick >= a.until) {
+      a.status = 'ready';
+      a.until = 0;
+      events.push({ type: 'healed', agent: a.id });
+    } else if (a.status === 'watching' && s.tick >= a.until && a.building) {
+      const org = orgOfBuilding(s, a.building);
+      const truth = bandOf(org?.infiltration ?? 0);
+      let band = truth;
+      // WATCH-3: right with watch.accuracyPercent, otherwise one band off.
+      if (nextInt(s.rng, 100) >= s.tuning.watch.accuracyPercent) {
+        const i = BANDS.indexOf(truth);
+        const up = i === 0 ? true : i === BANDS.length - 1 ? false : nextInt(s.rng, 2) === 0;
+        band = BANDS[i + (up ? 1 : -1)]!;
+      }
+      const b = s.buildings.find((x) => x.id === a.building);
+      if (b) b.watch = { band, tick: s.tick };
+      events.push({ type: 'watched', agent: a.id, building: a.building, band });
+      // WATCH-4: a spotted host.
+      if ((org?.infiltration ?? 0) > 0 && nextInt(s.rng, 100) < s.tuning.watch.spotPercent) {
+        const def = buildingDef(a.building);
+        const slip: Slip = { id: s.nextSlip++, tick: s.tick, kind: 'spotted', building: a.building, org: def?.org ?? null, district: def?.district ?? null, genuine: true };
+        s.slips.push(slip);
+        if (s.slips.length > s.tuning.signs.keep) s.slips.splice(0, s.slips.length - s.tuning.signs.keep);
+        events.push({ type: 'slip', slip });
+      }
+      a.status = 'ready';
+      a.until = 0;
+      a.building = null;
+    }
+  }
+  // RAID-2, RAID-3: the squad arrives; the hostiles are fixed now.
+  if (s.raid && !s.raid.arrived && s.tick >= s.raid.arriveTick) {
+    const org = orgOfBuilding(s, s.raid.building);
+    s.raid.arrived = true;
+    s.raid.hostiles = org ? hostilesFor(s, org) : 0;
+    events.push({ type: 'raidArrived', building: s.raid.building, hostiles: s.raid.hostiles });
+  }
+  const abs = absoluteTicks(s.tuning, s.tick);
+  if (abs % tph === 0) {
+    const c = clockOf(s.tuning, s.tick);
+    hourSigns(s, events);
+    events.push({ type: 'hour', tick: s.tick, hour: c.hour });
+  }
+  if (abs % ticksPerDay(s.tuning) === 0) {
+    const c = clockOf(s.tuning, s.tick);
+    dayEnd(s, c.day, events);
+    if (c.dayOfMonth === 0) monthEnd(s, c.month, events);
+  }
+  return accept(s, action, events);
+}
+
+function autoResult(s: CityState, hostiles: number, agents: string[]): { result: RaidResult; roll: number | null; chance: number | null } {
+  if (hostiles <= 0) return { result: { won: true, agentsDown: [], hostilesDown: 0, civiliansDown: 0 }, roll: null, chance: null };
+  const chance = winChance(s, agents.length, hostiles);
+  const roll = nextInt(s.rng, 100);
+  const won = roll < chance;
+  const down = downChance(s, hostiles, won);
+  const agentsDown = agents.filter(() => nextInt(s.rng, 100) < down);
+  const hostilesDown = won ? hostiles : nextInt(s.rng, hostiles);
+  const civiliansDown = nextInt(s.rng, Math.floor(hostiles / 2) + 1);
+  return { result: { won, agentsDown, hostilesDown, civiliansDown }, roll, chance };
+}
+
+function isInt(n: unknown): n is number {
+  return typeof n === 'number' && Number.isInteger(n);
+}
+
+function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve' }>): CityStepResult {
+  if (!state.raid || !state.raid.arrived) return reject(state, 'no squad is waiting at a door');
+  const raid = state.raid;
+  let given = action.result;
+  if (given !== undefined) {
+    // RES-6: a fought battle's result, checked and clamped to the raid.
+    if (typeof given !== 'object' || given === null || typeof given.won !== 'boolean') return reject(state, 'result needs won');
+    if (!Array.isArray(given.agentsDown) || given.agentsDown.some((id) => !raid.agents.includes(id))) return reject(state, 'agentsDown must be agents on the raid');
+    if (new Set(given.agentsDown).size !== given.agentsDown.length) return reject(state, 'agentsDown repeats an agent');
+    if (!isInt(given.hostilesDown) || given.hostilesDown < 0 || !isInt(given.civiliansDown) || given.civiliansDown < 0) return reject(state, 'counts must be non-negative integers');
+    given = { ...given, agentsDown: [...given.agentsDown], hostilesDown: Math.min(given.hostilesDown, raid.hostiles) };
+  }
+  const s = clone(state);
+  const events: CityEvent[] = [];
+  const r = s.raid!;
+  const auto = given === undefined;
+  const { result, roll, chance } = auto ? autoResult(s, r.hostiles, r.agents) : { result: given!, roll: null, chance: null };
+  const org = orgOfBuilding(s, r.building);
+  // RES-2: agents down die or are wounded.
+  for (const a of s.agents) {
+    if (!r.agents.includes(a.id)) continue;
+    a.raids += 1;
+    if (result.agentsDown.includes(a.id)) {
+      const d = nextInt(s.rng, 100);
+      const dead = d < s.tuning.roster.deathPercent;
+      a.status = dead ? 'dead' : 'wounded';
+      a.until = dead ? 0 : s.tick + s.tuning.roster.woundDays * ticksPerDay(s.tuning);
+      events.push({ type: 'agentDown', agent: a.id, dead, roll: d });
+      if (dead) {
+        s.score.agentsDead += 1;
+        addConfidence(s, -s.tuning.fund.agentLoss, 'agent killed', events);
+      }
+    } else {
+      a.status = 'ready';
+      a.until = 0;
+    }
+  }
+  // RES-3: the raid cleanses the organisation.
+  let cleansed = 0;
+  if (org && r.hostiles > 0) {
+    cleansed = result.hostilesDown * s.tuning.res.cleansePerHostile + (result.won ? s.tuning.res.cleanseOnWin : 0);
+    const before = org.infiltration;
+    // SPREAD-7: until the spine research (M5b), raids cannot push the source below spread.sourceFloor.
+    const floor = orgDef(org.id)?.source ? Math.min(before, s.tuning.spread.sourceFloor) : 0;
+    org.infiltration = Math.max(floor, org.infiltration - cleansed);
+    cleansed = before - org.infiltration;
+    // SPREAD-6: a raid that pushes a turned organisation below spread.lobbyAt turns it back.
+    if (org.infiltration < s.tuning.spread.lobbyAt) org.turned = false;
+  }
+  // RAID-6: a raid on a clean building is a scandal.
+  const scandal = r.hostiles === 0;
+  if (scandal) {
+    s.score.cleanRaids += 1;
+    addConfidence(s, -s.tuning.fund.scandalLoss, 'raid on a clean building', events);
+    if (org) org.standing = Math.max(0, org.standing - 2 * s.tuning.fund.scandalLoss);
+  } else if (result.won) {
+    s.score.raidsWon += 1;
+    addConfidence(s, s.tuning.fund.winGain, 'raid won', events);
+    if (org) org.standing = Math.min(100, org.standing + s.tuning.fund.winGain);
+  }
+  addConfidence(s, -result.civiliansDown * s.tuning.fund.civilianLoss, 'citizens killed', events);
+  s.score.raids += 1;
+  s.score.hostilesDown += result.hostilesDown;
+  s.score.civiliansDown += result.civiliansDown;
+  // RES-4: a won raid leaves the agency knowing the building's band.
+  const b = s.buildings.find((x) => x.id === r.building);
+  if (b) {
+    b.raidedTick = s.tick;
+    if (result.won && org) b.watch = { band: bandOf(org.infiltration), tick: s.tick };
+  }
+  events.push({ type: 'raidResolved', building: r.building, result, auto, roll, winChance: chance, cleansed, scandal });
+  s.raid = null;
+  squadCheck(s, events);
+  return accept(s, action, events);
+}
+
+export function cityStep(state: CityState, action: CityAction): CityStepResult {
+  if (!action || typeof action !== 'object' || typeof (action as { type?: unknown }).type !== 'string') return reject(state, 'not an action');
+  if (action.type === 'tick') return tick(state, action);
+  if (state.over) return reject(state, 'the campaign is over');
+  const side = (action as { side?: unknown }).side;
+  switch (action.type) {
+    case 'watch': {
+      if (side !== 'agency') return reject(state, 'watch is an agency order');
+      const a = state.agents.find((x) => x.id === action.agent);
+      if (!a) return reject(state, `no agent ${String(action.agent)}`);
+      if (a.status !== 'ready') return reject(state, `${a.name} is not ready`);
+      if (!buildingDef(action.building)) return reject(state, `no building ${String(action.building)}`);
+      const s = clone(state);
+      const ag = s.agents.find((x) => x.id === action.agent)!;
+      ag.status = 'watching';
+      ag.building = action.building;
+      ag.until = s.tick + s.tuning.watch.hours * ticksPerHour(s.tuning);
+      return accept(s, action, [{ type: 'watchSent', agent: ag.id, building: action.building }]);
+    }
+    case 'recall': {
+      if (side !== 'agency') return reject(state, 'recall is an agency order');
+      const a = state.agents.find((x) => x.id === action.agent);
+      if (!a || a.status !== 'watching') return reject(state, 'only a watching agent can be recalled');
+      const s = clone(state);
+      const ag = s.agents.find((x) => x.id === action.agent)!;
+      ag.status = 'ready';
+      ag.until = 0;
+      ag.building = null;
+      return accept(s, action, [{ type: 'recalled', agent: ag.id }]);
+    }
+    case 'raid': {
+      if (side !== 'agency') return reject(state, 'raid is an agency order');
+      if (state.raid) return reject(state, 'a raid is already under way');
+      if (!buildingDef(action.building)) return reject(state, `no building ${String(action.building)}`);
+      if (!Array.isArray(action.agents) || action.agents.length === 0) return reject(state, 'a raid needs at least one agent');
+      if (action.agents.length > state.tuning.raid.maxAgents) return reject(state, `at most ${state.tuning.raid.maxAgents} agents on a raid`);
+      if (new Set(action.agents).size !== action.agents.length) return reject(state, 'an agent is listed twice');
+      for (const id of action.agents) {
+        const a = state.agents.find((x) => x.id === id);
+        if (!a || a.status !== 'ready') return reject(state, `agent ${String(id)} is not ready`);
+      }
+      const s = clone(state);
+      for (const a of s.agents) if (action.agents.includes(a.id)) a.status = 'raiding';
+      const arriveTick = s.tick + s.tuning.raid.travelHours * ticksPerHour(s.tuning);
+      s.raid = { building: action.building, agents: [...action.agents], orderedTick: s.tick, arriveTick, hostiles: 0, arrived: false };
+      return accept(s, action, [{ type: 'raidOrdered', building: action.building, agents: [...action.agents], arriveTick }]);
+    }
+    case 'resolve':
+      if (side !== 'agency') return reject(state, 'resolve is an agency order');
+      return resolve(state, action);
+    case 'recruit': {
+      if (side !== 'agency') return reject(state, 'recruit is an agency order');
+      const cost = state.tuning.roster.recruitCost;
+      if (state.money < cost) return reject(state, 'not enough money');
+      if (livingAgents(state).length >= state.tuning.roster.cap) return reject(state, 'the roster is full');
+      const s = clone(state);
+      const a = newAgent(s.nextAgent);
+      s.nextAgent += 1;
+      s.agents.push(a);
+      s.money -= cost;
+      return accept(s, action, [{ type: 'recruited', agent: a.id, cost }]);
+    }
+    case 'seed': {
+      if (side !== 'hostile') return reject(state, 'seed is a hostile order');
+      const org = orgOf(state, action.org);
+      if (!org) return reject(state, `no organisation ${String(action.org)}`);
+      const sp = state.tuning.spread;
+      if (state.tick < state.hostileReadyTick) return reject(state, 'the organism is not ready to act');
+      if (state.biomass < sp.seedCost) return reject(state, 'not enough biomass');
+      if (org.infiltration >= sp.cap) return reject(state, 'that organisation is already full');
+      const s = clone(state);
+      const o = orgOf(s, action.org)!;
+      const amount = Math.min(sp.seedAmount, sp.cap - o.infiltration);
+      o.infiltration += amount;
+      s.biomass -= sp.seedCost;
+      s.hostileReadyTick = s.tick + sp.actEveryHours * ticksPerHour(s.tuning);
+      s.score.seeds += 1;
+      return accept(s, action, [{ type: 'seeded', org: o.id, amount, cost: sp.seedCost }]);
+    }
+    default:
+      return reject(state, `unknown action ${String((action as { type: unknown }).type)}`);
+  }
+}

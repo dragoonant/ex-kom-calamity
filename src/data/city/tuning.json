@@ -1,0 +1,85 @@
+{
+  "_": "City tuning (docs/spec/20-city.md). Every key is cited in the spec as `section.key = N`; validate:data checks the two agree. All integers, all (tune). Percent and permille are written in the key name.",
+  "clock": {
+    "minutesPerTick": 10,
+    "ticksPerSecond": 6,
+    "daysPerMonth": 30,
+    "startHour": 8,
+    "nightStartHour": 20,
+    "nightEndHour": 6
+  },
+  "spread": {
+    "startBiomass": 10,
+    "sourceStart": 25,
+    "actEveryHours": 12,
+    "seedCost": 12,
+    "seedAmount": 5,
+    "dailyGrowthPercent": 4,
+    "biomassPer100Points": 20,
+    "lobbyAt": 30,
+    "turnAt": 60,
+    "cap": 100,
+    "sourceFloor": 10
+  },
+  "signs": {
+    "permillePerPoint": 1,
+    "noisePermille": 40,
+    "keep": 40,
+    "missingMin": 1,
+    "purchaseMin": 5,
+    "powerMin": 10,
+    "perfectMin": 15,
+    "voteMin": 30,
+    "humMin": 40
+  },
+  "watch": {
+    "hours": 12,
+    "accuracyPercent": 80,
+    "spotPercent": 40
+  },
+  "raid": {
+    "travelHours": 1,
+    "maxAgents": 6,
+    "hostilesPer10Points": 1,
+    "maxHostiles": 10,
+    "turnedGuards": 2
+  },
+  "res": {
+    "winBasePercent": 50,
+    "winPerAgent": 12,
+    "winPerHostile": 9,
+    "winMinPercent": 5,
+    "winMaxPercent": 98,
+    "downPerHostilePercent": 4,
+    "downOnLossPercent": 30,
+    "downMaxPercent": 90,
+    "cleansePerHostile": 6,
+    "cleanseOnWin": 10
+  },
+  "roster": {
+    "startAgents": 8,
+    "cap": 12,
+    "woundDays": 5,
+    "deathPercent": 30,
+    "recruitCost": 40,
+    "salaryPerMonth": 5
+  },
+  "fund": {
+    "startMoney": 100,
+    "startConfidence": 60,
+    "grantBase": 200,
+    "lobbyCutPercent": 15,
+    "turnedCutPercent": 25,
+    "winGain": 4,
+    "scandalLoss": 8,
+    "civilianLoss": 1,
+    "agentLoss": 1,
+    "missingPer100Points": 1
+  },
+  "end": {
+    "confidenceFloor": 25,
+    "turnedLosePercent": 50,
+    "containedTotal": 60,
+    "actDays": 90
+  }
+}

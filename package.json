@@ -10,6 +10,7 @@
     "test": "vitest run",
     "validate:data": "tsx tools/validate-data.ts",
     "sim": "tsx tools/sim.ts",
+    "sim:city": "tsx tools/sim-city.ts",
     "action-fuzz": "tsx tools/action-fuzz.ts",
     "bench:ai": "tsx tools/bench-ai.ts",
     "golden:make": "tsx tools/make-golden.ts",

@@ -1,0 +1,54 @@
+{
+  "_": "The city (docs/spec/20-city.md CITY-1..5). Every name is a placeholder (PLAN.md D10), checked against docs/GAME-DESIGN.md section 5. x, y are city cells on a 12 x 12 grid (east, south). site: the raid map a battle in this building is fought on until M7 gives every building its own (RULING CITY-4). kind: what the client draws.",
+  "size": 12,
+  "districts": [
+    { "id": "civic", "name": "Civic Centre", "x": 4, "y": 4, "w": 4, "d": 4 },
+    { "id": "heights", "name": "Meridian Heights", "x": 0, "y": 0, "w": 6, "d": 4 },
+    { "id": "sunbeam", "name": "Sunbeam Row", "x": 6, "y": 0, "w": 6, "d": 4 },
+    { "id": "works", "name": "The Works", "x": 0, "y": 4, "w": 4, "d": 8 },
+    { "id": "parkside", "name": "Parkside", "x": 8, "y": 4, "w": 4, "d": 8 },
+    { "id": "hill", "name": "Signal Hill", "x": 4, "y": 8, "w": 4, "d": 4 }
+  ],
+  "orgs": [
+    { "id": "council", "name": "City Council", "kind": "council" },
+    { "id": "savings", "name": "Civic Savings", "kind": "bank" },
+    { "id": "wireless", "name": "Meridian Wireless", "kind": "broadcast" },
+    { "id": "automats", "name": "Sunbeam Automats", "kind": "food" },
+    { "id": "freight", "name": "Depot 7 Freight", "kind": "transport" },
+    { "id": "halcyon", "name": "Halcyon Residences", "kind": "housing" },
+    { "id": "lumen", "name": "Lumen Power and Light", "kind": "power" },
+    { "id": "ambrel", "name": "Ambrel Materials", "kind": "materials", "source": true },
+    { "id": "vector", "name": "Vector Arms", "kind": "arms" },
+    { "id": "courier", "name": "The Daily Courier", "kind": "press" }
+  ],
+  "buildings": [
+    { "id": "city-hall", "name": "City Hall", "org": "council", "district": "civic", "x": 5, "y": 5, "floors": 3, "kind": "civic", "site": "savings" },
+    { "id": "records-office", "name": "Records Office", "org": "council", "district": "civic", "x": 6, "y": 6, "floors": 2, "kind": "office", "site": "depot" },
+    { "id": "savings-main", "name": "Civic Savings Main Branch", "org": "savings", "district": "civic", "x": 4, "y": 6, "floors": 3, "kind": "bank", "site": "savings" },
+    { "id": "savings-heights", "name": "Civic Savings, Heights Branch", "org": "savings", "district": "heights", "x": 2, "y": 2, "floors": 3, "kind": "bank", "site": "savings" },
+    { "id": "wireless-tower", "name": "Meridian Wireless Tower", "org": "wireless", "district": "hill", "x": 5, "y": 9, "floors": 3, "kind": "broadcast", "site": "savings" },
+    { "id": "wireless-studio", "name": "Studio Two", "org": "wireless", "district": "heights", "x": 4, "y": 1, "floors": 2, "kind": "office", "site": "depot" },
+    { "id": "automat-row", "name": "Sunbeam Automat, Row Street", "org": "automats", "district": "sunbeam", "x": 8, "y": 1, "floors": 1, "kind": "automat", "site": "automat" },
+    { "id": "automat-park", "name": "Sunbeam Automat, Parkside", "org": "automats", "district": "parkside", "x": 9, "y": 7, "floors": 1, "kind": "automat", "site": "automat" },
+    { "id": "automat-works", "name": "Sunbeam Commissary", "org": "automats", "district": "works", "x": 1, "y": 9, "floors": 2, "kind": "depot", "site": "depot" },
+    { "id": "depot-7", "name": "Depot 7", "org": "freight", "district": "works", "x": 2, "y": 6, "floors": 2, "kind": "depot", "site": "depot" },
+    { "id": "freight-yard", "name": "Freight Yard Office", "org": "freight", "district": "works", "x": 1, "y": 11, "floors": 1, "kind": "depot", "site": "automat" },
+    { "id": "halcyon-arms", "name": "Halcyon Arms", "org": "halcyon", "district": "heights", "x": 1, "y": 1, "floors": 3, "kind": "residential", "site": "savings" },
+    { "id": "halcyon-court", "name": "Halcyon Court", "org": "halcyon", "district": "parkside", "x": 10, "y": 9, "floors": 3, "kind": "residential", "site": "savings" },
+    { "id": "halcyon-terrace", "name": "Halcyon Terrace", "org": "halcyon", "district": "sunbeam", "x": 10, "y": 2, "floors": 2, "kind": "residential", "site": "depot" },
+    { "id": "lumen-station", "name": "Lumen Station", "org": "lumen", "district": "works", "x": 2, "y": 8, "floors": 2, "kind": "power", "site": "depot" },
+    { "id": "lumen-office", "name": "Lumen House", "org": "lumen", "district": "civic", "x": 7, "y": 4, "floors": 2, "kind": "office", "site": "depot" },
+    { "id": "ambrel-works", "name": "Ambrel Works", "org": "ambrel", "district": "works", "x": 0, "y": 5, "floors": 2, "kind": "works", "site": "depot" },
+    { "id": "ambrel-tower", "name": "Ambrel Tower", "org": "ambrel", "district": "hill", "x": 6, "y": 10, "floors": 3, "kind": "office", "site": "savings" },
+    { "id": "vector-plant", "name": "Vector Arms Plant", "org": "vector", "district": "works", "x": 3, "y": 10, "floors": 2, "kind": "works", "site": "depot" },
+    { "id": "vector-showroom", "name": "Vector Showroom", "org": "vector", "district": "sunbeam", "x": 7, "y": 2, "floors": 1, "kind": "office", "site": "automat" },
+    { "id": "courier-press", "name": "Courier Press Hall", "org": "courier", "district": "parkside", "x": 9, "y": 5, "floors": 2, "kind": "works", "site": "depot" },
+    { "id": "courier-office", "name": "Courier Newsroom", "org": "courier", "district": "civic", "x": 5, "y": 7, "floors": 3, "kind": "office", "site": "savings" },
+    { "id": "council-park", "name": "Parkside Library", "org": "council", "district": "parkside", "x": 11, "y": 6, "floors": 1, "kind": "civic", "site": "automat" },
+    { "id": "savings-sunbeam", "name": "Civic Savings, Row Branch", "org": "savings", "district": "sunbeam", "x": 11, "y": 0, "floors": 1, "kind": "bank", "site": "automat" }
+  ],
+  "agency": {
+    "hq": { "name": "Agency Headquarters", "x": 7, "y": 7 },
+    "names": ["Vance", "Okoro", "Lindqvist", "Marsh", "Teodoro", "Quill", "Hale", "Moreau", "Sato", "Brannigan", "Ruiz", "Adeyemi", "Kowalczyk", "Fenn", "Delacroix", "Nakamura", "Price", "Osei", "Varga", "Castellan"]
+  }
+}
