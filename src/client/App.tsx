@@ -62,7 +62,7 @@ function useJoin(): void {
     const offCity = useCity.subscribe((c, prev) => {
       if (c.fight && !prev.fight) {
         pending = null;
-        useClient.getState().newBattle(battleFor(c.fight.building));
+        useClient.getState().newBattle(battleFor(c.fight.site));
       }
     });
     const offBattle = useClient.subscribe((b, prev) => {

@@ -249,6 +249,104 @@ function Markers({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }) 
   );
 }
 
+/** The air war on the board (spec section 20): craft and cars glide toward their hourly positions, a dogfight
+ * flashes tracers, a crash site smokes. Nothing here takes a pointer (KB rule 25); craft are picked on the console. */
+const AIR_SCALE = CELL / 10;
+function Sky({ view }: { view: CityState }) {
+  const group = useRef<THREE.Group>(null);
+  const seq = useCity((s) => s.eventSeq);
+  const flash = useRef<{ until: number; craft: Set<string> }>({ until: 0, craft: new Set() });
+  const scoutGeo = useMemo(() => {
+    const g = new THREE.CapsuleGeometry(0.45, 2.2, 6, 14);
+    g.rotateX(Math.PI / 2);
+    return g;
+  }, []);
+  const seederGeo = useMemo(() => new THREE.SphereGeometry(1.3, 18, 12), []);
+  const podGeo = useMemo(() => new THREE.SphereGeometry(0.35, 10, 8), []);
+  const pearl = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d4dadb', roughness: 0.25, metalness: 0.1 }), []);
+  const chitin = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 0.6 }), []);
+  const amber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e0a030', emissive: new THREE.Color('#e0a030'), emissiveIntensity: 1.2 }), []);
+  const carMat = useMemo(() => new THREE.MeshStandardMaterial({ color: PAL.red, roughness: 0.35, metalness: 0.2 }), []);
+  const smoke = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5a5650', transparent: true, opacity: 0.55, depthWrite: false }), []);
+  const tracer = useMemo(() => new THREE.LineBasicMaterial({ color: '#ffd27a' }), []);
+  useEffect(() => {
+    const ev = useCity.getState().lastEvents.filter((e) => e.type === 'dogfight');
+    if (ev.length) flash.current = { until: performance.now() + 600, craft: new Set(ev.map((e) => (e.type === 'dogfight' ? e.craft : ''))) };
+  }, [seq]);
+  useFrame(({ clock }) => {
+    const g = group.current;
+    if (!g) return;
+    // Ease every object toward its engine position: the engine moves on the hour, the eye sees a glide.
+    for (const child of g.children) {
+      const want = child.userData.want as THREE.Vector3 | undefined;
+      if (want) child.position.lerp(want, 0.06);
+      if (child.userData.bob) child.position.y = want!.y + Math.sin(clock.elapsedTime * 1.3 + child.userData.bob) * 0.3;
+    }
+    amber.emissiveIntensity = 0.8 + 0.6 * Math.sin(clock.elapsedTime * 2.4);
+  });
+  const now = typeof performance !== 'undefined' ? performance.now() : 0;
+  return (
+    <group ref={group}>
+      {view.craft.map((c, i) => {
+        const want = new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'seeder' ? 13 : 16, c.y * AIR_SCALE);
+        return (
+          <group key={c.id} position={want.clone()} userData={{ want, bob: i + 1 }}>
+            {c.kind === 'scout' ? (
+              <>
+                <mesh geometry={scoutGeo} material={pearl} raycast={() => null} />
+                <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]}>
+                  <torusGeometry args={[0.5, 0.08, 6, 18]} />
+                  <primitive object={amber} attach="material" />
+                </mesh>
+              </>
+            ) : (
+              <>
+                <mesh geometry={seederGeo} material={chitin} scale={[1.3, 0.8, 1]} raycast={() => null} />
+                <mesh geometry={seederGeo} material={pearl} scale={[0.9, 0.5, 0.7]} position={[0, 0.5, 0]} raycast={() => null} />
+                {[-0.6, 0, 0.6].map((dx) => (
+                  <mesh key={dx} geometry={podGeo} material={amber} position={[dx, -0.9, dx === 0 ? 0.4 : -0.2]} raycast={() => null} />
+                ))}
+              </>
+            )}
+          </group>
+        );
+      })}
+      {view.cars
+        .filter((car) => car.status === 'flying')
+        .map((car) => {
+          const want = new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE);
+          return (
+            <group key={car.id} position={want.clone()} userData={{ want }}>
+              <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]} material={carMat}>
+                <capsuleGeometry args={[0.35, 1.0, 6, 12]} />
+              </mesh>
+            </group>
+          );
+        })}
+      {view.crashes.map((cr) => (
+        <group key={cr.id} position={[cr.x * AIR_SCALE, 0, cr.y * AIR_SCALE]}>
+          <mesh raycast={() => null} position={[0, 0.4, 0]} geometry={seederGeo} material={chitin} scale={[0.8, 0.3, 0.6]} />
+          <mesh raycast={() => null} position={[0, 4, 0]} material={smoke}>
+            <cylinderGeometry args={[1.4, 0.5, 8, 10, 1, true]} />
+          </mesh>
+          <mesh raycast={() => null} position={[0, 0.8, 0]} geometry={podGeo} material={amber} />
+        </group>
+      ))}
+      {flash.current.until > now &&
+        view.craft
+          .filter((c) => flash.current.craft.has(c.id))
+          .flatMap((c) =>
+            view.cars
+              .filter((car) => car.craft === c.id)
+              .map((car) => {
+                const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE), new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'seeder' ? 13 : 16, c.y * AIR_SCALE)]);
+                return <primitive key={`${c.id}-${car.id}`} object={new THREE.Line(g, tracer)} />;
+              }),
+          )}
+    </group>
+  );
+}
+
 function CityBoard() {
   const view = useCity((s) => s.view);
   const { lots, hq } = useLots();
@@ -260,6 +358,7 @@ function CityBoard() {
       <Buildings view={view} lots={lots} hq={hq} />
       <PickLots lots={lots} />
       <Markers view={view} lots={lots} hq={hq} />
+      <Sky view={view} />
     </>
   );
 }

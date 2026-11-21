@@ -19,6 +19,12 @@ export function cityView(state: CityState, side: CitySide): CityState {
       v.raid.takers = -1;
       v.raid.fighters = -1;
     }
+    // AIR-2: where a craft is going is hidden.
+    for (const c of v.craft) {
+      c.tx = c.x;
+      c.ty = c.y;
+      c.target = '';
+    }
     // SHOP-3: sabotage is hidden.
     v.shop.sabotaged = { 'shell-plate': 0, 'arc-carbine': 0 };
     for (const o of v.shop.orders) o.sabotaged = false;

@@ -21,6 +21,7 @@ export interface TraySlip {
 const pick = <T,>(items: T[], n: number): T => items[Math.abs(n) % items.length]!;
 
 export function buildingName(id: string | null): string {
+  if (id?.startsWith('crash')) return 'the wreck';
   return CITY.buildings.find((b) => b.id === id)?.name ?? 'a building';
 }
 export function orgName(id: string | null): string {
@@ -111,6 +112,8 @@ export function slipText(sl: Slip): string {
       return `${b}: a low hum on the wireless band after dark; every window pulses amber in unison.`;
     case 'spotted':
       return `${b}: a watcher saw one of the staff stand without blinking for an hour. A host, most likely.`;
+    case 'landing':
+      return `A craft set down on the roof of ${b}. By morning nobody inside remembers it.`;
     case 'confession':
       return `The captive talked before it went still: its cell answers to ${o}.`;
     default:
@@ -119,7 +122,7 @@ export function slipText(sl: Slip): string {
 }
 
 function slipTone(sl: Slip): Tone {
-  if (sl.kind === 'hum' || sl.kind === 'spotted' || sl.kind === 'confession') return 'alert';
+  if (sl.kind === 'hum' || sl.kind === 'spotted' || sl.kind === 'confession' || sl.kind === 'landing') return 'alert';
   if (sl.kind === 'power' || sl.kind === 'perfect' || sl.kind === 'vote') return 'caution';
   return 'note';
 }
@@ -199,6 +202,30 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
         break;
       case 'delivered':
         add(`A ${itemName(e.item)} was delivered. It looks fine.`, 'note', null, 'delivered');
+        break;
+      case 'launched':
+        add(e.kind === 'seeder' ? 'Something large and slow is crossing into the city from the edge. The sky watch calls it a seeder.' : 'A fast pale craft is over the city. The sky watch calls it a scout.', 'alert', null, `launched-${e.kind}`);
+        break;
+      case 'intercepting':
+        add(`${e.cars.length === 1 ? 'A patrol car is' : `${e.cars.length} patrol cars are`} going after the craft.`, 'note', null, 'intercepting');
+        break;
+      case 'dogfight':
+        add(e.hits ? `Hits on the craft: ${e.hits}.${e.carsHit.length ? ` ${e.carsHit.length} car hit back.` : ''}` : `No hits this pass.${e.carsHit.length ? ` ${e.carsHit.length} car hit.` : ''}`, 'note', null, 'dogfight');
+        break;
+      case 'downed':
+        add(e.building ? `The ${e.kind} is down, on ${buildingName(e.building)}. Its owner will send the bill. Survivors in the wreck.` : `The ${e.kind} is down over open ground. Survivors in the wreck.`, e.building ? 'caution' : 'ok', e.building, 'downed');
+        break;
+      case 'landed':
+        if (e.kind === 'scout') add('The scout turned away over the rooftops.', 'note', e.building, 'landed-scout');
+        break;
+      case 'carLost':
+        add('A patrol car went down with its crew.', 'alert', null, 'car-lost');
+        break;
+      case 'scattered':
+        add(`The survivors of an unraided wreck slipped away into ${orgName(e.org)}.`, 'caution', null, 'scattered');
+        break;
+      case 'carBought':
+        add(`A new patrol car in the hangar (${e.cost}).`, 'ok', null, 'car-bought');
         break;
       case 'cityOver':
         add(e.over.winner === 'agency' ? 'The council reports the city quiet. Act one is over.' : 'The switchboard goes dark.', e.over.winner === 'agency' ? 'ok' : 'alert', null, 'over');

@@ -43,6 +43,17 @@ export function cityInvariants(s: CityState): string[] {
   if (s.lab.project && s.lab.done.includes(s.lab.project)) out.push('the lab works on a done project');
   for (const k of ['shell-plate', 'arc-carbine'] as const) if (s.shop.sabotaged[k] > s.shop.stock[k] || s.shop.stock[k] < 0) out.push(`stock of ${k} is broken`);
   if (s.raid && s.raid.arrived && s.raid.takers + s.raid.fighters > s.raid.hostiles) out.push('raid composition exceeds its hostiles');
+  // CINV-10: the air war's cars, craft and crash sites agree.
+  for (const car of s.cars) {
+    if ((car.status === 'flying') !== (car.craft !== null)) out.push(`${car.id} flying without a craft or the reverse`);
+    if (car.craft && !s.craft.some((c) => c.id === car.craft)) out.push(`${car.id} chases a craft that is gone`);
+    if (car.hp < 0 || car.hp > t.air.carHp) out.push(`${car.id} hp ${car.hp}`);
+  }
+  for (const c of s.craft) {
+    if (c.hp <= 0 || c.hp > c.maxHp) out.push(`${c.id} hp ${c.hp}`);
+    if (c.x < 0 || c.y < 0 || c.x > CITY.size * 10 || c.y > CITY.size * 10) out.push(`${c.id} off the map`);
+  }
+  if (new Set(s.crashes.map((c) => c.id)).size !== s.crashes.length) out.push('crash ids repeat');
   // CINV-8
   if (s.over && s.over.tick > s.tick) out.push('over in the future');
   return out;

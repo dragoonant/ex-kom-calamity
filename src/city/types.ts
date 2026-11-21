@@ -12,9 +12,45 @@ export type Band = 'clean' | 'low' | 'some' | 'heavy';
 export const BANDS: Band[] = ['clean', 'low', 'some', 'heavy'];
 
 /** SIGN-2 */
-export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted' | 'confession';
-export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted', 'confession'];
+export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted' | 'confession' | 'landing';
+export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted', 'confession', 'landing'];
 export type ItemId = 'shell-plate' | 'arc-carbine';
+
+/** AIR-1: positions are in tenths of a city cell (integers, CARCH-6). */
+export type CraftKind = 'scout' | 'seeder';
+export interface Craft {
+  id: string;
+  kind: CraftKind;
+  x: number;
+  y: number;
+  /** AIR-2: where it is going; hidden from the agency (CVIEW-1). */
+  tx: number;
+  ty: number;
+  target: string;
+  hp: number;
+  maxHp: number;
+  /** AIR-4: press fires on contact; shadow follows without firing. */
+  posture: 'press' | 'shadow';
+}
+export interface Car {
+  id: string;
+  status: 'ready' | 'flying' | 'repair' | 'lost';
+  hp: number;
+  x: number;
+  y: number;
+  craft: string | null;
+  until: number;
+}
+/** AIR-6 */
+export interface Crash {
+  id: string;
+  kind: CraftKind;
+  x: number;
+  y: number;
+  building: string | null;
+  survivors: number;
+  until: number;
+}
 
 export interface Org {
   id: string;
@@ -122,6 +158,12 @@ export interface CityState {
   lab: { project: string | null; progress: number; done: string[] };
   /** SHOP-1..4: the workshop's job, the stock, and the supplier's deliveries; `sabotaged` is hidden from the agency (CVIEW-1). */
   shop: { item: ItemId | null; progress: number; stock: Record<ItemId, number>; sabotaged: Record<ItemId, number>; orders: { item: ItemId; arriveTick: number; sabotaged: boolean }[] };
+  /** AIR-1..7 */
+  craft: Craft[];
+  cars: Car[];
+  crashes: Crash[];
+  nextCraft: number;
+  hostileLaunchTick: number;
   over: CityOver | null;
   log: CityLogEntry[];
 }
@@ -137,6 +179,10 @@ export type CityAction =
   | { type: 'build'; side: 'agency'; item: ItemId }
   | { type: 'order'; side: 'agency'; item: ItemId }
   | { type: 'question'; side: 'agency' }
+  | { type: 'intercept'; side: 'agency'; craft: string; cars: string[] }
+  | { type: 'posture'; side: 'agency'; craft: string; posture: 'press' | 'shadow' }
+  | { type: 'buyCar'; side: 'agency' }
+  | { type: 'launch'; side: 'hostile'; kind: CraftKind; target: string }
   | { type: 'seed'; side: 'hostile'; org: string };
 
 export type CityLogEntry = Exclude<CityAction, { type: 'tick' }> | { type: 'tick'; count: number };
@@ -165,6 +211,15 @@ export type CityEvent =
   | { type: 'built'; item: ItemId }
   | { type: 'ordered'; item: ItemId; cost: number; arriveTick: number }
   | { type: 'delivered'; item: ItemId }
+  | { type: 'launched'; craft: string; kind: CraftKind; x: number; y: number }
+  | { type: 'intercepting'; craft: string; cars: string[] }
+  | { type: 'dogfight'; craft: string; craftHp: number; hits: number; carsHit: string[]; rolls: number[] }
+  | { type: 'carLost'; car: string }
+  | { type: 'carBack'; car: string }
+  | { type: 'downed'; craft: string; kind: CraftKind; x: number; y: number; building: string | null; crash: string }
+  | { type: 'landed'; craft: string; kind: CraftKind; building: string; amount: number }
+  | { type: 'scattered'; crash: string; org: string | null; amount: number }
+  | { type: 'carBought'; car: string; cost: number }
   | { type: 'cityOver'; over: CityOver };
 
 export type CityStepResult =

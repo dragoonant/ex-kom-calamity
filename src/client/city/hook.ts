@@ -2,7 +2,7 @@
 // window.__ekc. Time moves through advance(seconds) whether the loop runs or not.
 import * as THREE from 'three';
 import { CITY } from '../../data/city';
-import type { CityAction, CityEvent, CityState } from '../../city';
+import { cityView, type CityAction, type CityEvent, type CityState } from '../../city';
 import { worldToScreen } from '../board/world';
 import { cellCentre } from './cityMeshes';
 import { lotHeights } from './CityScene';
@@ -25,6 +25,8 @@ export interface CityHook {
   hash(): string | null;
   tray(): { text: string; kind: string }[];
   fight(): unknown;
+  /** Test seam: replaces the campaign state (a prepared scene for the e2e); the view and the board follow. */
+  load(state: CityState): void;
   /** Screen point just under the top of a building's lot (its visible face), for a real tap through the pick mesh. */
   screenPointOfBuilding(id: string): { x: number; y: number } | null;
 }
@@ -54,6 +56,7 @@ export function installCityHook(): void {
     hash: () => s().hash(),
     tray: () => s().tray.map((t) => ({ text: t.text, kind: t.kind })),
     fight: () => s().fight,
+    load: (state) => useCity.setState({ game: state, view: cityView(state, 'agency') }),
     screenPointOfBuilding: (id) => {
       const b = CITY.buildings.find((x) => x.id === id);
       if (!b) return null;

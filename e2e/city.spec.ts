@@ -112,3 +112,25 @@ test('a raid stocks the lab shelf and the LAB tab starts and finishes research (
   const kinds = await page.evaluate(() => window.__ekcCity!.tray().map((t) => t.kind));
   expect(kinds).toContain('research-done');
 });
+
+test('a seeder pauses the city and opens the SKY tab; INTERCEPT sends the cars into a dogfight (M5c)', async ({ page }) => {
+  await startCampaign(page);
+  // A prepared sky: day 30 at midnight with biomass to spend (AIR-2), through the hook's test seam.
+  await page.evaluate(() => {
+    const h = window.__ekcCity!;
+    const s = JSON.parse(JSON.stringify(h.state()!));
+    s.tick = 16 * 6 + 29 * 144;
+    s.biomass = 100;
+    h.load(s);
+    h.order({ type: 'launch', side: 'hostile', kind: 'seeder', target: 'city-hall' } as never);
+  });
+  await expect(page.getByTestId('sky-card')).toBeVisible();
+  expect(await page.evaluate(() => window.__ekcCity!.isPaused())).toBe(true);
+  const craftId = await page.evaluate(() => window.__ekcCity!.state()!.craft[0]!.id);
+  await page.getByTestId(`intercept-${craftId}`).click();
+  const flying = await page.evaluate(() => window.__ekcCity!.state()!.cars.filter((c) => c.status === 'flying').length);
+  expect(flying).toBe(2);
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(6 * 10));
+  const kinds = await page.evaluate(() => window.__ekcCity!.tray().map((t) => t.kind));
+  expect(kinds.some((k) => k === 'dogfight' || k === 'downed')).toBe(true);
+});

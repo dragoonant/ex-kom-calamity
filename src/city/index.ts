@@ -8,5 +8,6 @@ export { cityView } from './view';
 export { cityQuery } from './query';
 export { advanceCity, advanceCityTicks } from './advance';
 export { replayCity, hashCity, appendCityLog, expandCityLog } from './replay';
+export { buildingUnder, launchBlock, craftCost, dist } from './air';
 export { clockOf, ticksPerHour, ticksPerDay, isNightHour } from './time';
 export { bandOf, hostilesFor, winChance, downChance, grantOf, totalInfiltration, sourceOrg, orgOfBuilding, buildingDef, projectDef, researchBlock, hasDone, compositionFor, itemCost, supplierOrg, working } from './rules';

@@ -45,6 +45,8 @@ export interface CampaignSummary {
 /** A battle the player chose to fight from the door (M7); the result comes back through finishFight. */
 export interface PendingFight {
   building: string;
+  /** The building whose raid map the battle is fought on: the raid's own, or the one a wreck fell on (RULING AIR-8). */
+  site: string;
   agents: string[];
   hostiles: number;
 }
@@ -133,7 +135,7 @@ export const useCity = create<CityClient>((set, get) => {
     const slips = traySlipsFor(events, cityView(next, 'agency'), nextTrayId);
     const tray = slips.length ? [...get().tray, ...slips].slice(-MAX_TRAY) : get().tray;
     // Auto-pause when the squad reaches a door, an organisation turns, or the act ends.
-    const stop = events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver');
+    const stop = events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || (e.type === 'launched' && e.kind === 'seeder'));
     set({ game: next, view: cityView(next, 'agency'), tray, lastEvents: events, eventSeq: get().eventSeq + (events.length ? 1 : 0), ...(stop ? { paused: true } : {}), ...extra });
     if (stop) get().saveNow();
   };
@@ -220,7 +222,7 @@ export const useCity = create<CityClient>((set, get) => {
         if (!r.ok || r.state === s) break; // RAID-4 or the end: time stands still
         s = r.state;
         all.push(...r.events);
-        if (r.events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver')) break;
+        if (r.events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || (e.type === 'launched' && e.kind === 'seeder'))) break;
       }
       commit(s, all);
       sinceSave += n;
@@ -270,7 +272,8 @@ export const useCity = create<CityClient>((set, get) => {
     beginFight() {
       const g = get().game;
       if (!g?.raid?.arrived) return null;
-      const fight: PendingFight = { building: g.raid.building, agents: [...g.raid.agents], hostiles: g.raid.hostiles };
+      const crash = g.crashes.find((c) => c.id === g.raid!.building);
+      const fight: PendingFight = { building: g.raid.building, site: crash ? (crash.building ?? 'automat-row') : g.raid.building, agents: [...g.raid.agents], hostiles: g.raid.hostiles };
       set({ fight });
       get().saveNow();
       return fight;

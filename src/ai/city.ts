@@ -1,7 +1,7 @@
 // The city AI (docs/spec/20-city.md section 12). Pure functions of a side's view (CAI-1): the organism's planner and
 // the agency drivers the sim and an autopilot use. No DOM, three.js or React here.
 import { CITY } from '../data/city';
-import { cityLegalActions, clockOf, hasDone, itemCost, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
+import { buildingUnder, cityLegalActions, clockOf, hasDone, itemCost, launchBlock, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
 import { nextInt, seedRng } from '../engine/rng';
 
 export type CityDriver = (view: CityState) => CityAction[];
@@ -23,6 +23,26 @@ function rngFor(view: CityState, side: string) {
 /** CAI-3: the organism's planner. Guards the source, keeps away from watched and raided buildings, and spreads thin
  * below the slip thresholds to grow biomass, concentrating only where an organisation is near turning. */
 export const hostilePlanner: CityDriver = (view) => {
+  const out = seedPlan(view);
+  // CAI-8: once it has craft, a seeder at the chosen organisation's building when it can spare the biomass, or a
+  // cheap scout as a decoy while a seeder flies.
+  const a = view.tuning.air;
+  const seededOrg = out[0]?.type === 'seed' ? out[0].org : null;
+  const spare = view.biomass - (seededOrg ? view.tuning.spread.seedCost : 0);
+  const rng = rngFor(view, 'hostile-air');
+  const targetOrg = seededOrg ?? view.orgs.slice().sort((x, y) => x.infiltration - y.infiltration)[nextInt(rng, 3)]!.id;
+  const targets = CITY.buildings.filter((b) => b.org === targetOrg);
+  const target = targets[nextInt(rng, targets.length)]?.id;
+  if (target) {
+    const after = { ...view, biomass: spare };
+    if (spare >= a.seederCost && !launchBlock(after, 'seeder', target)) out.push({ type: 'launch', side: 'hostile', kind: 'seeder', target });
+    // A scout only as a decoy while a seeder is in the air, to draw the agency's cars away from it.
+    else if (spare >= a.scoutCost && view.craft.some((c) => c.kind === 'seeder') && !launchBlock(after, 'scout', target)) out.push({ type: 'launch', side: 'hostile', kind: 'scout', target });
+  }
+  return out;
+};
+
+function seedPlan(view: CityState): CityAction[] {
   const legal = cityLegalActions(view, 'hostile').filter((a) => a.type === 'seed');
   if (legal.length === 0) return [];
   const t = view.tuning;
@@ -52,7 +72,7 @@ export const hostilePlanner: CityDriver = (view) => {
     if (!best || score > best.score) best = { org: o.id, score };
   }
   return best ? [{ type: 'seed', side: 'hostile', org: best.org }] : [];
-};
+}
 
 /** CAI-4: a random legal hostile order now and then. */
 export const hostileRandom: CityDriver = (view) => {
@@ -128,6 +148,21 @@ export const agencyCareful: CityDriver = (view) => {
         break;
       }
     }
+  }
+  // CAI-9: the air war: every ready car after a seeder (a scout only when no seeder flies), pressing over open
+  // ground and shadowing over buildings; crash sites are raided first; a third car when money allows.
+  const readyCars = view.cars.filter((c) => c.status === 'ready').map((c) => c.id);
+  const seeders = view.craft.filter((c) => c.kind === 'seeder');
+  const quarry = seeders[0] ?? (view.craft.length && readyCars.length > 1 ? view.craft[0] : undefined);
+  if (quarry && readyCars.length) out.push({ type: 'intercept', side: 'agency', craft: quarry.id, cars: readyCars });
+  for (const c of view.craft) {
+    const want = buildingUnder(c.x, c.y) ? 'shadow' : 'press';
+    if (c.posture !== want) out.push({ type: 'posture', side: 'agency', craft: c.id, posture: want });
+  }
+  if (view.cars.filter((c) => c.status !== 'lost').length < 3 && view.money >= t.air.carCost + t.roster.recruitCost + 40) out.push({ type: 'buyCar', side: 'agency' });
+  if (!view.raid && view.crashes.length && ready.length >= 3) {
+    out.push({ type: 'raid', side: 'agency', building: view.crashes[0]!.id, agents: ready.slice(0, t.raid.maxAgents) });
+    return out;
   }
   const sus = suspicion(view);
   const ranked = [...sus.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1));

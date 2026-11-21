@@ -50,6 +50,11 @@ export function createCity(setup: CitySetup): CityState {
     shelf: { host: 0, taker: 0, fighter: 0, core: 0, liveHost: 0, liveTaker: 0 },
     lab: { project: null, progress: 0, done: [] },
     shop: { item: null, progress: 0, stock: { 'shell-plate': 0, 'arc-carbine': 0 }, sabotaged: { 'shell-plate': 0, 'arc-carbine': 0 }, orders: [] },
+    craft: [],
+    cars: Array.from({ length: tuning.air.startCars }, (_, i) => ({ id: `car${i + 1}`, status: 'ready' as const, hp: tuning.air.carHp, x: CITY.agency.hq.x * 10 + 5, y: CITY.agency.hq.y * 10 + 5, craft: null, until: 0 })),
+    crashes: [],
+    nextCraft: 1,
+    hostileLaunchTick: 0,
     over: null,
     log: [],
   };

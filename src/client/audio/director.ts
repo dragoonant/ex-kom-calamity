@@ -262,7 +262,7 @@ export class Director {
   private cityMusic(): MusicState | null {
     const c = useCity.getState();
     if (!c.active || c.fight || !c.view) return null;
-    if (c.view.raid) return 'city-crisis';
+    if (c.view.raid || c.view.craft.some((x) => x.kind === 'seeder')) return 'city-crisis';
     return cityQuery.clock(c.view).night ? 'city-night' : 'city-calm';
   }
 
@@ -293,7 +293,14 @@ export class Director {
       else if (e.type === 'raidArrived' || e.type === 'turned') fire('city-alert-urgent');
       else if (e.type === 'raidResolved') fire(e.result.won && !e.scandal ? 'city-research-done' : 'city-crash');
       else if (e.type === 'month') fire('city-month-end');
-      else if (e.type === 'recruited') fire('city-workshop-done');
+      else if (e.type === 'recruited' || e.type === 'built' || e.type === 'carBought') fire('city-workshop-done');
+      else if (e.type === 'researchDone') fire('city-research-done');
+      else if (e.type === 'launched') {
+        fire('city-alert-urgent');
+        fire('city-alien-craft');
+      } else if (e.type === 'intercepting') fire('city-car-launch');
+      else if (e.type === 'dogfight' && e.hits) fire('city-craft-hit');
+      else if (e.type === 'downed' || e.type === 'carLost') fire('city-crash');
     }
   }
 

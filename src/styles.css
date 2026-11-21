@@ -345,3 +345,6 @@ html:has(.sounds), body:has(.sounds) { overflow: auto; }
 .lab-list { max-height: 92px; overflow-y: auto; }
 .lab-project { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; font-size: 11px; }
 .lab-why { font-size: 9px; letter-spacing: 0; text-transform: none; color: var(--graphite-soft); }
+.sky-row { border-top: 1px solid var(--enamel-edge); padding-top: 4px; margin-top: 4px; }
+.car-lamp { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; font-size: 10px; }
+.tab-alert { border-color: var(--coral); box-shadow: 0 2px 0 var(--coral-deep); }

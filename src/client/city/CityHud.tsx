@@ -4,7 +4,7 @@
 // cityQuery result (CARCH-4). No title attributes (KB rule 8).
 import { useEffect, useState } from 'react';
 import { CITY, RESEARCH } from '../../data/city';
-import { cityQuery, hasDone, itemCost, projectDef, researchBlock, supplierOrg, type Agent, type CityState } from '../../city';
+import { buildingUnder, cityQuery, hasDone, itemCost, projectDef, researchBlock, supplierOrg, type Agent, type CityState } from '../../city';
 import { BAND_WORDS, buildingName, districtName, itemName, orgName, OVER_TEXT } from './text';
 import { CITY_SPEEDS, useCity } from './store';
 
@@ -136,6 +136,66 @@ function LabCard({ view }: { view: CityState }) {
   );
 }
 
+function overWhat(x: number, y: number): string {
+  const b = buildingUnder(x, y);
+  return b ? `over ${buildingName(b)}` : 'over open ground';
+}
+
+/** SKY (spec section 20): the craft in the air with INTERCEPT and PRESS or SHADOW, the cars, the crash sites. */
+function SkyCard({ view }: { view: CityState }) {
+  const { order } = useCity.getState();
+  const ready = view.cars.filter((c) => c.status === 'ready').map((c) => c.id);
+  const squad = view.agents.filter((a) => a.status === 'ready').slice(0, view.tuning.raid.maxAgents).map((a) => a.id);
+  return (
+    <div className="card" data-testid="sky-card">
+      <div className="num" data-testid="cars">
+        Cars:{' '}
+        {view.cars.map((c) => (
+          <span key={c.id} className="car-lamp">
+            <span className={`lamp ${c.status === 'ready' ? 'lamp-ok' : c.status === 'lost' ? 'lamp-off' : c.status === 'repair' ? 'lamp-alert' : 'lamp-caution'}`} /> {c.status.toUpperCase()}
+          </span>
+        ))}
+        <button type="button" className="toggle" data-testid="buy-car" disabled={view.money < view.tuning.air.carCost || view.cars.filter((c) => c.status !== 'lost').length >= view.tuning.air.carCap} onClick={() => order({ type: 'buyCar', side: 'agency' })}>
+          BUY A CAR ({view.tuning.air.carCost})
+        </button>
+      </div>
+      {view.craft.length === 0 && view.crashes.length === 0 && <div className="hint">The sky is clear. From the end of the first month the organism may send craft over the city.</div>}
+      {view.craft.map((c) => {
+        const chasing = view.cars.filter((car) => car.craft === c.id).length;
+        return (
+          <div key={c.id} className="sky-row" data-testid={`craft-${c.id}`}>
+            <div className="num">
+              <strong>{c.kind === 'seeder' ? 'SEEDER' : 'SCOUT'}</strong> {overWhat(c.x, c.y)} · hull {Math.round((100 * c.hp) / c.maxHp)}% · {chasing ? `${chasing} car${chasing > 1 ? 's' : ''} on it` : 'unchallenged'}
+            </div>
+            <div className="switch-row">
+              <button type="button" className="toggle toggle-alert" data-testid={`intercept-${c.id}`} disabled={ready.length === 0} onClick={() => order({ type: 'intercept', side: 'agency', craft: c.id, cars: ready })}>
+                INTERCEPT ({ready.length})
+              </button>
+              <button type="button" className={`toggle ${c.posture === 'press' ? 'toggle-on' : ''}`} data-testid={`press-${c.id}`} aria-pressed={c.posture === 'press'} onClick={() => order({ type: 'posture', side: 'agency', craft: c.id, posture: 'press' })}>
+                PRESS
+              </button>
+              <button type="button" className={`toggle ${c.posture === 'shadow' ? 'toggle-on' : ''}`} data-testid={`shadow-${c.id}`} aria-pressed={c.posture === 'shadow'} onClick={() => order({ type: 'posture', side: 'agency', craft: c.id, posture: 'shadow' })}>
+                SHADOW
+              </button>
+            </div>
+          </div>
+        );
+      })}
+      {view.crashes.map((cr) => (
+        <div key={cr.id} className="sky-row" data-testid={`crash-${cr.id}`}>
+          <div className="num">
+            WRECK of a {cr.kind} {cr.building ? `on ${buildingName(cr.building)}` : 'on open ground'} · {cr.survivors} survivors · {Math.max(0, Math.ceil((cr.until - view.tick) / 6))} h before they scatter
+          </div>
+          <button type="button" className="toggle toggle-alert" data-testid={`raid-${cr.id}`} disabled={!!view.raid || squad.length === 0} onClick={() => order({ type: 'raid', side: 'agency', building: cr.id, agents: squad })}>
+            RAID THE WRECK WITH {squad.length}
+          </button>
+        </div>
+      ))}
+      <div className="hint">Press to fire on contact, shadow to follow: a craft falls where it is, and a wreck on a building is billed to its owner.</div>
+    </div>
+  );
+}
+
 function DoorCover({ view }: { view: CityState }) {
   const { order, beginFight } = useCity.getState();
   // CVIEW-1 hides the hostiles only while the squad travels; at the door the view carries them (RAID-3, CQRY-3).
@@ -145,7 +205,7 @@ function DoorCover({ view }: { view: CityState }) {
   const chance = odds;
   return (
     <div className="cover" data-testid="door">
-      <div className="cover-title">SQUAD AT THE DOOR: {buildingName(view.raid.building).toUpperCase()}</div>
+      <div className="cover-title">SQUAD AT THE DOOR: {(view.raid.building.startsWith('crash') ? 'THE WRECK' : buildingName(view.raid.building)).toUpperCase()}</div>
       <div className="num">
         {view.raid.agents.length} agents: {view.raid.agents.map((id) => view.agents.find((a) => a.id === id)?.name).join(', ')}
       </div>
@@ -202,7 +262,11 @@ export function CityHud() {
   const saveOk = useCity((s) => s.saveOk);
   const { togglePause, setSpeed, leave, order, toggleSquad, select } = useCity.getState();
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const [tab, setTab] = useState<'file' | 'lab'>('file');
+  const [tab, setTab] = useState<'file' | 'lab' | 'sky'>('file');
+  const seeders = view?.craft.filter((c) => c.kind === 'seeder').length ?? 0;
+  useEffect(() => {
+    if (seeders > 0) setTab('sky');
+  }, [seeders]);
   useEffect(() => {
     if (selected) setTab('file');
   }, [selected]);
@@ -310,8 +374,11 @@ export function CityHud() {
               <button type="button" className={`toggle tab ${tab === 'lab' ? 'toggle-on' : ''}`} data-testid="tab-lab" aria-pressed={tab === 'lab'} onClick={() => setTab('lab')}>
                 LAB AND WORKSHOP{view.lab.project ? ' ·' : ''}
               </button>
+              <button type="button" className={`toggle tab ${tab === 'sky' ? 'toggle-on' : ''} ${view.craft.length || view.crashes.length ? 'tab-alert' : ''}`} data-testid="tab-sky" aria-pressed={tab === 'sky'} onClick={() => setTab('sky')}>
+                SKY{view.craft.length ? ` (${view.craft.length})` : ''}
+              </button>
             </div>
-            {tab === 'file' ? <BuildingCard view={view} /> : <LabCard view={view} />}
+            {tab === 'file' ? <BuildingCard view={view} /> : tab === 'lab' ? <LabCard view={view} /> : <SkyCard view={view} />}
           </section>
 
           <section className="panel panel-tray" aria-label="Message slips">

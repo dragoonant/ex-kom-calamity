@@ -2,7 +2,7 @@
 
 **The spec is the product** (KB rule 2): the engine in `src/city/` implements exactly this, tests under `tests/` are named by these ids (`tests/coverage.test.ts` fails on an id without a test), and every ambiguity is logged in section 15 as `RULING: <id> | <what we did> | <why>`. Where this spec and `docs/strategic-layer.md` or `docs/GAME-DESIGN.md` disagree, this spec wins. Every number written as `section.key = N` is a key in `src/data/city/tuning.json` (`npm run validate:data` checks the two agree); the city itself (districts, organisations, buildings) is `src/data/city/city.json`. Every number is a first guess *(tune)* until a `sim:city` result says otherwise (KB rule 30).
 
-**Scope (KB rule 6):** act 1 only, with M5b's lab and workshop (sections 17 to 19): the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
+**Scope (KB rule 6):** act 1 only, with M5b's lab and workshop (sections 17 to 19) and M5c's air war (section 20): the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
 
 ---
 
@@ -108,6 +108,8 @@
 - **CAI-4** `hostileRandom` seeds a random legal organisation.
 - **CAI-5** `agencyPassive` only resolves a raid at the door; `agencyRandom` on the hour, 8% of the time, gives a random legal order.
 - **CAI-6** `agencyCareful` (the sim's competent player and a future autopilot): resolves at the door; recruits back to 8 when it can spare the money; raids turned organisations first, then a building whose fresh report (under 4 days) says `some` or `heavy`, or `low` with a suspicion of 8 or more, with up to 6 ready agents once at least 4 are home; and sends spare agents to watch the most suspicious unwatched buildings, by a suspicion score from the week's slips (weighted by kind) and fresh reports.
+- **CAI-8** From day 30 the planner also launches a seeder at the organisation it seeds (or one of the three least infiltrated) when it can spare the biomass, and a scout only as a decoy while a seeder flies.
+- **CAI-9** The careful agency sends every ready car after the first seeder (a scout only with two cars free), presses over open ground and shadows over buildings, raids a crash site first with three or more agents, and buys a third car with money to spare.
 - **CAI-7** The careful agency also researches in a fixed order (restraints, the host's tells, antiserum, questioning, shell plate, arc carbine, hand scanner, evacuation, taker cage, the amber core, tracing the source) whenever the lab is idle and the next project it can start is found, questions captives, and builds kit up to a squad's worth when it has the cost plus a recruit's and 20 to spare. It never buys from the supplier.
 
 ## 13. Invariants (CINV) - checked by `sim:city` every city day
@@ -119,6 +121,7 @@
 - **CINV-6** At most `signs.keep` slips, ids increasing.
 - **CINV-7** The organisations and buildings match `city.json`.
 - **CINV-8** An end is never in the future.
+- **CINV-10** A car is flying exactly when it chases a craft, and that craft exists; car and craft health stay in range; craft stay on the map; crash ids are unique.
 - **CINV-9** The shelf never goes below 0; no project is done twice or worked on once done; sabotaged stock never exceeds the stock; a raid's takers and fighters never exceed its hostiles.
 
 ## 14. Sim (CSIM)
@@ -130,15 +133,15 @@
 | Agency driver | Wins | Mean days | Raids | Raids won | Clean raids | Agents killed | Citizens taken | End confidence | Ends |
 |---|---|---|---|---|---|---|---|---|---|
 | passive | 0.0% | 28.2 | 0 | 0 | 0 | 0 | 254 | 7 | turned 40 |
-| random | 0.0% | 30.6 | 8.2 | 4.3 | 2.4 | 1.6 | 253 | 6 | confidence 28, turned 12 |
-| careful | 90.0% | 87.5 | 167.8 | 126.8 | 20.8 | 13.3 | 214 | 85 | contained 36, turned 3, spread 1 |
+| random | 0.0% | 30.3 | 7.8 | 3.6 | 2.1 | 1.6 | 255 | 5 | confidence 29, turned 11 |
+| careful | 90.0% | 85.9 | 164.1 | 125.1 | 19.7 | 12.5 | 199 | 89 | contained 36, turned 4 |
 
-With M5b's lab and workshop (CAI-7). Seed 1 (careful) replays to `546f89e8`. Before M5b (M5a alone, 2026-11-21) the careful agency won 77.5%. **The careful agency sits on the 90% edge of CSIM-2's band:** research makes act 1 easier for a bot that works every hour, which may be right for act 1 and is an owner call (STATUS Open). M5b tuning (40 campaigns each): research as first guessed gave 92.5%; `shop.carbineWin` 3 -> 1 changed nothing (the bot rarely has money for kit) and was reverted; `lab.tellsAccuracy` 10 -> 5 gave 97.5% (noise) and was reverted; `spread.dailyGrowthPercent` 4 -> 5 changed nothing (a careful agency holds every organisation in the 1-point minimum) and was reverted; `spread.seedAmount` 5 -> 7 gave 90.0% (kept); 7 -> 9 gave 92.5% (louder seeds are found sooner) and was reverted. M5a tuning history (KB rule 30, one change at a time, 20 campaigns each): first guesses gave careful 100% in 4 days (the source was cleansed before the spread began), so CEND-4 became a 90-day act with SPREAD-7's floor (careful 40%); `spread.dailyGrowthPercent` 5 -> 4 (35%, no change); `roster.deathPercent` 50 -> 30 (30%, fewer squad wipes but more spread losses); `watch.hours` 24 -> 12 (70%, target met).
+With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (careful) replays to `7f92a08e`. M5c: as first written the planner spent biomass on scouts that did nothing and the careful agency won 92.5%; `air.seederAmount` 10 -> 20 changed nothing (the careful bot cleanses a seeded organisation fast) and was reverted; scouts as decoys only while a seeder flies (an AI change, CAI-8) gave 90.0%. Before M5b (M5a alone, 2026-11-21) the careful agency won 77.5%. **The careful agency sits on the 90% edge of CSIM-2's band:** research makes act 1 easier for a bot that works every hour, which may be right for act 1 and is an owner call (STATUS Open). M5b tuning (40 campaigns each): research as first guessed gave 92.5%; `shop.carbineWin` 3 -> 1 changed nothing (the bot rarely has money for kit) and was reverted; `lab.tellsAccuracy` 10 -> 5 gave 97.5% (noise) and was reverted; `spread.dailyGrowthPercent` 4 -> 5 changed nothing (a careful agency holds every organisation in the 1-point minimum) and was reverted; `spread.seedAmount` 5 -> 7 gave 90.0% (kept); 7 -> 9 gave 92.5% (louder seeds are found sooner) and was reverted. M5a tuning history (KB rule 30, one change at a time, 20 campaigns each): first guesses gave careful 100% in 4 days (the source was cleansed before the spread began), so CEND-4 became a 90-day act with SPREAD-7's floor (careful 40%); `spread.dailyGrowthPercent` 5 -> 4 (35%, no change); `roster.deathPercent` 50 -> 30 (30%, fewer squad wipes but more spread losses); `watch.hours` 24 -> 12 (70%, target met).
 
 ## 16. The client: save and the join (CSAV, CJOIN) - M6, M7
 - **CSAV-1** The campaign saves under `ekc-campaign` (KB rule 22; `PLAN.md` Q5's real-time form): on start, on every accepted order, on every pause, whenever the city pauses itself (CSAV-3), and every 600 ticks of play. The envelope holds the key, a version, the time, the state, its `hashCity` and the tray.
 - **CSAV-2** Continue reopens the save paused, and only if its key, version, shape and hash agree; otherwise the title says why and offers to discard it.
-- **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, or the act ends.
+- **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, a seeder crosses into the city, or the act ends.
 - **CJOIN-1** At a door the player may **fight it**: the battle opens on the raid site the building names (CITY-4).
 - **CJOIN-2** When the battle's report closes, its result returns as a fought result (RES-6): won if the agency won, the downed battle agents mapped in order onto the raid's agents, the battle's hostiles and citizens down. Leaving the battle without a report resolves the raid automatically.
 
@@ -160,6 +163,16 @@ With M5b's lab and workshop (CAI-7). Seed 1 (careful) replays to `546f89e8`. Bef
 ## 19. Raid composition (RAID-7)
 - **RAID-7** Of a raid's hostiles, a quarter (floored, at least 1 when there are 2 or more) are takers once the organisation is at `raid.takersAt = 20`, and a quarter (floored) are fighters once it is at `raid.fightersAt = 40`; the rest are hosts. Turned guards count as hosts.
 
+## 20. The air war (AIR) - M5c (`PLAN.md` D24 b: live intercepts; where the craft falls decides the battle)
+- **AIR-1** Craft and cars have positions in tenths of a city cell (integers, CARCH-6), 0 to 120 on each axis. Everything in the air moves on the hour (CLOCK-3 d), after the lab and before the slips.
+- **AIR-2** From day `air.startDay = 30` the organism may `launch { kind, target }` a **scout** for `air.scoutCost = 6` biomass or a **seeder** for `air.seederCost = 18`, once every `air.launchEveryHours = 24` hours. The craft enters at a point on the city's edge chosen by the engine's dice and flies straight for its target building's cell at `air.scoutSpeed = 30` or `air.seederSpeed = 12` tenths an hour, with `air.scoutHp = 30` or `air.seederHp = 90`. A seeder that arrives **lands**: its target's organisation gains `air.seederAmount = 10` infiltration and a genuine `landing` slip names the building. A scout that arrives turns away. The agency sees every craft but not where it is going (CVIEW-1).
+- **AIR-3** The agency starts with `air.startCars = 2` flying cars (`air.carHp = 60`) at headquarters. `intercept { craft, cars }` sends ready cars after a craft; they fly at `air.carSpeed = 40` tenths an hour toward it. `buyCar` adds one for `air.carCost = 80`, up to `air.carCap = 4` that are not lost.
+- **AIR-4** A craft's **posture**, set by `posture { craft, press | shadow }`, starts at `press`. Each hour that cars are within `air.engageRange = 6` tenths of a pressed craft they fight: each car hits with `air.carHitPercent = 60` for `air.carDamage = 15`; a seeder fires back at each engaged car, hitting with `air.craftHitPercent = 35` for `air.craftDamage = 20`. A shadowed craft is followed without a shot, so the player chooses where it falls.
+- **AIR-5** A car at 0 is lost. When its craft is gone, a car returns: damaged ones go to the hangar for `air.repairHours = 24` hours and come back whole.
+- **AIR-6** A craft at 0 **falls where it is**: a crash site with `air.seederSurvivors = 3` or `air.scoutSurvivors = 1` survivors. If it falls on a building's cell, the owner's standing drops `air.crashStanding = 10` and confidence `air.crashConfidence = 3`; over open ground nothing is billed.
+- **AIR-7** A crash site not raided within `air.crashHours = 24` hours scatters: the nearest building's organisation gains `air.scatterPerSurvivor = 2` infiltration per survivor.
+- **AIR-8** A crash site can be raided like a building (RAID-1); its hostiles are its survivors, a seeder's all takers. It is never a scandal; the site is cleared either way, and a won raid adds `air.crashCores = 2` cores from the craft's drive to the shelf.
+
 ## 15. Rulings log
 - RULING: CITY-4 | buildings fight on the three D20 raid maps by their floor count until M7 | the battle engine's ARCH-1 names a battle file; per-building maps are M7's join. provisional
 - RULING: RES-1 | raids are auto-resolved by a calibrated formula, not by running the battle engine | a real battle takes about 0.7 s headless, too slow for thousands of sim raids; M7 runs the real battle for raids the player fights and feeds RES-6. provisional
@@ -173,3 +186,6 @@ With M5b's lab and workshop (CAI-7). Seed 1 (careful) replays to `546f89e8`. Bef
 - RULING: CSAV-1 | the save holds the whole city state (with its log), not a replay log alone | replaying 90 days of ticks takes seconds on a phone; the state is about 30 KB. provisional
 - RULING: SHOP-4 | equipment changes only the auto-resolver; a fought battle uses the site's own weapons | the battle's roster and kit come from its file until the CJOIN-2 roster change. provisional
 - RULING: LAB-2 | field trials (`docs/strategic-layer.md` 3) wait for a later slice; a built item works at once | the first cut keeps the workshop to cost and time, so the sim can measure research alone. provisional
+- RULING: AIR-2 | craft fly in act 1 from day 30, before act 2 exists | D24's "open sky" is act 2; until it is built, a mid-act escalation lets the air war be played and measured. provisional
+- RULING: AIR-4 | the live dogfight is resolved on the hour by rolls; the client draws it in real time between hours | the city's tick is ten minutes, and an hour per real second at speed 1 keeps a fight readable while pausable. provisional
+- RULING: AIR-8 | a crash site's battle is fought on the raid map of the building it fell on, or the Sunbeam Automat's street when it fell on open ground | there are no open-ground battle maps yet. provisional

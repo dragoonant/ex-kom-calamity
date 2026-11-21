@@ -3,6 +3,7 @@ import { CITY, EVIDENCE } from '../data/city';
 import { nextInt } from '../engine/rng';
 import { newAgent } from './game';
 import { appendCityLog } from './replay';
+import { airHour, launch, launchBlock } from './air';
 import {
   bandOf,
   buildingDef,
@@ -229,9 +230,11 @@ function tick(state: CityState, action: CityAction): CityStepResult {
   // RAID-2, RAID-3: the squad arrives; the hostiles are fixed now.
   if (s.raid && !s.raid.arrived && s.tick >= s.raid.arriveTick) {
     const org = orgOfBuilding(s, s.raid.building);
+    const crash = s.crashes.find((c) => c.id === s.raid!.building);
     s.raid.arrived = true;
-    s.raid.hostiles = org ? hostilesFor(s, org) : 0;
-    const comp = org ? compositionFor(s, org, s.raid.hostiles) : { takers: 0, fighters: 0 };
+    // AIR-8: a crash site holds the craft's survivors; a seeder's are takers.
+    s.raid.hostiles = crash ? crash.survivors : org ? hostilesFor(s, org) : 0;
+    const comp = crash ? { takers: crash.kind === 'seeder' ? crash.survivors : 0, fighters: 0 } : org ? compositionFor(s, org, s.raid.hostiles) : { takers: 0, fighters: 0 };
     s.raid.takers = comp.takers;
     s.raid.fighters = comp.fighters;
     events.push({ type: 'raidArrived', building: s.raid.building, hostiles: s.raid.hostiles });
@@ -240,6 +243,7 @@ function tick(state: CityState, action: CityAction): CityStepResult {
   if (abs % tph === 0) {
     const c = clockOf(s.tuning, s.tick);
     labHour(s, events);
+    airHour(s, events);
     hourSigns(s, events);
     events.push({ type: 'hour', tick: s.tick, hour: c.hour });
   }
@@ -345,7 +349,13 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     events.push({ type: 'shelved', ...add });
   }
   // RAID-6: a raid on a clean building is a scandal.
-  const scandal = r.hostiles === 0;
+  const crash = s.crashes.find((c) => c.id === r.building);
+  if (crash) {
+    // AIR-8: the site is cleared either way; a win recovers the craft's amber drive.
+    s.crashes = s.crashes.filter((c) => c.id !== crash.id);
+    if (result.won) s.shelf.core += s.tuning.air.crashCores;
+  }
+  const scandal = r.hostiles === 0 && !crash;
   if (scandal) {
     s.score.cleanRaids += 1;
     addConfidence(s, -s.tuning.fund.scandalLoss, 'raid on a clean building', events);
@@ -404,7 +414,7 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
     case 'raid': {
       if (side !== 'agency') return reject(state, 'raid is an agency order');
       if (state.raid) return reject(state, 'a raid is already under way');
-      if (!buildingDef(action.building)) return reject(state, `no building ${String(action.building)}`);
+      if (!buildingDef(action.building) && !state.crashes.some((c) => c.id === action.building)) return reject(state, `no building or crash site ${String(action.building)}`);
       if (!Array.isArray(action.agents) || action.agents.length === 0) return reject(state, 'a raid needs at least one agent');
       if (action.agents.length > state.tuning.raid.maxAgents) return reject(state, `at most ${state.tuning.raid.maxAgents} agents on a raid`);
       if (new Set(action.agents).size !== action.agents.length) return reject(state, 'an agent is listed twice');
@@ -492,6 +502,49 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
         b.watch = { band: bandOf(best.infiltration), tick: s.tick };
       }
       return accept(s, action, events);
+    }
+    case 'launch': {
+      if (side !== 'hostile') return reject(state, 'launch is a hostile order');
+      if (action.kind !== 'scout' && action.kind !== 'seeder') return reject(state, 'no such craft');
+      const why = launchBlock(state, action.kind, action.target);
+      if (why) return reject(state, why);
+      const s = clone(state);
+      const events: CityEvent[] = [];
+      launch(s, action.kind, action.target, events);
+      return accept(s, action, events);
+    }
+    case 'intercept': {
+      if (side !== 'agency') return reject(state, 'intercept is an agency order');
+      const c = state.craft.find((x) => x.id === action.craft);
+      if (!c) return reject(state, `no craft ${String(action.craft)}`);
+      if (!Array.isArray(action.cars) || action.cars.length === 0) return reject(state, 'an intercept needs a car');
+      if (new Set(action.cars).size !== action.cars.length) return reject(state, 'a car is listed twice');
+      for (const id of action.cars) if (state.cars.find((x) => x.id === id)?.status !== 'ready') return reject(state, `car ${String(id)} is not ready`);
+      const s = clone(state);
+      for (const car of s.cars) if (action.cars.includes(car.id)) {
+        car.status = 'flying';
+        car.craft = c.id;
+      }
+      return accept(s, action, [{ type: 'intercepting', craft: c.id, cars: [...action.cars] }]);
+    }
+    case 'posture': {
+      if (side !== 'agency') return reject(state, 'posture is an agency order');
+      if (action.posture !== 'press' && action.posture !== 'shadow') return reject(state, 'press or shadow');
+      if (!state.craft.some((x) => x.id === action.craft)) return reject(state, `no craft ${String(action.craft)}`);
+      const s = clone(state);
+      s.craft.find((x) => x.id === action.craft)!.posture = action.posture;
+      return accept(s, action, []);
+    }
+    case 'buyCar': {
+      if (side !== 'agency') return reject(state, 'buyCar is an agency order');
+      const a = state.tuning.air;
+      if (state.money < a.carCost) return reject(state, 'not enough money');
+      if (state.cars.filter((c) => c.status !== 'lost').length >= a.carCap) return reject(state, 'the hangar is full');
+      const s = clone(state);
+      const id = `car${s.cars.length + 1}`;
+      s.cars.push({ id, status: 'ready', hp: a.carHp, x: CITY.agency.hq.x * 10 + 5, y: CITY.agency.hq.y * 10 + 5, craft: null, until: 0 });
+      s.money -= a.carCost;
+      return accept(s, action, [{ type: 'carBought', car: id, cost: a.carCost }]);
     }
     case 'seed': {
       if (side !== 'hostile') return reject(state, 'seed is a hostile order');
