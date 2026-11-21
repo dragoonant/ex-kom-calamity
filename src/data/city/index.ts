@@ -14,6 +14,7 @@ export interface CityTuning {
   fund: { startMoney: number; startConfidence: number; grantBase: number; lobbyCutPercent: number; turnedCutPercent: number; winGain: number; scandalLoss: number; civilianLoss: number; agentLoss: number; missingPer100Points: number };
   end: { confidenceFloor: number; turnedLosePercent: number; containedTotal: number; actDays: number };
   lab: { capturePerRaid: number; tellsAccuracy: number; scannerAccuracy: number; scannerSpot: number; antiserumDeathPercent: number; evacuationCivilianPercent: number };
+  act: { act2Days: number; act3Days: number; biomassBonusPercent: number; launchEveryHours: number; hqScoutRange: number; carrierCost: number; carrierSpeed: number; carrierHp: number; carrierAmount: number; carrierSurvivors: number; carrierDamagePercent: number; assaultCost: number; assaultEveryDays: number; assaultHostiles: number; finalHostiles: number };
   air: { startDay: number; launchEveryHours: number; scoutCost: number; seederCost: number; scoutSpeed: number; seederSpeed: number; scoutHp: number; seederHp: number; carSpeed: number; carHp: number; carHitPercent: number; carDamage: number; craftHitPercent: number; craftDamage: number; engageRange: number; startCars: number; carCap: number; carCost: number; repairHours: number; seederAmount: number; crashStanding: number; crashConfidence: number; seederSurvivors: number; scoutSurvivors: number; crashHours: number; crashCores: number; scatterPerSurvivor: number };
   shop: { plateCost: number; plateHours: number; carbineCost: number; carbineHours: number; supplierPricePercent: number; supplierHours: number; sabotageAt: number; sabotageBiomassPercent: number; plateWin: number; plateDownCutPercent: number; carbineWin: number };
 }
@@ -36,7 +37,7 @@ export interface CityDef {
   districts: DistrictDef[];
   orgs: OrgDef[];
   buildings: BuildingDef[];
-  agency: { hq: { name: string; x: number; y: number }; names: string[] };
+  agency: { hq: { name: string; x: number; y: number }; names: string[]; final: string };
 }
 
 function strip<T>(o: T): T {

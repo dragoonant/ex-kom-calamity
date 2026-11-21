@@ -134,3 +134,36 @@ test('a seeder pauses the city and opens the SKY tab; INTERCEPT sends the cars i
   const kinds = await page.evaluate(() => window.__ekcCity!.tray().map((t) => t.kind));
   expect(kinds.some((k) => k === 'dogfight' || k === 'downed')).toBe(true);
 });
+
+test('act 3: the act card, an assault on headquarters held, and the final raid wins the campaign', async ({ page }) => {
+  await startCampaign(page);
+  await page.evaluate(() => {
+    const h = window.__ekcCity!;
+    const s = JSON.parse(JSON.stringify(h.state()!));
+    s.act = 3;
+    s.actDay = 150;
+    s.tick = 16 * 6 + 150 * 144;
+    s.hqFound = true;
+    s.biomass = 200;
+    s.lab.done.push('source-trace');
+    for (const o of s.orgs) o.infiltration = 0;
+    s.tuning.res.winMinPercent = 100;
+    s.tuning.res.winMaxPercent = 100;
+    s.tuning.res.downPerHostilePercent = 0;
+    s.tuning.res.downOnLossPercent = 0;
+    h.load(s);
+  });
+  await expect(page.getByTestId('act-cover')).toContainText('PERFECT DAY');
+  await page.getByTestId('act-continue').click();
+  await page.evaluate(() => window.__ekcCity!.order({ type: 'assault', side: 'hostile' } as never));
+  await expect(page.getByTestId('defence')).toBeVisible();
+  await page.getByTestId('defence-auto').click();
+  await expect(page.getByTestId('defence')).toBeHidden();
+  await page.evaluate(() => window.__ekcCity!.select('ambrel-tower'));
+  await expect(page.getByTestId('building-card')).toContainText('THE SOURCE');
+  await page.getByTestId('raid').click();
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(12));
+  await expect(page.getByTestId('door')).toContainText('THE SOURCE');
+  await page.getByTestId('auto-resolve').click();
+  await expect(page.getByTestId('city-over')).toContainText('THE CITY IS SAVED');
+});

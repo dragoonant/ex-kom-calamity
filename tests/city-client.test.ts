@@ -67,7 +67,7 @@ describe('16. The client (CSAV, CJOIN)', () => {
     agents[2]!.down = true;
     const r = step(b, { type: 'withdraw', side: 'agency' });
     expect(r.ok).toBe(true);
-    const res = resultFromBattle(r.state, { building: 'automat-row', site: 'automat-row', agents: ['ag3', 'ag4'], hostiles: 2 });
+    const res = resultFromBattle(r.state, { kind: 'raid', building: 'automat-row', site: 'automat-row', agents: ['ag3', 'ag4'], hostiles: 2 });
     expect(res.won).toBe(false);
     expect(res.agentsDown).toEqual(['ag3']);
     useCity.getState().start(8);

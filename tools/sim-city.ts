@@ -23,6 +23,8 @@ for (const [name, agency] of Object.entries(CITY_AGENCY_DRIVERS)) {
   let dead = 0;
   let taken = 0;
   let confidence = 0;
+  let act2 = 0;
+  let act3 = 0;
   for (let i = 0; i < campaigns; i++) {
     const seed = seed0 + i;
     const r = runCity({ seed, agency, hostile: CITY_HOSTILE_DRIVERS.planner });
@@ -41,9 +43,11 @@ for (const [name, agency] of Object.entries(CITY_AGENCY_DRIVERS)) {
     dead += o.score.agentsDead;
     taken += o.score.taken;
     confidence += o.confidence;
+    if (r.state.act >= 2) act2 += 1;
+    if (r.state.act >= 3) act3 += 1;
   }
   rates[name] = (100 * wins) / campaigns;
-  rows.push({ agency: name, campaigns, 'agency wins': `${rates[name]!.toFixed(1)}%`, 'mean days': +(days / campaigns).toFixed(1), raids: +(raids / campaigns).toFixed(1), 'raids won': +(won / campaigns).toFixed(1), 'clean raids': +(clean / campaigns).toFixed(1), 'agents dead': +(dead / campaigns).toFixed(1), taken: +(taken / campaigns).toFixed(0), 'end confidence': +(confidence / campaigns).toFixed(0), ends: Object.entries(reasons).map(([k, v]) => `${k} ${v}`).join(', ') });
+  rows.push({ agency: name, campaigns, 'agency wins': `${rates[name]!.toFixed(1)}%`, 'reached act 2': `${((100 * act2) / campaigns).toFixed(0)}%`, 'reached act 3': `${((100 * act3) / campaigns).toFixed(0)}%`, 'mean days': +(days / campaigns).toFixed(1), raids: +(raids / campaigns).toFixed(1), 'raids won': +(won / campaigns).toFixed(1), 'clean raids': +(clean / campaigns).toFixed(1), 'agents dead': +(dead / campaigns).toFixed(1), taken: +(taken / campaigns).toFixed(0), 'end confidence': +(confidence / campaigns).toFixed(0), ends: Object.entries(reasons).map(([k, v]) => `${k} ${v}`).join(', ') });
 }
 console.table(rows);
 // CSIM-3: a seed replays to the same hash.
@@ -56,7 +60,7 @@ if (!same) failed = true;
 const targets: [string, boolean][] = [
   ['passive never wins', rates.passive === 0],
   ['random wins at most 10%', (rates.random ?? 100) <= 10],
-  ['careful wins 55% to 90%', (rates.careful ?? 0) >= 55 && (rates.careful ?? 0) <= 90],
+  ['careful wins the campaign 40% to 85%', (rates.careful ?? 0) >= 40 && (rates.careful ?? 0) <= 85],
 ];
 for (const [label, ok] of targets) {
   console.log(`${ok ? 'PASS' : 'FAIL'} ${label}`);

@@ -54,6 +54,10 @@ export function cityInvariants(s: CityState): string[] {
     if (c.x < 0 || c.y < 0 || c.x > CITY.size * 10 || c.y > CITY.size * 10) out.push(`${c.id} off the map`);
   }
   if (new Set(s.crashes.map((c) => c.id)).size !== s.crashes.length) out.push('crash ids repeat');
+  // CINV-11
+  if (![1, 2, 3].includes(s.act)) out.push(`act ${s.act}`);
+  if (s.defence && s.act !== 3) out.push('an assault outside act 3');
+  if (s.hqFound && s.act < 2) out.push('headquarters found in act 1');
   // CINV-8
   if (s.over && s.over.tick > s.tick) out.push('over in the future');
   return out;
