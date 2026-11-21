@@ -1,0 +1,112 @@
+{
+ "role": "citizen",
+ "reference": "docs/concept/samples/chrome-citizen-1.jpg",
+ "attempt": {
+  "role": "citizen",
+  "reference": "docs/concept/samples/chrome-citizen-1.jpg",
+  "seed": 1234,
+  "preset": "high",
+  "octree": 512,
+  "steps": 50,
+  "guidance": 5.0,
+  "faces": 30000,
+  "texture": 2048,
+  "cutBase": false,
+  "stages": {
+   "cutout": {
+    "seconds": 17,
+    "ok": true,
+    "tail": [
+     "cutout (1153, 1536)"
+    ]
+   },
+   "shape": {
+    "seconds": 183,
+    "ok": true,
+    "tail": [
+     "Diffusion Sampling::   4%|\u258d         | 2/50 [00:05<01:58,  2.47s/it]",
+     "Diffusion Sampling::   6%|\u258c         | 3/50 [00:06<01:13,  1.56s/it]",
+     "Diffusion Sampling::   8%|\u258a         | 4/50 [00:06<00:52,  1.14s/it]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:29<00:00,  2.05it/s]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:29<00:00,  1.71it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16794/16876 [01:22<00:00, 203.87it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16816/16876 [01:22<00:00, 203.29it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16838/16876 [01:22<00:00, 203.06it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16860/16876 [01:22<00:00, 203.36it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:22<00:00, 204.08it/s]",
+     "generated in 121s: 1350298 raw faces",
+     "shape: 30000 faces, 178s total"
+    ]
+   },
+   "paint": {
+    "seconds": 59,
+    "ok": true,
+    "tail": [
+     "loading Hunyuan3D 2.0 paint model",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:01<00:00,  3.14it/s]",
+     "Loading pipeline components...:  50%|\u2588\u2588\u2588\u2588\u2588     | 3/6 [00:06<00:07,  2.40s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:06<00:00,  1.13s/it]",
+     "loaded in 22s; painting at 2048",
+     "textured: 3.7 MB, 57s total"
+    ]
+   }
+  },
+  "started": "2026-11-20 12:22:23",
+  "finished": "2026-11-20 12:26:41",
+  "gpuSeconds": 242
+ },
+ "finalize": {
+  "landmarks": {
+   "chin_frac": 0.26,
+   "crotch_frac": 0.8
+  },
+  "full": {
+   "triangles": 30000,
+   "bytes": 6789256,
+   "texture": "as painted"
+  },
+  "lod": {
+   "triangles": 8000,
+   "bytes": 1980136,
+   "texture": 1024
+  },
+  "dimensions": {
+   "width": 0.829,
+   "depth": 0.435,
+   "height": 1.2
+  },
+  "yaw": 0.0,
+  "roughness": 0.9,
+  "regrade": true
+ },
+ "gate": {
+  "verdict": "fail",
+  "fails": [
+   "head 26% not in 30-40%",
+   "shoulders 2.22 heads not in 1.6-2.0"
+  ],
+  "model": {
+   "head_share": 0.26,
+   "shoulders_in_heads": 2.22,
+   "legs_in_heads": 0.8,
+   "aspect": 0.692,
+   "chin_source": "given"
+  },
+  "reference": {
+   "head_share": 0.24,
+   "shoulders_in_heads": 2.33,
+   "legs_in_heads": 0.92,
+   "aspect": 0.643,
+   "chin_source": "given"
+  }
+ },
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\citizen\\s1234-high",
+ "files": [
+  "cutout.png",
+  "shape.glb",
+  "textured-lod.glb",
+  "textured.glb",
+  "turnaround-lod.jpg",
+  "turnaround.jpg"
+ ]
+}

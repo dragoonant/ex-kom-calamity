@@ -6,9 +6,9 @@
 /** hashState of the snapshot on its map's pristine tiles (the save's tile diff is empty at the start). */
 function hashOf(snapshot: State): string {
   const code = "import { hashState, parseMap } from './src/engine'; import { MAPS } from './src/data'; let t = ''; process.stdin.on('data', (d) => (t += d)); process.stdin.on('end', () => { const s = JSON.parse(t); process.stdout.write(hashState({ ...s, tiles: parseMap(MAPS[s.mapId]) })); });";
-  // Windows cannot spawn the npx shim without a shell (ENOENT); the code is ours, so a shell is safe.
-  const shell = process.platform === 'win32';
-  return execFileSync('npx', ['tsx', '--eval', shell ? JSON.stringify(code) : code], { input: JSON.stringify(snapshot), shell }).toString().trim();
+  // node itself with tsx as a loader, not `npx tsx`: on Windows `npx` is a .cmd that execFileSync cannot spawn (ENOENT),
+  // which failed this test on the owner's machine (M4d, 2026-11-20).
+  return execFileSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', code], { input: JSON.stringify(snapshot) }).toString().trim();
 }
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';

@@ -16,13 +16,24 @@ import { COLOURS, CoreGlow, FigureModel, NO_RAYCAST } from './placeholders';
 import { RiggedModel } from './Rigged';
 import { FIGURE_H, LEVEL_H, tileToWorld } from './world';
 
-/** The figure role a unit in the agency's view is drawn with (docs/figures.md section 2). */
+/**
+ * The figure role a unit in the agency's view is drawn with (docs/figures.md section 2). RULING CITIZEN-2: the two
+ * citizen bodies (D22) are dealt by the unit id, odd last digit body 2, even body 1, so the street shows both and a
+ * citizen keeps its body from frame to frame and across a save; a hidden host is a citizen to the view (HIDE-1) and
+ * gets its body by the same rule.
+ */
 export function roleOf(u: Unit): FigureRole {
   if (u.side === 'agency') return u.template === 'agent-t2' ? 'agent-t2' : 'agent-t1';
   if (u.template === 'taker') return 'taker';
   if (u.template === 'fighter') return 'fighter';
   if (u.template === 'host') return 'host-revealed'; // the view already turned an unrevealed host into a citizen
-  return 'citizen';
+  return citizenBody(u.id);
+}
+
+/** Which citizen body a unit id wears (RULING CITIZEN-2): the id's last digit, odd is body 2. */
+export function citizenBody(id: string): 'citizen' | 'citizen-2' {
+  const digit = Number(id.replace(/\D/g, '').slice(-1));
+  return Number.isFinite(digit) && digit % 2 === 1 ? 'citizen-2' : 'citizen';
 }
 
 /** Smoothed positions of the drawn figures, read by the instanced hp bars each frame. */

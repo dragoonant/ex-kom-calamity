@@ -83,7 +83,13 @@ test('pause, order, advance, save; close the browser; Continue reopens the same 
     expect(errors2).toEqual([]);
     await ctx.close();
   } finally {
-    rmSync(dir, { recursive: true, force: true });
+    // Chromium can still hold the profile for a moment after close on Windows (EPERM): retry, and never let the cleanup's
+    // own error replace the test's (a leftover temp profile is harmless; a masked assertion is not).
+    try {
+      rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 });
+    } catch (e) {
+      console.warn(`profile not removed: ${String(e)}`);
+    }
   }
 });
 
