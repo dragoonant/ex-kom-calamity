@@ -1,6 +1,6 @@
 # The strategic layer, proposal 1 (2026-11-21)
 
-Status: **proposal**, the drafter's, awaiting the owner (KB rule 12). It grows `docs/GAME-DESIGN.md` section 4 and becomes `docs/spec/20-city.md` in M5; where they disagree, the spec wins (KB rule 2). Every proper name here is a placeholder (D10) and was checked against `docs/GAME-DESIGN.md` section 5 (KB rule 29). Numbers marked *(tune)* are first guesses that will live in data (KB rule 30).
+Status: **proposal**; its four shaping questions were answered by the owner on 2026-11-21, all on the recommended option (`PLAN.md` D24). Details below them are still the drafter's. It grows `docs/GAME-DESIGN.md` section 4 and becomes `docs/spec/20-city.md` in M5; where they disagree, the spec wins (KB rule 2). Every proper name here is a placeholder (D10) and was checked against `docs/GAME-DESIGN.md` section 5 (KB rule 29). Numbers marked *(tune)* are first guesses that will live in data (KB rule 30).
 
 ## 0. The one idea
 **Every strategic choice changes the next battle, and every battle changes the next strategic choice.** Nothing on the city layer is a stat bump in a menu: research gives the squad new *verbs*, the air war decides *where* and *what* the next battle is, and the hidden enemy is a second player with an economy the squad can starve.
@@ -121,10 +121,10 @@ Suggested slices, each shippable:
 3. **M5c** the air war: craft, intercept with pause, crash location, crash-site battles.
 4. **M6** the 3D city on the switchboard; **M7** the join (a chosen raid opens the real battle, results flow back, one campaign save).
 
-## Open questions for the owner (defaults in use until answered)
-| # | Question | Default |
+## Owner decisions (2026-11-21, `PLAN.md` D24)
+| # | Question | Answer |
 |---|---|---|
 | S1 | How hidden is infiltration? | Symptoms only, narrowed to a band by watching and research; never a number |
-| S2 | Air combat form | Real time with pause over the 3D city; where the craft falls decides the next battle |
+| S2 | Air combat form | Live, real time with pause over the 3D city; where the craft falls decides the next battle |
 | S3 | Research gating | Evidence-gated, with live capture worth most |
 | S4 | Campaign length | Three acts, about 10 to 15 hours *(tune)* |
