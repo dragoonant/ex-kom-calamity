@@ -6,6 +6,7 @@
 // edge-shade mask) and `aAlt` (the interior face's colour as a ratio of the instance colour, so the visibility,
 // path and hover tints of Tiles.tsx still carry through). Pure three.js: no React here.
 import * as THREE from 'three';
+import { view } from './world';
 
 /** Patterns for a vertical face. */
 export const SIDE = {
@@ -118,8 +119,13 @@ float ekcRough = 1.0;
   vec3 col = base;
   float ao = 1.0;
   // A slow grime variation so large walls and streets are not one flat colour.
+  #ifdef EKC_LOW
+  float grime = 0.7;
+  #else
   float grime = ekcNoise(wp.xz * 0.35 + vec2(wp.y * 0.6, 0.0));
+  #endif
   if (n.y > 0.5) {
+    #ifndef EKC_LOW
     vec2 uv = wp.xz;
     if (topP == 1) {
       // Floor boards along x, staggered ends.
@@ -155,6 +161,7 @@ float ekcRough = 1.0;
       // Paving slabs half a tile square, each its own shade, dark joints.
       col = ekcBond(uv, vec2(0.5, 0.5), vec2(0.03, 0.03), 0.0, base, base * 0.62, 0.12);
     }
+    #endif
     // Shade the floor where it meets a wall (bits: west, east, north, south).
     vec2 f = fract(wp.xz);
     if ((edges & 1) != 0) ao *= mix(0.6, 1.0, smoothstep(0.0, 0.42, f.x));
@@ -171,6 +178,9 @@ float ekcRough = 1.0;
       sideP = 3;
     }
     float hl = mod(wp.y, 2.0);
+    #ifdef EKC_LOW
+    sideP = 0;
+    #endif
     if (sideP == 1) {
       // Brick, running bond: 16 courses a storey, pale lime mortar.
       col = ekcBond(uv, vec2(0.33, 0.125), vec2(0.045, 0.1), 0.5, base, mix(base, vec3(0.8, 0.76, 0.68), 0.72), 0.26);
@@ -216,13 +226,15 @@ float ekcRough = 1.0;
  */
 export function patchSurface<T extends THREE.MeshStandardMaterial>(mat: T, key = 'ekc-surface'): T {
   mat.onBeforeCompile = (shader) => {
+    // The low tier (world.ts view.detail) keeps the colours, edge shading and panes, and skips the patterns.
+    if (view.detail === 'low') shader.fragmentShader = `#define EKC_LOW\n${shader.fragmentShader}`;
     shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\n${VERTEX_HEAD}`).replace('#include <begin_vertex>', `#include <begin_vertex>\n${VERTEX_BODY}`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${FRAGMENT_HEAD}`)
       .replace('#include <color_fragment>', `#include <color_fragment>\n${FRAGMENT_SURFACE}`)
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor *= ekcRough;');
   };
-  mat.customProgramCacheKey = () => key;
+  mat.customProgramCacheKey = () => `${key}-${view.detail}`;
   return mat;
 }
 

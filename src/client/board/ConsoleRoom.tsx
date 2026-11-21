@@ -4,12 +4,13 @@
 // dither (no transparency sorting), so a low or far camera always sees the board (KB gotchas). Ambient motion runs
 // on the wall clock, not the sim: the room is not the battle, and it keeps working while the battle is paused.
 // No handlers and no raycast anywhere (KB rule 25).
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useClient } from '../store';
 import { MAX_STATIONS, buildRoom, stationFade, type RoomGeometry } from './room';
-import { live, rig } from './world';
+import { bakeLight } from './light';
+import { detectDetail, live, rig, view } from './world';
 
 const NO_RAYCAST = () => undefined;
 
@@ -165,6 +166,7 @@ function floorMaterial(room: RoomGeometry): THREE.MeshStandardMaterial {
   };
   m.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, floorUniforms);
+    if (view.detail === 'low') shader.fragmentShader = `#define EKC_LOW\n${shader.fragmentShader}`;
     shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vFloorW;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvFloorW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -184,6 +186,7 @@ function floorMaterial(room: RoomGeometry): THREE.MeshStandardMaterial {
           vec2 p = vFloorW.xz - uC;
           float r = length(p);
           vec3 col = vec3(0.84, 0.81, 0.74);
+          #ifndef EKC_LOW
           vec2 cell = floor(vFloorW.xz * 3.0);
           float chip = fh(cell);
           float det = 1.0 - smoothstep(0.15, 0.4, max(fwidth(vFloorW.x * 3.0), fwidth(vFloorW.z * 3.0)));
@@ -192,6 +195,7 @@ function floorMaterial(room: RoomGeometry): THREE.MeshStandardMaterial {
           vec2 g = abs(fract(vFloorW.xz / 12.0) - 0.5);
           float jw = fwidth(vFloorW.x / 12.0) * 1.2;
           col = mix(col, vec3(0.78, 0.66, 0.4), smoothstep(0.5 - jw * 1.5, 0.5, max(g.x, g.y)) * 0.7);
+          #endif
           // A graphite apron round our console's foot.
           vec2 dq = abs(p) - uDeck;
           float dd = length(max(dq, 0.0)) + min(max(dq.x, dq.y), 0.0);
@@ -208,9 +212,29 @@ function floorMaterial(room: RoomGeometry): THREE.MeshStandardMaterial {
       )
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * ${AMBIENT.toFixed(2)};`);
   };
-  m.customProgramCacheKey = () => 'ekc-room-floor';
+  m.customProgramCacheKey = () => `ekc-room-floor-${view.detail}`;
   return m;
 }
+
+/**
+ * The low detail tier (software renderers): the same shader motion and fade on an unlit material, the light baked
+ * into the vertex colours once (light.ts), so no per-pixel lighting runs on the CPU.
+ */
+function roomMaterialLow(key: string): THREE.MeshBasicMaterial {
+  const m = new THREE.MeshBasicMaterial({ vertexColors: true });
+  m.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\n${ANIM_HEAD}`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>\nvec3 objectNormal = vec3(0.0, 1.0, 0.0);\n${ANIM_NORMAL}\ntransformed = aPivot + ekcR * (transformed - aPivot);`);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\n${BAYER}`).replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>\n${DITHER}`);
+  };
+  m.customProgramCacheKey = () => key;
+  return m;
+}
+
+const SHELL_LOW = roomMaterialLow('ekc-room-shell-low');
+const FLOOR_LOW = new THREE.MeshBasicMaterial({ color: '#c9c1b0' });
 
 const SHELL = roomMaterial({ roughness: 0.55, metalness: 0.0 }, 'ekc-room-shell');
 // No environment map in the scene, so the chrome is a bright, low-metal enamel with a tight highlight.
@@ -223,8 +247,15 @@ const CAM = new THREE.Vector3();
 export function ConsoleRoom() {
   const width = useClient((s) => s.game?.width ?? 0);
   const depth = useClient((s) => s.game?.depth ?? 0);
-  const room = useMemo(() => (width > 0 && depth > 0 ? buildRoom(width, depth) : null), [width, depth]);
-  const floorMat = useMemo(() => (room ? floorMaterial(room) : null), [room]);
+  const gl = useThree((s) => s.gl);
+  const low = detectDetail(gl) === 'low';
+  const room = useMemo(() => {
+    if (width <= 0 || depth <= 0) return null;
+    const r = buildRoom(width, depth);
+    if (low) for (const g of [r.shell, r.chrome, r.staff, r.walker]) bakeLight(g, AMBIENT);
+    return r;
+  }, [width, depth, low]);
+  const floorMat = useMemo(() => (room && !low ? floorMaterial(room) : null), [room, low]);
   const walker = useRef<THREE.Mesh>(null);
   useEffect(
     () => () => {
@@ -261,15 +292,15 @@ export function ConsoleRoom() {
     fade[MAX_STATIONS - 1] = stationFade({ x: wx, z: wz, top: -0.95 * 6.1 + 1.8 * 6.1 }, CAM.x, camY, CAM.z, rig.target.x, rig.target.z, deck);
   });
 
-  if (!room || !floorMat) return null;
+  if (!room) return null;
   return (
     <group name="console-room">
-      <mesh name="room-floor" geometry={room.floor} material={floorMat} raycast={NO_RAYCAST} />
-      <mesh name="room-shell" geometry={room.shell} material={SHELL} raycast={NO_RAYCAST} receiveShadow />
-      <mesh name="room-chrome" geometry={room.chrome} material={CHROME} raycast={NO_RAYCAST} />
-      <mesh name="room-staff" geometry={room.staff} material={STAFF} raycast={NO_RAYCAST} frustumCulled={false} />
+      <mesh name="room-floor" geometry={room.floor} material={floorMat ?? FLOOR_LOW} raycast={NO_RAYCAST} />
+      <mesh name="room-shell" geometry={room.shell} material={low ? SHELL_LOW : SHELL} raycast={NO_RAYCAST} receiveShadow={!low} />
+      <mesh name="room-chrome" geometry={room.chrome} material={low ? SHELL_LOW : CHROME} raycast={NO_RAYCAST} />
+      <mesh name="room-staff" geometry={room.staff} material={low ? SHELL_LOW : STAFF} raycast={NO_RAYCAST} frustumCulled={false} />
       <mesh name="room-glow" geometry={room.glow} material={GLOWING} raycast={NO_RAYCAST} frustumCulled={false} />
-      <mesh name="room-walker" ref={walker} geometry={room.walker} material={STAFF} raycast={NO_RAYCAST} frustumCulled={false} />
+      <mesh name="room-walker" ref={walker} geometry={room.walker} material={low ? SHELL_LOW : STAFF} raycast={NO_RAYCAST} frustumCulled={false} />
     </group>
   );
 }

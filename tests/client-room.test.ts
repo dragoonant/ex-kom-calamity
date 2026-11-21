@@ -8,6 +8,7 @@ import { AWNING, PAVEMENT, buildingIndex, fillLayers, isRoad, layerCapacity, mak
 import { EDGE, SIDE, TOP } from '../src/client/board/surface';
 import { DECK, FLOOR_Y, HALL, MAX_STATIONS, ROOM_SCALE, buildRoom, stationFade } from '../src/client/board/room';
 import { signsFor } from '../src/client/board/Signs';
+import { BOARD_LIGHT, bakeLight } from '../src/client/board/light';
 
 const savings = (): State => createGame({ battleId: 'savings-raid', seed: 3 });
 
@@ -131,5 +132,18 @@ describe('D24 the control room round the board (room.ts)', () => {
     expect(stationFade(near, tx, 100, tz + 0.5, tx, tz, deck)).toBe(1);
     // High and close: the sight line passes well above the desks.
     expect(stationFade(near, tx, 60, tz + 30, tx, tz, deck)).toBeGreaterThan(0.9);
+  });
+
+  it('the low tier bakes the board light into the room: a face to the sun outshines one turned away, the ambient floor holds', () => {
+    const g = new THREE.BufferGeometry();
+    const d = BOARD_LIGHT.sunDir;
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(new Float32Array([d.x, d.y, d.z, -d.x, -d.y, -d.z, 0, 1, 0]), 3));
+    g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(9).fill(0.5), 3));
+    bakeLight(g, 0.22);
+    const c = g.getAttribute('color');
+    expect(c.getX(0)).toBeGreaterThan(c.getX(1) * 2);
+    expect(c.getX(1)).toBeGreaterThanOrEqual(0.5 * 0.22);
+    expect(c.getY(2)).toBeGreaterThan(c.getY(1));
   });
 });

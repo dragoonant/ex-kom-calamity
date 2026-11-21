@@ -73,7 +73,7 @@ Determinism: seed 1 in the hostile seat replays to the same hash (`59bd6fcd`). G
 None.
 
 ## Next
-0. The owner's look at D24 on Pages or the shots in `docs/art/shots/`: the room's light hall, its scale and the operators are defaults (PLAN D24 a-h); real frame times with the shadow map on an integrated GPU are not measured yet (`node tools/perf.mjs`).
+0. D24 adds a detail tier: software renderers (this container's headless Chromium) draw the low tier, `?detail=full` the full one (`docs/art/tile-set.md` 6). The owner's look at D24 on Pages or the shots in `docs/art/shots/`: the room's light hall, its scale and the operators are defaults (PLAN D24 a-h); real frame times with the shadow map on an integrated GPU are not measured yet (`node tools/perf.mjs`).
 1. M4c step 4's remainder (D21 g): generated run, crouch and throw clips on the GPU machine (the citizen model landed in M4d).
 2. The rest of the GPU pass (PLAN Q7): tile textures or GLBs by name (`docs/art/tile-set.md` 8), the figures' redo list (`figure-models.md` 7: texture re-grade toward the roster colours, the taker's legs, the fighter's legs, the re-UV weld that would cut the 70 MB preload); the audio redo list (`docs/audio.md` 4) once the owner has judged `sounds.html` by ear.
 3. The balance pass (PLAN Q9): rerun `sim` and `bench:ai` after each single change; decide Q18 (citizens that run) with a bench result.

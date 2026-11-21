@@ -93,6 +93,8 @@ Sizes in tiles; a figure is 1.2 tall. Where a style places them is section 2; `t
 Particles freeze while the sim is paused (pause is the absence of ticks and of time). Nothing is drawn for what the agency cannot see (VIEW-2, AI-9); structure is public (VIEW-1).
 
 ## 6. Frame budget
+**Detail tiers (D24 i, `world.ts` `detectDetail`).** The renderer names itself; on a software renderer (SwiftShader, llvmpipe), where each shader instruction runs on the CPU, the tier is **low**: the facade and floor patterns are compiled out (colours, edge shading and the panes stay), no shadow map is made (the SHADOWS switch reads NO SHADOWS and is disabled), and the room draws unlit with the board's light baked into its vertex colours once (`light.ts` `bakeLight`) and a plain floor. Measured headless at 1440 x 900 on 2026-11-21: the old build 225 ms a frame, the full tier 820-970 ms, the low tier 330-370 ms. `?detail=full` or `?detail=low` on the URL overrides the guess; `e2e/art.spec.ts` asks for full, so the budget and the shots cover the full look, and every other spec runs the low tier.
+
 D24 on the Civic Savings site, whole building drawn (headless, 2026-11-21): **68 draws with shadows (41 without: the shadow pass is 27), about 360k triangles**, of which the control room is 6 draws and 110k triangles; inside the budget below.
 
  (e2e `art.spec.ts`; `window.__ekc.perf()`)

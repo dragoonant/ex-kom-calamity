@@ -49,15 +49,44 @@ export function clampRig(): void {
  */
 export const shake = { amp: 0, enabled: true };
 
-/** The shadows switch (viewSettings.ts); Scene.tsx reads it when it mounts, setShadows flips it live. */
-export const view = { shadows: true };
+/**
+ * The shadows switch (viewSettings.ts; setShadows flips it live) and the detail tier: 'low' on a software renderer
+ * (SwiftShader, llvmpipe), where every shader instruction runs on the CPU, so facades and the hall floor draw flat
+ * and no shadow map is made; `?detail=full` or `?detail=low` on the URL overrides the guess (D24).
+ */
+export const view: { shadows: boolean; detail: 'full' | 'low' } = { shadows: true, detail: 'full' };
+
+let detailFor: THREE.WebGLRenderer | null = null;
+
+/** Picks the detail tier from the renderer's own name, once per renderer, before the first shader compiles. */
+export function detectDetail(gl: THREE.WebGLRenderer): 'full' | 'low' {
+  if (detailFor === gl) return view.detail;
+  detailFor = gl;
+  let forced: string | null = null;
+  try {
+    forced = new URLSearchParams(window.location.search).get('detail');
+  } catch {
+    forced = null;
+  }
+  if (forced === 'full' || forced === 'low') return (view.detail = forced);
+  const ctx = gl.getContext();
+  const ext = ctx.getExtension('WEBGL_debug_renderer_info');
+  const name = String(ext ? ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ctx.getParameter(ctx.RENDERER));
+  return (view.detail = /swiftshader|llvmpipe|software|softpipe/i.test(name) ? 'low' : 'full');
+}
+
+/** Whether the board throws shadows now: the switch, on the full tier only. */
+export function shadowsActive(): boolean {
+  return view.shadows && view.detail === 'full';
+}
 
 /** Turns the board's shadow map on or off; every lit material recompiles once. */
 export function setShadows(on: boolean): void {
   view.shadows = on;
   const r = live.renderer;
-  if (!r || r.shadowMap.enabled === on) return;
-  r.shadowMap.enabled = on;
+  const active = shadowsActive();
+  if (!r || r.shadowMap.enabled === active) return;
+  r.shadowMap.enabled = active;
   live.scene?.traverse((o) => {
     const m = (o as THREE.Mesh).material;
     if (Array.isArray(m)) m.forEach((x) => (x.needsUpdate = true));

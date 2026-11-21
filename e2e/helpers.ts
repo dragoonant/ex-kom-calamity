@@ -17,8 +17,9 @@ export function watchErrors(page: Page): string[] {
   return errors;
 }
 
-export async function openTitle(page: Page): Promise<void> {
-  await page.goto('./');
+/** `query` is a URL search, e.g. '?detail=full' to draw the full tier on a software renderer (D24). */
+export async function openTitle(page: Page, query = ''): Promise<void> {
+  await page.goto(`./${query}`);
   await expect(page.getByTestId('title')).toBeVisible();
 }
 

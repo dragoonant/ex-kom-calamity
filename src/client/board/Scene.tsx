@@ -15,8 +15,9 @@ import { Marks } from './Marks';
 import { Props } from './Props';
 import { Signs } from './Signs';
 import { Tiles, useBoardDerived } from './Tiles';
-import { bounds, live, setShadows, view } from './world';
+import { bounds, detectDetail, live, setShadows, shadowsActive, view } from './world';
 import { ConsoleRoom } from './ConsoleRoom';
+import { BOARD_LIGHT } from './light';
 
 /** The evening palette the scene clears to and lights with; also read by the gallery. */
 export const EVENING = {
@@ -28,9 +29,9 @@ export const EVENING = {
   sun: '#ffb774',
   fill: '#7fa7b8',
   /** The board's own rig (BoardLights): a paler sun so stone and steel keep their colour, a lighter bounce. */
-  boardSun: '#ffe2bf',
-  boardSky: '#d3e0e8',
-  boardGround: '#9c9384',
+  boardSun: BOARD_LIGHT.sun,
+  boardSky: BOARD_LIGHT.sky,
+  boardGround: BOARD_LIGHT.ground,
 };
 
 function LoopDriver() {
@@ -70,7 +71,7 @@ export function EveningLights() {
 }
 
 /** Where the board's sun comes from: low in the west, high enough that a three-storey building's shadow stays near it. */
-const SUN_DIR = new THREE.Vector3(-24, 22, 14).normalize();
+const SUN_DIR = BOARD_LIGHT.sunDir;
 
 /**
  * The board's light (docs/art/tile-set.md section 4): the evening rig of EveningLights, with the sun throwing one
@@ -82,7 +83,7 @@ function BoardLights() {
   const gl = useThree((s) => s.gl);
   // The shadows switch may flip before the renderer exists; the frame keeps them in step.
   useFrame(() => {
-    if (gl.shadowMap.enabled !== view.shadows) setShadows(view.shadows);
+    if (gl.shadowMap.enabled !== shadowsActive()) setShadows(view.shadows);
   });
   const mapId = useClient((s) => s.game?.mapId);
   useLayoutEffect(() => {
@@ -106,9 +107,9 @@ function BoardLights() {
   }, [mapId]);
   return (
     <>
-      <hemisphereLight args={[EVENING.boardSky, EVENING.boardGround, 1.25]} />
-      <directionalLight ref={sun} intensity={2.1} color={EVENING.boardSun} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03} />
-      <directionalLight position={[18, 10, -22]} intensity={0.45} color={EVENING.fill} />
+      <hemisphereLight args={[EVENING.boardSky, EVENING.boardGround, BOARD_LIGHT.hemiIntensity]} />
+      <directionalLight ref={sun} intensity={BOARD_LIGHT.sunIntensity} color={EVENING.boardSun} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.03} />
+      <directionalLight position={BOARD_LIGHT.fillDir.clone().multiplyScalar(30).toArray()} intensity={BOARD_LIGHT.fillIntensity} color={BOARD_LIGHT.fill} />
     </>
   );
 }
@@ -140,10 +141,12 @@ export function Scene() {
       className="board"
       frameloop="always"
       dpr={[1, 1.5]}
-      shadows={{ type: THREE.PCFShadowMap, enabled: view.shadows }}
+      shadows={{ type: THREE.PCFShadowMap, enabled: shadowsActive() }}
       gl={{ antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance', toneMapping: THREE.NeutralToneMapping }}
       camera={{ fov: 42, near: 0.1, far: 600, position: [20, 16, 20] }}
       onCreated={({ gl }) => {
+        detectDetail(gl);
+        gl.shadowMap.enabled = shadowsActive();
         gl.setClearColor(EVENING.room);
         gl.toneMapping = THREE.NeutralToneMapping;
       }}
