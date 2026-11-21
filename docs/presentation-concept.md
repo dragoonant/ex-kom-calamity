@@ -26,7 +26,7 @@ From 3d-game-generation `templates/presentation-concept.md`. Status: **the owner
 | Prompts and modals | A hinged cover that lifts over the console |
 | Icons | Single-colour pictograms in the style of period public signage |
 | Transitions and stingers | Lamp-test sweep on load; a two-tone chime for alerts |
-| Music and voice | Period orchestral optimism that sours in combat; a calm announcer voice. Not verified by ear until `sounds.html` exists (KB rule 9) |
+| Music and voice | Period orchestral optimism that sours in combat; a calm announcer voice. Pass 2 (2026-11-20, `docs/audio.md`): five generated states (calm, battle, tense, victory, defeat) on `sounds.html`, not verified by ear (KB rule 9); no voice yet |
 | End screen | An incident report form with a "Copy report" button |
 
 ## 4. Kept from the template (structure only, KB rule 16)

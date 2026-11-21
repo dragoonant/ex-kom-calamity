@@ -220,8 +220,11 @@ describe('M4 audio settings and catalogue (PLAN.md Q19)', () => {
     const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
     expect(readAudioSettings(null)).toEqual(DEFAULT_AUDIO);
     expect(readAudioSettings(storage)).toEqual(DEFAULT_AUDIO);
-    expect(writeAudioSettings(storage, { volume: 0.25, muted: true })).toBe(true);
-    expect(readAudioSettings(storage)).toEqual({ volume: 0.25, muted: true });
+    expect(writeAudioSettings(storage, { volume: 0.25, muted: true, music: 0.4, source: 'synth' })).toBe(true);
+    expect(readAudioSettings(storage)).toEqual({ volume: 0.25, muted: true, music: 0.4, source: 'synth' });
+    // A pass 1 record (volume and mute only) still reads, with pass 2 defaults for the rest.
+    mem.set('ekc-audio', '{"volume": 0.5, "muted": false}');
+    expect(readAudioSettings(storage)).toEqual({ volume: 0.5, muted: false, music: DEFAULT_AUDIO.music, source: 'auto' });
     mem.set('ekc-audio', '{"volume": 7, "muted": "yes"}');
     expect(readAudioSettings(storage)).toEqual(DEFAULT_AUDIO);
     mem.set('ekc-audio', 'not json');

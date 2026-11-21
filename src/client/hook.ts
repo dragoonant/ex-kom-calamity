@@ -49,7 +49,7 @@ export interface EkcHook {
   audio(): AudioReport | null;
   /** D21 f: the camera shake now and whether the player's switch allows it. */
   shake(): { amp: number; enabled: boolean };
-  setAudio(s: { volume?: number; muted?: boolean }): void;
+  setAudio(s: { volume?: number; muted?: boolean; music?: number; source?: 'auto' | 'synth' }): void;
 }
 
 declare global {

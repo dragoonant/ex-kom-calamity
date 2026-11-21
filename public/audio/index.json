@@ -1,0 +1,617 @@
+{
+  "version": 1,
+  "madeAt": "2026-11-20",
+  "sfx": {
+    "fire-pistol": {
+      "level": -1,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/fire-pistol-1.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.395,
+          "peakDb": 0.232,
+          "rmsDb": -23.99,
+          "crestDb": 24.222,
+          "gainDb": -1.232,
+          "promptHash": "98700a01"
+        },
+        {
+          "file": "sfx/fire-pistol-2.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.484,
+          "peakDb": 2.126,
+          "rmsDb": -21.307,
+          "crestDb": 23.433,
+          "gainDb": -3.126,
+          "promptHash": "98700a01"
+        },
+        {
+          "file": "sfx/fire-pistol-3.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.406,
+          "peakDb": -0.262,
+          "rmsDb": -24.872,
+          "crestDb": 24.61,
+          "gainDb": -0.738,
+          "promptHash": "98700a01"
+        }
+      ]
+    },
+    "fire-carbine": {
+      "level": -1,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/fire-carbine-1.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.533,
+          "peakDb": 1.699,
+          "rmsDb": -26.792,
+          "crestDb": 28.491,
+          "gainDb": -2.699,
+          "promptHash": "a440be79"
+        },
+        {
+          "file": "sfx/fire-carbine-2.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.712,
+          "peakDb": -0.993,
+          "rmsDb": -22.048,
+          "crestDb": 21.055,
+          "gainDb": -0.007,
+          "promptHash": "a440be79"
+        },
+        {
+          "file": "sfx/fire-carbine-3.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.562,
+          "peakDb": 1.585,
+          "rmsDb": -20.327,
+          "crestDb": 21.912,
+          "gainDb": -2.585,
+          "promptHash": "a440be79"
+        }
+      ]
+    },
+    "fire-scatter": {
+      "level": -1,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/fire-scatter-1.mp3",
+          "seconds": 1.2,
+          "offset": 0,
+          "end": 0.8,
+          "peakDb": 0.149,
+          "rmsDb": -18.421,
+          "crestDb": 18.571,
+          "gainDb": -1.149,
+          "promptHash": "e202dcb8"
+        },
+        {
+          "file": "sfx/fire-scatter-2.mp3",
+          "seconds": 1.2,
+          "offset": 0,
+          "end": 0.858,
+          "peakDb": 0.059,
+          "rmsDb": -18.35,
+          "crestDb": 18.41,
+          "gainDb": -1.059,
+          "promptHash": "e202dcb8"
+        },
+        {
+          "file": "sfx/fire-scatter-3.mp3",
+          "seconds": 1.2,
+          "offset": 0,
+          "end": 0.661,
+          "peakDb": -0.019,
+          "rmsDb": -23.187,
+          "crestDb": 23.168,
+          "gainDb": -0.981,
+          "promptHash": "e202dcb8"
+        }
+      ]
+    },
+    "fire-whip": {
+      "level": -2,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/fire-whip-1.mp3",
+          "seconds": 1,
+          "offset": 0.048,
+          "end": 0.583,
+          "peakDb": -0.385,
+          "rmsDb": -24.249,
+          "crestDb": 23.864,
+          "gainDb": -1.615,
+          "promptHash": "59601044"
+        },
+        {
+          "file": "sfx/fire-whip-2.mp3",
+          "seconds": 1,
+          "offset": 0.047,
+          "end": 0.863,
+          "peakDb": 1.605,
+          "rmsDb": -19.298,
+          "crestDb": 20.902,
+          "gainDb": -3.605,
+          "promptHash": "59601044"
+        }
+      ]
+    },
+    "bite": {
+      "level": -3,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/bite-1.mp3",
+          "seconds": 0.8,
+          "offset": 0.008,
+          "end": 0.745,
+          "peakDb": 1.547,
+          "rmsDb": -15.533,
+          "crestDb": 17.08,
+          "gainDb": -4.547,
+          "promptHash": "84b7774d"
+        },
+        {
+          "file": "sfx/bite-2.mp3",
+          "seconds": 0.8,
+          "offset": 0,
+          "end": 0.766,
+          "peakDb": 1.622,
+          "rmsDb": -12.437,
+          "crestDb": 14.06,
+          "gainDb": -4.622,
+          "promptHash": "84b7774d"
+        }
+      ]
+    },
+    "hit-armour": {
+      "level": -4,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/hit-armour-1.mp3",
+          "seconds": 0.6,
+          "offset": 0,
+          "end": 0.521,
+          "peakDb": -0.486,
+          "rmsDb": -19.215,
+          "crestDb": 18.728,
+          "gainDb": -3.514,
+          "promptHash": "3aca1e49"
+        },
+        {
+          "file": "sfx/hit-armour-2.mp3",
+          "seconds": 0.6,
+          "offset": 0,
+          "end": 0.373,
+          "peakDb": -0.719,
+          "rmsDb": -19.423,
+          "crestDb": 18.703,
+          "gainDb": -3.281,
+          "promptHash": "3aca1e49"
+        }
+      ]
+    },
+    "hit-flesh": {
+      "level": -5,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/hit-flesh-1.mp3",
+          "seconds": 0.48,
+          "offset": 0.108,
+          "end": 0.378,
+          "peakDb": -1.755,
+          "rmsDb": -21.94,
+          "crestDb": 20.185,
+          "gainDb": -3.245,
+          "promptHash": "feb3347e"
+        },
+        {
+          "file": "sfx/hit-flesh-2.mp3",
+          "seconds": 0.48,
+          "offset": 0.066,
+          "end": 0.393,
+          "peakDb": 2.158,
+          "rmsDb": -21.146,
+          "crestDb": 23.304,
+          "gainDb": -7.158,
+          "promptHash": "feb3347e"
+        }
+      ]
+    },
+    "hit-alien": {
+      "level": -4,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/hit-alien-1.mp3",
+          "seconds": 0.68,
+          "offset": 0,
+          "end": 0.637,
+          "peakDb": 1.342,
+          "rmsDb": -18.46,
+          "crestDb": 19.803,
+          "gainDb": -5.342,
+          "promptHash": "0bb8f72b"
+        },
+        {
+          "file": "sfx/hit-alien-2.mp3",
+          "seconds": 0.68,
+          "offset": 0,
+          "end": 0.59,
+          "peakDb": 1.275,
+          "rmsDb": -25.187,
+          "crestDb": 26.462,
+          "gainDb": -5.275,
+          "promptHash": "0bb8f72b"
+        }
+      ]
+    },
+    "breach": {
+      "level": -1,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/breach-1.mp3",
+          "seconds": 2,
+          "offset": 0.001,
+          "end": 1.467,
+          "peakDb": -0.306,
+          "rmsDb": -20.882,
+          "crestDb": 20.576,
+          "gainDb": -0.694,
+          "promptHash": "6c9b5b33"
+        }
+      ]
+    },
+    "collapse": {
+      "level": -2,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/collapse-1.mp3",
+          "seconds": 2.48,
+          "offset": 0.06,
+          "end": 2.06,
+          "peakDb": -1.418,
+          "rmsDb": -18.929,
+          "crestDb": 17.512,
+          "gainDb": -0.582,
+          "promptHash": "824555fc"
+        }
+      ]
+    },
+    "taking": {
+      "level": -6,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/taking-1.mp3",
+          "seconds": 1.48,
+          "offset": 0.06,
+          "end": 1.389,
+          "peakDb": -1.539,
+          "rmsDb": -25.386,
+          "crestDb": 23.847,
+          "gainDb": -4.461,
+          "promptHash": "54429eb4"
+        }
+      ]
+    },
+    "revealed": {
+      "level": -6,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/revealed-1.mp3",
+          "seconds": 1,
+          "offset": 0.013,
+          "end": 0.928,
+          "peakDb": -1.432,
+          "rmsDb": -19.135,
+          "crestDb": 17.703,
+          "gainDb": -4.568,
+          "promptHash": "34691406"
+        }
+      ]
+    },
+    "alert": {
+      "level": -8,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/alert-1.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.654,
+          "peakDb": 0.579,
+          "rmsDb": -27.767,
+          "crestDb": 28.346,
+          "gainDb": -8.579,
+          "promptHash": "cba0ac3e"
+        }
+      ]
+    },
+    "down-agent": {
+      "level": -8,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/down-agent-1.mp3",
+          "seconds": 1.36,
+          "offset": 0.01,
+          "end": 1.15,
+          "peakDb": -11.636,
+          "rmsDb": -21.781,
+          "crestDb": 10.146,
+          "gainDb": 3.636,
+          "promptHash": "84d3b647"
+        }
+      ]
+    },
+    "down-hostile": {
+      "level": -4,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/down-hostile-1.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.94,
+          "peakDb": 1.6,
+          "rmsDb": -14.818,
+          "crestDb": 16.418,
+          "gainDb": -5.6,
+          "promptHash": "694c73ee"
+        },
+        {
+          "file": "sfx/down-hostile-2.mp3",
+          "seconds": 1,
+          "offset": 0,
+          "end": 0.958,
+          "peakDb": 2.206,
+          "rmsDb": -16.905,
+          "crestDb": 19.111,
+          "gainDb": -6.206,
+          "promptHash": "694c73ee"
+        }
+      ]
+    },
+    "pause": {
+      "level": -8,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/pause-1.mp3",
+          "seconds": 0.6,
+          "offset": 0.034,
+          "end": 0.327,
+          "peakDb": -3.473,
+          "rmsDb": -28.377,
+          "crestDb": 24.904,
+          "gainDb": -4.527,
+          "promptHash": "a17eecdc"
+        }
+      ]
+    },
+    "resume": {
+      "level": -8,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/resume-1.mp3",
+          "seconds": 0.48,
+          "offset": 0.032,
+          "end": 0.271,
+          "peakDb": -4.884,
+          "rmsDb": -33.691,
+          "crestDb": 28.806,
+          "gainDb": -3.116,
+          "promptHash": "95b1563b"
+        }
+      ]
+    },
+    "click": {
+      "level": -12,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/click-1.mp3",
+          "seconds": 0.48,
+          "offset": 0.081,
+          "end": 0.319,
+          "peakDb": -6.015,
+          "rmsDb": -32.821,
+          "crestDb": 26.806,
+          "gainDb": -5.985,
+          "promptHash": "10cc7d88"
+        }
+      ]
+    },
+    "paddle": {
+      "level": -8,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/paddle-1.mp3",
+          "seconds": 0.48,
+          "offset": 0,
+          "end": 0.289,
+          "peakDb": -0.664,
+          "rmsDb": -22.149,
+          "crestDb": 21.484,
+          "gainDb": -7.336,
+          "promptHash": "33938129"
+        }
+      ]
+    },
+    "order": {
+      "level": -14,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/order-1.mp3",
+          "seconds": 0.48,
+          "offset": 0.044,
+          "end": 0.191,
+          "peakDb": -7.846,
+          "rmsDb": -30.016,
+          "crestDb": 22.17,
+          "gainDb": -6.154,
+          "promptHash": "6a7901e2"
+        }
+      ]
+    },
+    "refused": {
+      "level": -12,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/refused-1.mp3",
+          "seconds": 0.6,
+          "offset": 0,
+          "end": 0.6,
+          "peakDb": -4.212,
+          "rmsDb": -17.543,
+          "crestDb": 13.331,
+          "gainDb": -7.788,
+          "promptHash": "018c83a3"
+        }
+      ]
+    },
+    "raid-over": {
+      "level": -8,
+      "loop": false,
+      "takes": [
+        {
+          "file": "sfx/raid-over-1.mp3",
+          "seconds": 1.6,
+          "offset": 0.105,
+          "end": 1.151,
+          "peakDb": -12.813,
+          "rmsDb": -30.372,
+          "crestDb": 17.56,
+          "gainDb": 4.813,
+          "promptHash": "b06a8a7d"
+        },
+        {
+          "file": "sfx/raid-over-2.mp3",
+          "seconds": 1.6,
+          "offset": 0,
+          "end": 0.824,
+          "peakDb": -15.037,
+          "rmsDb": -35.98,
+          "crestDb": 20.943,
+          "gainDb": 7.037,
+          "promptHash": "f3e585be"
+        }
+      ]
+    },
+    "ambient": {
+      "level": -14,
+      "loop": true,
+      "takes": [
+        {
+          "file": "sfx/ambient-1.mp3",
+          "seconds": 20,
+          "offset": 0,
+          "end": 20,
+          "peakDb": -25.317,
+          "rmsDb": -38.588,
+          "crestDb": 13.27,
+          "gainDb": 11.317,
+          "promptHash": "845d45bb"
+        }
+      ]
+    }
+  },
+  "music": {
+    "calm": {
+      "level": -6,
+      "loop": true,
+      "take": {
+        "file": "music/calm.mp3",
+        "seconds": 90.044,
+        "offset": 0,
+        "end": 90.044,
+        "peakDb": -0.334,
+        "rmsDb": -15.431,
+        "crestDb": 15.097,
+        "gainDb": -5.666,
+        "promptHash": "0944f3a4"
+      }
+    },
+    "battle": {
+      "level": -7,
+      "loop": true,
+      "take": {
+        "file": "music/battle.mp3",
+        "seconds": 90.044,
+        "offset": 0,
+        "end": 90.044,
+        "peakDb": -0.866,
+        "rmsDb": -22.677,
+        "crestDb": 21.812,
+        "gainDb": -6.134,
+        "promptHash": "0d61fbe8"
+      }
+    },
+    "tense": {
+      "level": -8,
+      "loop": true,
+      "take": {
+        "file": "music/tense.mp3",
+        "seconds": 75.05,
+        "offset": 0,
+        "end": 75.05,
+        "peakDb": 0.15,
+        "rmsDb": -19.597,
+        "crestDb": 19.747,
+        "gainDb": -8.15,
+        "promptHash": "ead7488a"
+      }
+    },
+    "victory": {
+      "level": -5,
+      "loop": false,
+      "take": {
+        "file": "music/victory.mp3",
+        "seconds": 12.042,
+        "offset": 0.436,
+        "end": 11.461,
+        "peakDb": -2.278,
+        "rmsDb": -17.359,
+        "crestDb": 15.081,
+        "gainDb": -2.722,
+        "promptHash": "a39a876a"
+      }
+    },
+    "defeat": {
+      "level": -6,
+      "loop": false,
+      "take": {
+        "file": "music/defeat.mp3",
+        "seconds": 12.042,
+        "offset": 0.214,
+        "end": 8.765,
+        "peakDb": -12.296,
+        "rmsDb": -27.273,
+        "crestDb": 14.977,
+        "gainDb": 6.296,
+        "promptHash": "386e45f3"
+      }
+    }
+  }
+}

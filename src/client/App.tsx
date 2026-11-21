@@ -83,6 +83,8 @@ export function App() {
       setAudio: (a) => {
         if (a.volume !== undefined) director.setVolume(a.volume);
         if (a.muted !== undefined) director.setMuted(a.muted);
+        if (a.music !== undefined) director.setMusicVolume(a.music);
+        if (a.source !== undefined) director.setSource(a.source);
       },
     });
     void preloadModels((loaded, total) => s().setModels(loaded, total));

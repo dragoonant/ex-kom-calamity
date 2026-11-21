@@ -1,12 +1,17 @@
-// The audio director: subscribes to the client store and plays synth.ts sounds for its fx queue (fx.ts), the pause
-// paddle, orders and the screen; one AudioContext for the session, unlocked by the first pointerup, touchend, click
-// or keydown and retried after (KB gotchas: iOS Safari resumes only from those). Volume and mute come from
-// settings.ts. Nothing here touches the engine; everything it plays, the agency could see (fx.ts filters).
-// Headless tests read `window.__ekc.audio()` (played counts) instead of listening.
+// The audio director: subscribes to the client store and plays sounds for its fx queue (fx.ts), the pause paddle,
+// orders and the screen; one AudioContext for the session, unlocked by the first pointerup, touchend, click or keydown
+// and retried after (KB gotchas: iOS Safari resumes only from those). Volume, mute, music level and the source switch
+// come from settings.ts. Pass 2 (PLAN.md Q21): every name plays its generated take from the sample bank (bank.ts)
+// when the file is there and decoded, else the pass 1 synth (synth.ts); the music player (music.ts) follows the
+// screen: calm on the title, battle in the raid, tense once the last hostiles are marked, a stinger on the report.
+// Nothing here touches the engine; everything it plays, the agency could see (fx.ts filters).
+// Headless tests read `window.__ekc.audio()` (played counts, bank and music reports) instead of listening.
 import { WEAPONS } from '../../data';
 import type { Fx } from '../fx';
 import type { StorageLike } from '../save';
 import { useClient } from '../store';
+import { SampleBank, type BankReport } from './bank';
+import { MusicPlayer, musicStateFor, type MusicReport } from './music';
 import { DEFAULT_AUDIO, readAudioSettings, writeAudioSettings, type AudioSettings } from './settings';
 import { play, type SoundName } from './synth';
 
@@ -15,28 +20,40 @@ export interface AudioReport {
   unlocked: boolean;
   /** Plays per sound since the page loaded, counted whether or not the context is running (so tests hear them). */
   played: Record<string, number>;
+  /** Of those, plays that used a generated take rather than the synth. */
+  sampled: Record<string, number>;
   ambient: boolean;
   contextState: string;
+  bank: BankReport;
+  music: MusicReport;
 }
 
 type Ctx = AudioContext;
+
+/** A generated gunshot with less crest than this (in dB; crest factor 8) gets the synth's transient layered on top (KB gotchas). */
+export const CREST_FLOOR_DB = 18;
 
 export class Director {
   private ctx: Ctx | null = null;
   private master: GainNode | null = null;
   private settings: AudioSettings;
   private played: Record<string, number> = {};
+  private sampled: Record<string, number> = {};
   private ambient: { stop: (at: number) => void } | null = null;
   private lastFx = 0;
   private variant = 0;
   private lastShotAt = -1;
   private unsub: (() => void) | null = null;
   private storage: StorageLike | null;
-  private hadBattle = false;
+  readonly bank: SampleBank;
+  readonly music: MusicPlayer;
+  private preloading: Promise<void> | null = null;
 
-  constructor(storage: StorageLike | null) {
+  constructor(storage: StorageLike | null, baseURI: string = (globalThis as { document?: { baseURI: string } }).document?.baseURI ?? 'http://localhost/') {
     this.storage = storage;
     this.settings = readAudioSettings(storage);
+    this.bank = new SampleBank(baseURI);
+    this.music = new MusicPlayer(this.bank, this.settings.music);
   }
 
   /** Attaches to the store and the unlock listeners. Call once from App. */
@@ -62,6 +79,8 @@ export class Director {
         this.setAmbientPaused(s.paused);
         prevPaused = s.paused;
       }
+      this.music.duck(s.screen === 'battle' && s.paused);
+      this.music.set(musicStateFor(s.screen, s.agency?.marks !== undefined, s.report?.over?.winner));
       // Order and refusal slips (the console's own feedback), never a hostile's (AI-9 keeps those out of the tray).
       const last = s.slips[s.slips.length - 1];
       if (last && last.id !== prevSlipId) {
@@ -72,8 +91,11 @@ export class Director {
           else if (/: (move to|fire at|stance|halt\.|arming a charge)/.test(sl.text)) this.sound('order');
         }
       }
-      if (s.screen === 'battle') this.hadBattle = true;
     });
+    const s0 = useClient.getState();
+    this.music.set(musicStateFor(s0.screen, s0.agency?.marks !== undefined, s0.report?.over?.winner));
+    // The index is one small fetch; the takes decode after the first gesture, when a context exists.
+    void this.bank.load();
     const unlock = () => void this.unlock();
     const onPointer = (e: Event) => {
       unlock();
@@ -89,6 +111,7 @@ export class Director {
       document.removeEventListener('pointerdown', onPointer, { capture: true });
       for (const ev of ['pointerup', 'touchend', 'click', 'keydown'] as const) document.removeEventListener(ev, unlock, { capture: true });
       this.stopAmbient();
+      this.music.stop();
     };
   }
 
@@ -108,11 +131,20 @@ export class Director {
       comp.release.value = 0.2;
       this.master.connect(comp);
       comp.connect(this.ctx.destination);
+      this.music.bind(this.ctx, this.master);
+      this.preload();
     } catch {
       this.ctx = null;
       this.master = null;
     }
     return this.ctx;
+  }
+
+  /** Decodes every take once a context exists; the music starts as soon as its track lands. */
+  private preload(): Promise<void> {
+    if (this.preloading || !this.ctx) return this.preloading ?? Promise.resolve();
+    this.preloading = this.bank.preload(this.ctx).then(() => this.music.tryStart());
+    return this.preloading;
   }
 
   async unlock(): Promise<void> {
@@ -125,7 +157,10 @@ export class Director {
         // iOS: try again on the next gesture (the listeners stay for the session).
       }
     }
-    if (ctx.state === 'running' && useClient.getState().screen === 'battle' && !this.ambient && !useClient.getState().paused) this.startAmbient();
+    if (ctx.state === 'running') {
+      if (useClient.getState().screen === 'battle' && !this.ambient && !useClient.getState().paused) this.startAmbient();
+      if (!this.settings.muted) this.music.tryStart();
+    }
   }
 
   get unlocked(): boolean {
@@ -146,6 +181,16 @@ export class Director {
     this.apply();
   }
 
+  setMusicVolume(music: number): void {
+    this.settings = { ...this.settings, music: Math.min(1, Math.max(0, music)) };
+    this.apply();
+  }
+
+  setSource(source: AudioSettings['source']): void {
+    this.settings = { ...this.settings, source };
+    this.apply();
+  }
+
   private apply(): void {
     writeAudioSettings(this.storage, this.settings);
     if (this.master && this.ctx) {
@@ -153,8 +198,20 @@ export class Director {
       this.master.gain.cancelScheduledValues(this.ctx.currentTime);
       this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.03);
     }
-    if (this.settings.muted) this.stopAmbient();
-    else if (useClient.getState().screen === 'battle' && !useClient.getState().paused) this.startAmbient();
+    this.music.setVolume(this.settings.music);
+    if (this.settings.muted) {
+      this.stopAmbient();
+      this.music.stop();
+    } else {
+      if (useClient.getState().screen === 'battle' && !useClient.getState().paused) this.startAmbient();
+      const s = useClient.getState();
+      this.music.set(musicStateFor(s.screen, s.agency?.marks !== undefined, s.report?.over?.winner));
+    }
+  }
+
+  /** Whether `name` would play its generated take now. */
+  private sampleFor(name: SoundName): boolean {
+    return this.settings.source !== 'synth' && this.bank.has(name);
   }
 
   /** Counts the play and schedules it when the context runs; muted still counts (the test hears the count). */
@@ -163,6 +220,20 @@ export class Director {
     const ctx = this.context();
     if (!ctx || !this.master || ctx.state !== 'running' || this.settings.muted) return;
     try {
+      if (this.sampleFor(name)) {
+        const h = this.bank.play(ctx, this.master, name, ctx.currentTime, variant);
+        if (h) {
+          this.sampled[name] = (this.sampled[name] ?? 0) + 1;
+          // A soft generated gunshot gets the synth's crack under it, quietly, for the transient it lacks.
+          if (name.startsWith('fire-') && h.take.crestDb < CREST_FLOOR_DB) {
+            const g = ctx.createGain();
+            g.gain.value = 0.35;
+            g.connect(this.master);
+            play(ctx, g, name, ctx.currentTime, variant);
+          }
+          return;
+        }
+      }
       play(ctx, this.master, name, ctx.currentTime, variant);
     } catch {
       // A failed node graph is a missed sound, never an error in the game.
@@ -226,7 +297,11 @@ export class Director {
     const ctx = this.context();
     if (!ctx || !this.master || ctx.state !== 'running') return;
     this.played.ambient = (this.played.ambient ?? 0) + 1;
-    this.ambient = play(ctx, this.master, 'ambient');
+    if (this.sampleFor('ambient')) {
+      this.ambient = this.bank.play(ctx, this.master, 'ambient', ctx.currentTime);
+      if (this.ambient) this.sampled.ambient = (this.sampled.ambient ?? 0) + 1;
+    }
+    if (!this.ambient) this.ambient = play(ctx, this.master, 'ambient');
     if (useClient.getState().paused) this.setAmbientPaused(true);
   }
 
@@ -245,7 +320,16 @@ export class Director {
   }
 
   report(): AudioReport {
-    return { settings: this.getSettings(), unlocked: this.unlocked, played: { ...this.played }, ambient: !!this.ambient, contextState: this.ctx?.state ?? 'none' };
+    return {
+      settings: this.getSettings(),
+      unlocked: this.unlocked,
+      played: { ...this.played },
+      sampled: { ...this.sampled },
+      ambient: !!this.ambient,
+      contextState: this.ctx?.state ?? 'none',
+      bank: this.bank.report(),
+      music: this.music.report(),
+    };
   }
 }
 
