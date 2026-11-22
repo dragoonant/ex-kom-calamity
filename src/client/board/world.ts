@@ -1,6 +1,8 @@
 // Shared board geometry and the live camera handle the hook reads (KB gotchas: read the live camera, never a
 // hard-coded one). Tile (x, y, level) -> world (x + 0.5, level * LEVEL_H, y + 0.5): x east, z south, y up.
 import * as THREE from 'three';
+import { browserStorage } from '../save';
+import { readViewSettings } from '../viewSettings';
 import type { Pos } from '../../engine';
 import type { CameraPose } from '../hook';
 
@@ -48,6 +50,54 @@ export function clampRig(): void {
  * picking and the hook's camera() read the steady pose.
  */
 export const shake = { amp: 0, enabled: true };
+
+/**
+ * The shadows switch (viewSettings.ts; setShadows flips it live) and the detail tier: 'low' on a software renderer
+ * (SwiftShader, llvmpipe), where every shader instruction runs on the CPU, so facades and the hall floor draw flat
+ * and no shadow map is made; `?detail=full` or `?detail=low` on the URL overrides the guess (D28).
+ */
+export const view: { shadows: boolean; detail: 'full' | 'low' } = { shadows: true, detail: 'full' };
+
+let detailFor: THREE.WebGLRenderer | null = null;
+
+/** Picks the detail tier from the renderer's own name, once per renderer, before the first shader compiles. */
+export function detectDetail(gl: THREE.WebGLRenderer): 'full' | 'low' {
+  if (detailFor === gl) return view.detail;
+  detailFor = gl;
+  let forced: string | null = null;
+  try {
+    forced = new URLSearchParams(window.location.search).get('detail');
+  } catch {
+    forced = null;
+  }
+  if (forced === 'full' || forced === 'low') return (view.detail = forced);
+  // The player's SCENERY / PLAIN switch (title, city console; RULING ART-11) comes next, then the renderer's name.
+  const picked = readViewSettings(browserStorage()).scenery;
+  if (picked === 'full' || picked === 'plain') return (view.detail = picked === 'full' ? 'full' : 'low');
+  const ctx = gl.getContext();
+  const ext = ctx.getExtension('WEBGL_debug_renderer_info');
+  const name = String(ext ? ctx.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ctx.getParameter(ctx.RENDERER));
+  return (view.detail = /swiftshader|llvmpipe|software|softpipe/i.test(name) ? 'low' : 'full');
+}
+
+/** Whether the board throws shadows now: the switch, on the full tier only. */
+export function shadowsActive(): boolean {
+  return view.shadows && view.detail === 'full';
+}
+
+/** Turns the board's shadow map on or off; every lit material recompiles once. */
+export function setShadows(on: boolean): void {
+  view.shadows = on;
+  const r = live.renderer;
+  const active = shadowsActive();
+  if (!r || r.shadowMap.enabled === active) return;
+  r.shadowMap.enabled = active;
+  live.scene?.traverse((o) => {
+    const m = (o as THREE.Mesh).material;
+    if (Array.isArray(m)) m.forEach((x) => (x.needsUpdate = true));
+    else if (m) m.needsUpdate = true;
+  });
+}
 
 /** Adds a jolt; nearby and big events call this with up to about 0.4. */
 export function kickShake(amount: number): void {

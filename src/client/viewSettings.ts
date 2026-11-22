@@ -1,5 +1,5 @@
-// View settings (PLAN.md D21 f): the camera shake switch and the scenery switch (docs/art/dressing.md) live in the browser under `ekc-view`, apart from the save
-// and from the audio settings, because it belongs to the player's machine. Plain functions over a Storage-like object
+// View settings (PLAN.md D21 f): the camera shake, shadows and scenery switches (docs/art/dressing.md) live in the browser
+// under `ekc-view`, apart from the save and from the audio settings, because they belong to the player's machine. Plain functions over a Storage-like object
 // so tests drive them without a DOM.
 import type { StorageLike } from './save';
 
@@ -12,10 +12,12 @@ const SCENERY: Scenery[] = ['auto', 'full', 'plain'];
 export interface ViewSettings {
   /** Blasts and collapses jolt the camera. */
   shake: boolean;
+  /** The board's sun throws shadows (one shadow map; off for a slow GPU). */
+  shadows: boolean;
   scenery: Scenery;
 }
 
-export const DEFAULT_VIEW: ViewSettings = { shake: true, scenery: 'auto' };
+export const DEFAULT_VIEW: ViewSettings = { shake: true, shadows: true, scenery: 'auto' };
 
 /** What `auto` means on this machine: a software rasterizer (no GPU) gets the plain board. */
 export function resolveScenery(s: Scenery, rendererName: string): 'full' | 'plain' {
@@ -33,6 +35,7 @@ export function readViewSettings(storage: StorageLike | null): ViewSettings {
     const v = JSON.parse(text) as Partial<ViewSettings>;
     return {
       shake: typeof v.shake === 'boolean' ? v.shake : DEFAULT_VIEW.shake,
+      shadows: typeof v.shadows === 'boolean' ? v.shadows : DEFAULT_VIEW.shadows,
       scenery: SCENERY.includes(v.scenery as Scenery) ? (v.scenery as Scenery) : DEFAULT_VIEW.scenery,
     };
   } catch {
@@ -43,7 +46,7 @@ export function readViewSettings(storage: StorageLike | null): ViewSettings {
 export function writeViewSettings(storage: StorageLike | null, s: ViewSettings): boolean {
   if (!storage) return false;
   try {
-    storage.setItem(VIEW_KEY, JSON.stringify({ shake: !!s.shake, scenery: SCENERY.includes(s.scenery) ? s.scenery : DEFAULT_VIEW.scenery }));
+    storage.setItem(VIEW_KEY, JSON.stringify({ shake: !!s.shake, shadows: s.shadows !== false, scenery: SCENERY.includes(s.scenery) ? s.scenery : DEFAULT_VIEW.scenery }));
     return true;
   } catch {
     return false;
