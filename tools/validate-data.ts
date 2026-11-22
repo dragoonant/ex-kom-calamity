@@ -4,7 +4,7 @@
 import { readFileSync } from 'node:fs';
 import { BATTLES, BUILDING_STYLES, DEFAULT_MATERIAL, LEGEND, MAPS, MATERIALS, PROP_KINDS, TUNING, UNITS, WEAPONS } from '../src/data';
 import { STANCES, SIDES } from '../src/engine';
-import { BUILDING_KINDS, CITY, CITY_TUNING, EVIDENCE, RAID_SITE_BATTLES, RESEARCH } from '../src/data/city';
+import { BUILDING_KINDS, CITY, CITY_TUNING, EVIDENCE, ITEMS, RAID_SITE_BATTLES, RESEARCH } from '../src/data/city';
 
 const errors: string[] = [];
 const err = (m: string) => errors.push(m);
@@ -251,7 +251,37 @@ for (const m of spec.matchAll(/^- RULING: .+\. (\w+)$/gm)) {
     if (!isInt(p.hours) || p.hours < 1) err(`research ${p.id}: hours`);
     if (!cspec.includes(`\`${p.id}\``)) err(`research ${p.id} has no rule in docs/spec/20-city.md`);
   }
-  for (const it of RESEARCH.items) if (!pids.has(it.design)) err(`item ${it.id}: unknown design ${it.design}`);
+  // KIT-1: the items' references, shapes and the spec's item table (section 23), row for row.
+  const iids = new Set(ITEMS.items.map((i) => i.id));
+  if (iids.size !== ITEMS.items.length) err('items: duplicate ids');
+  const rows = new Map<string, string[]>();
+  for (const m of cspec.matchAll(/^\| `([a-z-]+)` \|(.+)\|$/gm)) rows.set(m[1]!, m[2]!.split('|').map((c) => c.trim()));
+  for (const it of ITEMS.items) {
+    if (!['suit', 'long', 'side', 'belt'].includes(it.slot)) err(`item ${it.id}: slot ${it.slot}`);
+    if (!['free', 'limited', 'usedUp'].includes(it.kind)) err(`item ${it.id}: kind ${it.kind}`);
+    if (!isInt(it.weight) || it.weight < 0) err(`item ${it.id}: weight`);
+    if (it.slot === 'suit' && (!it.frame || !isInt(it.frame.belt) || !isInt(it.frame.carry))) err(`item ${it.id}: a suit needs a frame`);
+    if (it.slot !== 'suit' && it.frame) err(`item ${it.id}: only a suit has a frame`);
+    if (it.kind === 'limited' && (!it.design || !it.build || !isInt(it.build.cost) || !isInt(it.build.hours) || it.build.hours < 1)) err(`item ${it.id}: limited kit needs a design and a build`);
+    if (it.kind === 'free' && (it.design || it.build || it.resolve)) err(`item ${it.id}: free kit is never designed, built or counted by the resolver`);
+    if (it.design && !pids.has(it.design)) err(`item ${it.id}: unknown design ${it.design}`);
+    if (it.resolve && (!isInt(it.resolve.win) || !isInt(it.resolve.downCutPercent) || it.resolve.downCutPercent > 100)) err(`item ${it.id}: resolve`);
+    if (it.slot === 'suit' && (!UNITS[it.battle] || UNITS[it.battle]!.side !== 'agency')) err(`item ${it.id}: battle template ${it.battle} is not an agency unit`);
+    if ((it.slot === 'long' || it.slot === 'side') && !WEAPONS[it.battle]) err(`item ${it.id}: battle weapon ${it.battle} is not in weapons.json`);
+    const row = rows.get(it.id);
+    if (!row) {
+      err(`item ${it.id} has no row in docs/spec/20-city.md section 23`);
+      continue;
+    }
+    const want = [it.name, it.slot, it.kind, String(it.weight), it.frame ? `${it.frame.belt} / ${it.frame.carry}` : '-', it.build ? `${it.build.cost} / ${it.build.hours}` : '-', it.battle, it.resolve ? `${it.resolve.win} / ${it.resolve.downCutPercent}` : '-'];
+    if (JSON.stringify(row) !== JSON.stringify(want)) err(`item ${it.id}: spec row ${row.join(' | ')} != items.json ${want.join(' | ')}`);
+  }
+  for (const id of rows.keys()) if (!iids.has(id)) err(`spec item row ${id} is not in items.json`);
+  for (const slot of ['suit', 'long', 'side'] as const) {
+    const it = ITEMS.items.find((i) => i.id === ITEMS.issue[slot]);
+    if (!it || it.kind !== 'free' || it.slot !== slot) err(`items: the issued ${slot} must be free kit of that slot`);
+  }
+  for (const b of ITEMS.issue.belt) if (ITEMS.items.find((i) => i.id === b)?.slot !== 'belt') err(`items: issued belt item ${b} is not belt kit`);
   console.log(`City: ${new Set(cids).size} rule ids, ${[...cspec.matchAll(/^- RULING: /gm)].length} rulings; ${CITY.districts.length} districts, ${CITY.orgs.length} organisations, ${CITY.buildings.length} buildings.`);
 }
 

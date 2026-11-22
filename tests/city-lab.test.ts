@@ -1,6 +1,6 @@
 // docs/spec/20-city.md sections 17 to 19 (M5b): the lab, the workshop and raid composition.
 import { describe, expect, it } from 'vitest';
-import { advanceCityTicks, cityLegalActions, cityStep, cityView, compositionFor, createCity, researchBlock, winChance, working, type CityAction, type CityEvent, type CityState, type CityTuning } from '../src/city';
+import { advanceCityTicks, cityLegalActions, cityStep, cityView, compositionFor, createCity, itemCost, researchBlock, winChance, type CityAction, type CityEvent, type CityState, type CityTuning } from '../src/city';
 import { CITY_TUNING, RESEARCH } from '../src/data/city';
 import { agencyCareful, RESEARCH_ORDER } from '../src/ai/city';
 import { cityInvariants } from '../src/sim/cityInvariants';
@@ -111,18 +111,19 @@ describe('18. The workshop (SHOP)', () => {
     expect(cityStep(city(), { type: 'build', side: 'agency', item: 'shell-plate' }).ok).toBe(false);
     let s = done(city(), 'shell-plate');
     s = ok(s, { type: 'build', side: 'agency', item: 'shell-plate' }).state;
-    expect(s.money).toBe(T.fund.startMoney - T.shop.plateCost);
+    expect(s.money).toBe(T.fund.startMoney - itemCost('shell-plate').cost);
     expect(cityStep(s, { type: 'build', side: 'agency', item: 'shell-plate' }).ok).toBe(false);
-    const r = advanceCityTicks(s, T.shop.plateHours * HOUR);
-    expect(r.state.shop.stock['shell-plate']).toBe(1);
+    expect(cityStep(s, { type: 'build', side: 'agency', item: 'patrol-carbine' }).ok).toBe(false); // free kit is never built
+    const r = advanceCityTicks(s, itemCost('shell-plate').hours * HOUR);
+    expect(r.state.shop.armoury).toEqual([{ id: 'pc1', item: 'shell-plate', source: 'built', sabotaged: false }]);
     expect(r.events.some((e) => e.type === 'built')).toBe(true);
   });
   it('SHOP-2 the supplier sells cheaper and delivers sooner', () => {
     let s = done(only(city(), 'vector', 0), 'arc-carbine');
     s = ok(s, { type: 'order', side: 'agency', item: 'arc-carbine' }).state;
-    expect(s.money).toBe(T.fund.startMoney - Math.floor((T.shop.carbineCost * T.shop.supplierPricePercent) / 100));
+    expect(s.money).toBe(T.fund.startMoney - Math.floor((itemCost('arc-carbine').cost * T.shop.supplierPricePercent) / 100));
     const r = advanceCityTicks(s, T.shop.supplierHours * HOUR);
-    expect(r.state.shop.stock['arc-carbine']).toBe(1);
+    expect(r.state.shop.armoury).toEqual([{ id: 'pc1', item: 'arc-carbine', source: 'ordered', sabotaged: false }]);
     const turned = clone(s);
     turned.orgs.find((o) => o.id === 'vector')!.turned = true;
     turned.orgs.find((o) => o.id === 'vector')!.infiltration = 70;
@@ -134,20 +135,20 @@ describe('18. The workshop (SHOP)', () => {
     s = ok(s, { type: 'order', side: 'agency', item: 'arc-carbine' }).state;
     expect(s.biomass).toBeGreaterThan(bio);
     s = advanceCityTicks(s, T.shop.supplierHours * HOUR).state;
-    expect(s.shop.sabotaged['arc-carbine']).toBe(1);
+    expect(s.shop.armoury[0]!.sabotaged).toBe(true);
     const v = cityView(s, 'agency');
-    expect(v.shop.sabotaged['arc-carbine']).toBe(0);
-    expect(v.shop.stock['arc-carbine']).toBe(1);
-    expect(working(s, 'arc-carbine', 6)).toBe(0);
+    expect(v.shop.armoury[0]!.sabotaged).toBe(false);
+    s = ok(s, { type: 'equip', side: 'agency', agent: 'ag1', slot: 'long', item: 'arc-carbine' }).state;
+    expect(winChance(s, ['ag1'], 3)).toBe(winChance(city(), ['ag1'], 3)); // it gives nothing
+    expect(cityView(s, 'agency').agents[0]!.kit.long.piece!.sabotaged).toBe(false);
   });
-  it('SHOP-4 working kit raises the win chance', () => {
+  it('SHOP-4 is retired: kit on the shelf adds nothing to a raid until an agent carries it', () => {
     const s = clone(city());
-    const base = winChance(s, 6, 5);
-    s.shop.stock['shell-plate'] = 6;
-    s.shop.stock['arc-carbine'] = 3;
-    expect(winChance(s, 6, 5)).toBe(base + 6 * T.shop.plateWin + 3 * T.shop.carbineWin);
-    s.shop.sabotaged['arc-carbine'] = 3;
-    expect(winChance(s, 6, 5)).toBe(base + 6 * T.shop.plateWin);
+    const squad = ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6'];
+    const base = winChance(s, squad, 5);
+    s.shop.armoury.push({ id: 'pc1', item: 'shell-plate', source: 'built', sabotaged: false });
+    s.shop.nextPiece = 2;
+    expect(winChance(s, squad, 5)).toBe(base);
   });
 });
 
@@ -169,8 +170,7 @@ describe('13 and 12. Invariants and the careful lab (CINV-9, CAI-7)', () => {
     const s = clone(city());
     expect(cityInvariants(s)).toEqual([]);
     s.shelf.core = -1;
-    s.shop.sabotaged['shell-plate'] = 2;
-    expect(cityInvariants(s).join()).toMatch(/shelf core.*|stock/);
+    expect(cityInvariants(s).join()).toMatch(/shelf core/);
   });
   it('CAI-7 the careful agency starts the first project it can, and legal actions list research', () => {
     const s = clone(city());

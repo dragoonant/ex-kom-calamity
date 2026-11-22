@@ -14,7 +14,28 @@ export const BANDS: Band[] = ['clean', 'low', 'some', 'heavy'];
 /** SIGN-2 */
 export type SlipKind = 'missing' | 'purchase' | 'power' | 'perfect' | 'vote' | 'hum' | 'spotted' | 'confession' | 'landing' | 'found';
 export const SLIP_KINDS: SlipKind[] = ['missing', 'purchase', 'power', 'perfect', 'vote', 'hum', 'spotted', 'confession', 'landing', 'found'];
-export type ItemId = 'shell-plate' | 'arc-carbine';
+/** KIT-1: an id from src/data/items.json. */
+export type ItemId = string;
+/** KIT-5: one built or bought piece of limited kit. `sabotaged` is hidden from the agency (CVIEW-1); `source` is not. */
+export interface Piece {
+  id: string;
+  item: ItemId;
+  source: 'built' | 'ordered';
+  sabotaged: boolean;
+}
+/** KIT-2: a slot holds a free item (no piece) or one limited piece. */
+export interface KitRef {
+  item: ItemId;
+  piece: Piece | null;
+}
+/** KIT-2, KIT-3: what an agent carries; the belt has as many slots as the suit's frame (null is an empty slot). */
+export interface Kit {
+  suit: KitRef;
+  long: KitRef;
+  side: KitRef;
+  belt: (KitRef | null)[];
+}
+export type EquipSlot = 'suit' | 'long' | 'side';
 
 /** AIR-1: positions are in tenths of a city cell (integers, CARCH-6). */
 export type CraftKind = 'scout' | 'seeder' | 'carrier';
@@ -94,6 +115,8 @@ export interface Agent {
   /** TRAVEL-1: the drive under way, or null (ready, watching, wounded, dead, or a squad at the door). */
   leg: Leg | null;
   raids: number;
+  /** KIT-2: the agent's own kit, carried on every watch, drive and raid. */
+  kit: Kit;
 }
 
 export interface Slip {
@@ -173,8 +196,8 @@ export interface CityState {
   shelf: Record<Evidence, number>;
   /** LAB-2 */
   lab: { project: string | null; progress: number; done: string[] };
-  /** SHOP-1..4: the workshop's job, the stock, and the supplier's deliveries; `sabotaged` is hidden from the agency (CVIEW-1). */
-  shop: { item: ItemId | null; progress: number; stock: Record<ItemId, number>; sabotaged: Record<ItemId, number>; orders: { item: ItemId; arriveTick: number; sabotaged: boolean }[] };
+  /** SHOP-1..3, KIT-5: the workshop's job, the armoury's shelf of pieces nobody carries, and the supplier's deliveries; `sabotaged` is hidden from the agency (CVIEW-1). */
+  shop: { item: ItemId | null; progress: number; armoury: Piece[]; nextPiece: number; orders: { item: ItemId; arriveTick: number; sabotaged: boolean }[] };
   /** AIR-1..7 */
   /** ACT-1: the act, the day it began, and whether the organism has found headquarters (ACT-4). */
   act: 1 | 2 | 3;
@@ -203,6 +226,8 @@ export type CityAction =
   | { type: 'build'; side: 'agency'; item: ItemId }
   | { type: 'order'; side: 'agency'; item: ItemId }
   | { type: 'question'; side: 'agency' }
+  | { type: 'equip'; side: 'agency'; agent: string; slot: EquipSlot; item: ItemId; piece?: string }
+  | { type: 'strip'; side: 'agency'; agent: string }
   | { type: 'intercept'; side: 'agency'; craft: string; cars: string[] }
   | { type: 'posture'; side: 'agency'; craft: string; posture: 'press' | 'shadow' }
   | { type: 'buyCar'; side: 'agency' }
@@ -236,9 +261,13 @@ export type CityEvent =
   | { type: 'researchDone'; project: string }
   | { type: 'shelved'; host: number; taker: number; fighter: number; core: number; liveHost: number; liveTaker: number }
   | { type: 'buildStarted'; item: ItemId; cost: number }
-  | { type: 'built'; item: ItemId }
+  | { type: 'built'; item: ItemId; piece: string }
   | { type: 'ordered'; item: ItemId; cost: number; arriveTick: number }
-  | { type: 'delivered'; item: ItemId }
+  | { type: 'delivered'; item: ItemId; piece: string }
+  | { type: 'equipped'; agent: string; slot: EquipSlot; item: ItemId; piece: string | null; returned: string | null }
+  | { type: 'stripped'; agent: string; returned: string[] }
+  | { type: 'kitRecovered'; agent: string; pieces: string[] }
+  | { type: 'kitLost'; agent: string; pieces: string[] }
   | { type: 'launched'; craft: string; kind: CraftKind; x: number; y: number }
   | { type: 'intercepting'; craft: string; cars: string[] }
   | { type: 'dogfight'; craft: string; craftHp: number; hits: number; carsHit: string[]; rolls: number[] }

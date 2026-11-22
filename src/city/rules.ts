@@ -1,7 +1,7 @@
 // Shared rule helpers (docs/spec/20-city.md). Pure, read-only over the state.
-import { CITY, RESEARCH, type BuildingDef, type Evidence, type OrgDef, type ProjectDef } from '../data/city';
+import { CITY, ITEMS, RESEARCH, type BuildingDef, type Evidence, type ItemDef, type OrgDef, type ProjectDef } from '../data/city';
 import { ticksPerHour } from './time';
-import type { Band, CityState, ItemId, Leg, Org } from './types';
+import type { Agent, Band, CityState, EquipSlot, ItemId, Kit, KitRef, Leg, Org, Piece } from './types';
 
 export function buildingDef(id: string): BuildingDef | undefined {
   return CITY.buildings.find((b) => b.id === id);
@@ -41,12 +41,16 @@ export function hostilesFor(state: CityState, org: Org): number {
   return base + (org.turned ? r.turnedGuards : 0);
 }
 
-/** RES-1, SHOP-4: the auto-resolver's win chance in percent, with the squad's working kit. */
-export function winChance(state: CityState, agents: number, hostiles: number): number {
+/** RES-1, KIT-7: the auto-resolver's win chance in percent, with the working kit the squad carries. */
+export function winChance(state: CityState, agents: string[], hostiles: number): number {
   const r = state.tuning.res;
   if (hostiles <= 0) return 100;
-  const kit = state.shop ? working(state, 'shell-plate', agents) * state.tuning.shop.plateWin + working(state, 'arc-carbine', agents) * state.tuning.shop.carbineWin : 0;
-  const p = r.winBasePercent + r.winPerAgent * agents - r.winPerHostile * hostiles + kit;
+  let kit = 0;
+  for (const id of agents) {
+    const a = state.agents.find((x) => x.id === id);
+    if (a) kit += kitWin(a.kit);
+  }
+  const p = r.winBasePercent + r.winPerAgent * agents.length - r.winPerHostile * hostiles + kit;
   return Math.max(r.winMinPercent, Math.min(r.winMaxPercent, p));
 }
 
@@ -113,25 +117,137 @@ export function compositionFor(state: CityState, org: Org, hostiles: number): { 
   return { takers, fighters: Math.min(fighters, Math.max(0, hostiles - takers)) };
 }
 
-/** SHOP-1 */
-export function itemCost(state: CityState, item: ItemId): { cost: number; hours: number } {
-  const s = state.tuning.shop;
-  return item === 'shell-plate' ? { cost: s.plateCost, hours: s.plateHours } : { cost: s.carbineCost, hours: s.carbineHours };
+/** KIT-1 */
+export function itemDef(id: ItemId): ItemDef | undefined {
+  return ITEMS.items.find((i) => i.id === id);
+}
+
+/** SHOP-1: what one piece costs to build, and how long. Zero for an item that is never built. */
+export function itemCost(item: ItemId): { cost: number; hours: number } {
+  return itemDef(item)?.build ?? { cost: 0, hours: 0 };
+}
+
+/** SHOP-1: the items the workshop can make or buy: limited kit whose design is done. */
+export function buildableItems(state: CityState): ItemDef[] {
+  return ITEMS.items.filter((i) => i.kind === 'limited' && i.build && i.design && hasDone(state, i.design));
+}
+
+/** KIT-2: a recruit's issue, all free kit. The belt has its suit's slots, filled in order. */
+export function issueKit(): Kit {
+  const iss = ITEMS.issue;
+  const belt: (KitRef | null)[] = [];
+  const slots = itemDef(iss.suit)?.frame?.belt ?? 0;
+  for (let i = 0; i < slots; i++) belt.push(iss.belt[i] ? { item: iss.belt[i]!, piece: null } : null);
+  return { suit: { item: iss.suit, piece: null }, long: { item: iss.long, piece: null }, side: { item: iss.side, piece: null }, belt };
+}
+
+/** KIT-5: every piece a kit carries. */
+export function kitPieces(kit: Kit): Piece[] {
+  const out: Piece[] = [];
+  for (const r of [kit.suit, kit.long, kit.side, ...kit.belt]) if (r?.piece) out.push(r.piece);
+  return out;
+}
+
+/** KIT-3: a kit's suit frame. */
+export function frameOf(kit: Kit): { belt: number; carry: number } {
+  return itemDef(kit.suit.item)?.frame ?? { belt: 0, carry: 0 };
+}
+
+/** KIT-4: a kit's weight: the long arm, the sidearm and every belt item. */
+export function kitWeight(kit: Kit): number {
+  let w = 0;
+  for (const r of [kit.long, kit.side, ...kit.belt]) if (r) w += itemDef(r.item)?.weight ?? 0;
+  return w;
+}
+
+/** KIT-6: a slot works unless its piece is sabotaged. */
+export function works(ref: KitRef | null): boolean {
+  return !!ref && !(ref.piece && ref.piece.sabotaged);
+}
+
+/** KIT-7: the win points a kit adds to the auto-resolver. */
+export function kitWin(kit: Kit): number {
+  let w = 0;
+  for (const r of [kit.suit, kit.long, kit.side]) if (r.piece && works(r)) w += itemDef(r.item)?.resolve?.win ?? 0;
+  return w;
+}
+
+/** KIT-7: the percent cut off an agent's down chance by a working suit. */
+export function kitDownCut(kit: Kit): number {
+  return kit.suit.piece && works(kit.suit) ? (itemDef(kit.suit.item)?.resolve?.downCutPercent ?? 0) : 0;
+}
+
+/** KIT-8: what a slot fields in battle: a sabotaged piece fields the issued item of its slot instead. */
+export function battleItem(ref: KitRef, slot: EquipSlot): string {
+  const id = works(ref) ? ref.item : ITEMS.issue[slot];
+  return itemDef(id)?.battle ?? id;
+}
+
+/** KIT-3: a kit with a new suit keeps its belt in order, cut or padded to the new frame. */
+export function withSuit(kit: Kit, suit: KitRef): Kit {
+  const slots = itemDef(suit.item)?.frame?.belt ?? 0;
+  const belt = kit.belt.slice(0, slots);
+  while (belt.length < slots) belt.push(null);
+  return { ...kit, suit, belt };
+}
+
+/** KIT-4: why an agent cannot be fitted with this, or null when it can. */
+export function equipBlock(state: CityState, agentId: string, slot: EquipSlot, item: ItemId, pieceId?: string): string | null {
+  const a = state.agents.find((x) => x.id === agentId);
+  if (!a) return `no agent ${agentId}`;
+  if (a.status !== 'ready') return 'kit changes only at headquarters, for an agent who is ready';
+  const def = itemDef(item);
+  if (!def) return `no item ${item}`;
+  if (def.slot !== slot) return `${def.name} does not go in the ${slot} slot`;
+  if (def.kind === 'usedUp') return `${def.name} goes on the belt`;
+  if (def.kind === 'free') {
+    if (pieceId !== undefined) return 'free kit has no pieces';
+    if (a.kit[slot].item === item && !a.kit[slot].piece) return 'already carried';
+  } else {
+    const p = pieceId !== undefined ? state.shop.armoury.find((x) => x.id === pieceId) : state.shop.armoury.find((x) => x.item === item);
+    if (!p) return pieceId !== undefined ? `piece ${pieceId} is not on the armoury shelf` : `no ${def.name} on the armoury shelf`;
+    if (p.item !== item) return `piece ${pieceId} is not a ${def.name}`;
+  }
+  const ref: KitRef = { item, piece: null };
+  const next = slot === 'suit' ? withSuit(a.kit, ref) : { ...a.kit, [slot]: ref };
+  if (kitWeight(next) > frameOf(next).carry + state.tuning.kit.overCarry) return 'too heavy for the suit';
+  return null;
+}
+
+/** KIT-7, KIT-9: best fit for these agents, in order: each slot gets the strongest working piece on the shelf whose
+ * win points beat what the agent carries (built before ordered). Returns the equip orders, checked one by one. */
+export function bestFitOrders(state: CityState, agentIds: string[], step: (s: CityState, a: { type: 'equip'; side: 'agency'; agent: string; slot: EquipSlot; item: ItemId; piece?: string }) => CityState | null): { type: 'equip'; side: 'agency'; agent: string; slot: EquipSlot; item: ItemId; piece: string }[] {
+  const out: { type: 'equip'; side: 'agency'; agent: string; slot: EquipSlot; item: ItemId; piece: string }[] = [];
+  let s = state;
+  const value = (item: ItemId) => itemDef(item)?.resolve?.win ?? 0;
+  for (const slot of ['suit', 'long', 'side'] as const) {
+    for (const id of agentIds) {
+      const a = s.agents.find((x) => x.id === id);
+      if (!a || a.status !== 'ready') continue;
+      const have = a.kit[slot].piece && works(a.kit[slot]) ? value(a.kit[slot].item) : 0;
+      const best = s.shop.armoury
+        .filter((p) => itemDef(p.item)?.slot === slot && value(p.item) > have)
+        .sort((x, y) => value(y.item) - value(x.item) || (x.source === y.source ? 0 : x.source === 'built' ? -1 : 1))[0];
+      if (!best) continue;
+      const action = { type: 'equip' as const, side: 'agency' as const, agent: id, slot, item: best.item, piece: best.id };
+      const next = step(s, action);
+      if (!next) continue;
+      out.push(action);
+      s = next;
+    }
+  }
+  return out;
+}
+
+/** KIT-1: an agent's kit names only items of the right slots. */
+export function agentKitItems(a: Agent): ItemId[] {
+  return [a.kit.suit.item, a.kit.long.item, a.kit.side.item, ...a.kit.belt.filter((b): b is KitRef => !!b).map((b) => b.item)];
 }
 
 /** SHOP-2: the supplier organisation (kind "arms"). */
 export function supplierOrg(state: CityState): Org | undefined {
   const def = CITY.orgs.find((o) => o.kind === 'arms');
   return def ? orgOf(state, def.id) : undefined;
-}
-
-/** SHOP-4: working items carried by a squad of n. */
-export function working(state: CityState, item: ItemId, n: number): number {
-  const stock = state.shop.stock[item];
-  const carried = Math.min(n, stock);
-  if (carried <= 0) return 0;
-  const good = stock - state.shop.sabotaged[item];
-  return Math.floor((carried * good) / stock);
 }
 
 /** TRAVEL-1: headquarters, and a building's cell centre, in tenths of a cell. */

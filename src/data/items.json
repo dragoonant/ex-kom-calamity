@@ -1,0 +1,13 @@
+{
+  "_": "The agency's kit (docs/spec/20-city.md section 23, KIT; docs/tech-tree.md 4). Names are placeholders (PLAN.md D10). slot: suit, long, side or belt. kind: free (unlimited, never built), limited (built or bought one piece at a time), usedUp (spent in battle; from M10b). weight counts toward the suit's carry (KIT-4); a suit's frame gives its belt slots and carry. design: the lab project that unlocks it. build: workshop cost and hours (SHOP-1). battle: the unit template (suit) or the weapons.json id (long, side) the battle roster fields (ARCH-11). resolve: what a working piece adds to the auto-resolver (KIT-7): win points to the raid's win chance, and downCutPercent off the carrier's down chance. All numbers (tune).",
+  "items": [
+    { "id": "security-gear", "name": "Security gear", "slot": "suit", "kind": "free", "weight": 0, "frame": { "belt": 2, "carry": 5 }, "battle": "agent-t1" },
+    { "id": "shell-plate", "name": "Shell plate suit", "slot": "suit", "kind": "limited", "weight": 0, "frame": { "belt": 3, "carry": 7 }, "design": "shell-plate", "build": { "cost": 30, "hours": 24 }, "battle": "agent-t2", "resolve": { "win": 2, "downCutPercent": 40 } },
+    { "id": "patrol-carbine", "name": "Patrol carbine", "slot": "long", "kind": "free", "weight": 2, "battle": "patrol-carbine" },
+    { "id": "scatter-gun", "name": "Scatter gun", "slot": "long", "kind": "free", "weight": 2, "battle": "scatter-gun" },
+    { "id": "arc-carbine", "name": "Arc carbine", "slot": "long", "kind": "limited", "weight": 2, "design": "arc-carbine", "build": { "cost": 25, "hours": 18 }, "battle": "arc-carbine", "resolve": { "win": 3, "downCutPercent": 0 } },
+    { "id": "service-pistol", "name": "Service pistol", "slot": "side", "kind": "free", "weight": 1, "battle": "service-pistol" },
+    { "id": "breaching-charge", "name": "Breaching charges", "slot": "belt", "kind": "free", "weight": 1, "battle": "charge" }
+  ],
+  "issue": { "suit": "security-gear", "long": "patrol-carbine", "side": "service-pistol", "belt": ["breaching-charge"] }
+}

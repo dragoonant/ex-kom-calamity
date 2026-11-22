@@ -2,6 +2,7 @@
 import tuningJson from './tuning.json';
 import cityJson from './city.json';
 import researchJson from './research.json';
+import itemsJson from '../items.json';
 
 export interface CityTuning {
   clock: { minutesPerTick: number; ticksPerSecond: number; daysPerMonth: number; startHour: number; nightStartHour: number; nightEndHour: number };
@@ -17,13 +18,35 @@ export interface CityTuning {
   lab: { capturePerRaid: number; tellsAccuracy: number; scannerAccuracy: number; scannerSpot: number; antiserumDeathPercent: number; evacuationCivilianPercent: number };
   act: { act2Days: number; act3Days: number; biomassBonusPercent: number; launchEveryHours: number; hqScoutRange: number; carrierCost: number; carrierSpeed: number; carrierHp: number; carrierAmount: number; carrierSurvivors: number; carrierDamagePercent: number; assaultCost: number; assaultEveryDays: number; assaultHostiles: number; finalHostiles: number };
   air: { startDay: number; launchEveryHours: number; scoutCost: number; seederCost: number; scoutSpeed: number; seederSpeed: number; scoutHp: number; seederHp: number; carSpeed: number; carHp: number; carHitPercent: number; carDamage: number; craftHitPercent: number; craftDamage: number; engageRange: number; startCars: number; carCap: number; carCost: number; repairHours: number; seederAmount: number; crashStanding: number; crashConfidence: number; seederSurvivors: number; scoutSurvivors: number; crashHours: number; crashCores: number; scatterPerSurvivor: number };
-  shop: { plateCost: number; plateHours: number; carbineCost: number; carbineHours: number; supplierPricePercent: number; supplierHours: number; sabotageAt: number; sabotageBiomassPercent: number; plateWin: number; plateDownCutPercent: number; carbineWin: number };
+  shop: { supplierPricePercent: number; supplierHours: number; sabotageAt: number; sabotageBiomassPercent: number };
+  kit: { overCarry: number };
 }
 
 export type Evidence = 'host' | 'taker' | 'fighter' | 'core' | 'liveHost' | 'liveTaker';
 export const EVIDENCE: Evidence[] = ['host', 'taker', 'fighter', 'core', 'liveHost', 'liveTaker'];
 export interface ProjectDef { id: string; name: string; branch: string; needs?: Partial<Record<Evidence, number>>; consumes?: Partial<Record<Evidence, number>>; requires?: string[]; hours: number }
-export interface ItemDef { id: 'shell-plate' | 'arc-carbine'; name: string; design: string }
+/** KIT-1: the agency's kit (src/data/items.json). */
+export type KitSlot = 'suit' | 'long' | 'side' | 'belt';
+export const KIT_SLOTS: KitSlot[] = ['suit', 'long', 'side', 'belt'];
+export interface ItemDef {
+  id: string;
+  name: string;
+  slot: KitSlot;
+  kind: 'free' | 'limited' | 'usedUp';
+  weight: number;
+  /** KIT-3: a suit's frame: its belt slots and its carry. */
+  frame?: { belt: number; carry: number };
+  design?: string;
+  build?: { cost: number; hours: number };
+  /** ARCH-11: the unit template (a suit) or the weapons.json id (a long arm or sidearm) the battle fields. */
+  battle: string;
+  resolve?: { win: number; downCutPercent: number };
+}
+export interface ItemsDef {
+  items: ItemDef[];
+  /** KIT-2: a recruit's issue. */
+  issue: { suit: string; long: string; side: string; belt: string[] };
+}
 
 export type RaidSite = 'automat' | 'depot' | 'savings';
 export const RAID_SITE_BATTLES: Record<RaidSite, string> = { automat: 'automat-raid', depot: 'depot-raid', savings: 'savings-raid' };
@@ -53,4 +76,5 @@ function strip<T>(o: T): T {
 
 export const CITY_TUNING: CityTuning = strip(tuningJson) as unknown as CityTuning;
 export const CITY: CityDef = strip(cityJson) as unknown as CityDef;
-export const RESEARCH: { projects: ProjectDef[]; items: ItemDef[] } = strip(researchJson) as unknown as { projects: ProjectDef[]; items: ItemDef[] };
+export const RESEARCH: { projects: ProjectDef[] } = strip(researchJson) as unknown as { projects: ProjectDef[] };
+export const ITEMS: ItemsDef = strip(itemsJson) as unknown as ItemsDef;

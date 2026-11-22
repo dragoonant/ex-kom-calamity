@@ -25,8 +25,9 @@ export function cityView(state: CityState, side: CitySide): CityState {
       c.ty = c.y;
       c.target = '';
     }
-    // SHOP-3: sabotage is hidden.
-    v.shop.sabotaged = { 'shell-plate': 0, 'arc-carbine': 0 };
+    // SHOP-3, KIT-6: sabotage is hidden, on the shelf, on order and in every agent's kit.
+    for (const p of v.shop.armoury) p.sabotaged = false;
+    for (const a of v.agents) for (const r of [a.kit.suit, a.kit.long, a.kit.side, ...a.kit.belt]) if (r?.piece) r.piece.sabotaged = false;
     for (const o of v.shop.orders) o.sabotaged = false;
   }
   // CVIEW-2: the organism sees the whole city, the agency's orders included.

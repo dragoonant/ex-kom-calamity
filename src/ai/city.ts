@@ -1,7 +1,7 @@
 // The city AI (docs/spec/20-city.md section 12). Pure functions of a side's view (CAI-1): the organism's planner and
 // the agency drivers the sim and an autopilot use. No DOM, three.js or React here.
 import { CITY } from '../data/city';
-import { buildingUnder, cityLegalActions, clockOf, hasDone, itemCost, launchBlock, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
+import { bestFitOrders, buildableItems, buildingUnder, cityLegalActions, cityStep, clockOf, hasDone, itemCost, kitPieces, launchBlock, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
 import { nextInt, seedRng } from '../engine/rng';
 
 export type CityDriver = (view: CityState) => CityAction[];
@@ -159,13 +159,19 @@ export const agencyCareful: CityDriver = (view) => {
   if (hasDone(view, 'interrogation') && view.shelf.liveHost > 0 && !hasDone(view, 'hand-scanner')) out.push({ type: 'question', side: 'agency' });
   else if (hasDone(view, 'interrogation') && view.shelf.liveHost > 1) out.push({ type: 'question', side: 'agency' });
   if (!view.shop.item) {
-    for (const item of ['shell-plate', 'arc-carbine'] as const) {
-      if (hasDone(view, item) && view.shop.stock[item] < t.raid.maxAgents && view.money >= itemCost(view, item).cost + t.roster.recruitCost + 20) {
-        out.push({ type: 'build', side: 'agency', item });
+    for (const def of buildableItems(view)) {
+      const have = view.shop.armoury.filter((p) => p.item === def.id).length + view.agents.filter((a) => a.status !== 'dead' && kitPieces(a.kit).some((p) => p.item === def.id)).length;
+      if (have < t.raid.maxAgents && view.money >= itemCost(def.id).cost + t.roster.recruitCost + 20) {
+        out.push({ type: 'build', side: 'agency', item: def.id });
         break;
       }
     }
   }
+  // CAI-12: best fit (KIT-9) for the agents at home, in roster order, so the first ones, who raid, carry the kit.
+  out.push(...bestFitOrders(view, ready, (st, a) => {
+    const r = cityStep(st, a);
+    return r.ok ? r.state : null;
+  }));
   // CAI-9: the air war: every ready car after a seeder (a scout only when no seeder flies), pressing over open
   // ground and shadowing over buildings; crash sites are raided first; a third car when money allows.
   const readyCars = view.cars.filter((c) => c.status === 'ready').map((c) => c.id);
@@ -218,6 +224,8 @@ export const agencyCareful: CityDriver = (view) => {
     const b = view.buildings.find((x) => x.id === id)!;
     if (view.agents.some((a) => (a.status === 'watching' || a.status === 'travelling') && a.building === id)) continue;
     if (b.watch && view.tick - b.watch.tick < 2 * day) continue;
+    // CAI-12: a watcher leaves its pieces on the shelf for the next squad.
+    if (kitPieces(view.agents.find((a) => a.id === spare[i])!.kit).length) out.push({ type: 'strip', side: 'agency', agent: spare[i]! });
     out.push({ type: 'watch', side: 'agency', agent: spare[i]!, building: id });
     i += 1;
   }

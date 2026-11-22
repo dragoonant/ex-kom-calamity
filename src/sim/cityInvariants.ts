@@ -1,6 +1,6 @@
 // CINV-1..8: what must hold after every city step.
 import { CITY } from '../data/city';
-import type { CityState } from '../city';
+import { frameOf, issueKit, itemDef, kitPieces, kitWeight, type CityState } from '../city';
 
 export function cityInvariants(s: CityState): string[] {
   const out: string[] = [];
@@ -47,7 +47,27 @@ export function cityInvariants(s: CityState): string[] {
   for (const [k, v] of Object.entries(s.shelf)) if (!Number.isInteger(v) || v < 0) out.push(`shelf ${k} is ${v}`);
   if (new Set(s.lab.done).size !== s.lab.done.length) out.push('a project is done twice');
   if (s.lab.project && s.lab.done.includes(s.lab.project)) out.push('the lab works on a done project');
-  for (const k of ['shell-plate', 'arc-carbine'] as const) if (s.shop.sabotaged[k] > s.shop.stock[k] || s.shop.stock[k] < 0) out.push(`stock of ${k} is broken`);
+  // CINV-13: every piece is in one place only, of limited kit, below the next id; every kit fits its slots and frame;
+  // the dead carry only the issue.
+  const ids: string[] = s.shop.armoury.map((p) => p.id);
+  for (const a of s.agents) ids.push(...kitPieces(a.kit).map((p) => p.id));
+  if (new Set(ids).size !== ids.length) out.push('a piece is in two places');
+  for (const p of [...s.shop.armoury, ...s.agents.flatMap((a) => kitPieces(a.kit))]) {
+    if (itemDef(p.item)?.kind !== 'limited') out.push(`piece ${p.id} is of ${p.item}, not limited kit`);
+    if (Number(p.id.slice(2)) >= s.shop.nextPiece) out.push(`piece ${p.id} is not below the next id`);
+  }
+  for (const a of s.agents) {
+    const k = a.kit;
+    for (const [slot, r] of [['suit', k.suit], ['long', k.long], ['side', k.side]] as const) {
+      if (itemDef(r.item)?.slot !== slot) out.push(`${a.id} carries ${r.item} in the ${slot} slot`);
+      if (r.piece && r.piece.item !== r.item) out.push(`${a.id} ${slot} piece is not its item`);
+      if (!r.piece && itemDef(r.item)?.kind !== 'free') out.push(`${a.id} ${slot} has limited kit without a piece`);
+    }
+    for (const b of k.belt) if (b && itemDef(b.item)?.slot !== 'belt') out.push(`${a.id} belt carries ${b.item}`);
+    if (k.belt.length !== frameOf(k).belt) out.push(`${a.id} belt has ${k.belt.length} slots, its suit ${frameOf(k).belt}`);
+    if (kitWeight(k) > frameOf(k).carry + t.kit.overCarry) out.push(`${a.id} carries too much`);
+    if (a.status === 'dead' && JSON.stringify(k) !== JSON.stringify(issueKit())) out.push(`${a.id} is dead and still carries kit`);
+  }
   if (s.raid && s.raid.arrived && s.raid.takers + s.raid.fighters > s.raid.hostiles) out.push('raid composition exceeds its hostiles');
   // CINV-10: the air war's cars, craft and crash sites agree.
   for (const car of s.cars) {

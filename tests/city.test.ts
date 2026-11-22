@@ -22,6 +22,7 @@ import {
   type CityEvent,
   type CityState,
   type CityTuning,
+  issueKit,
 } from '../src/city';
 import { CITY, CITY_TUNING } from '../src/data/city';
 import { agencyCareful, agencyPassive, agencyRandom, hostilePlanner, hostileRandom, suspicion } from '../src/ai/city';
@@ -152,7 +153,7 @@ describe('0. Engine contract (CARCH)', () => {
       const text = readFileSync(new URL(f, dir), 'utf8');
       expect(text, f).not.toMatch(/from '(react|three|@react-three|zustand)/);
       expect(text, f).not.toMatch(/\b(document|window|globalThis)\s*[.[]|\b(requestAnimationFrame|performance\.now|Date\.now)\b/);
-      for (const m of text.matchAll(/from '([^']+)'/g)) expect(m[1], `${f} imports ${m[1]}`).toMatch(/^(\.\/|\.\.\/data\/city|\.\.\/engine\/rng)/);
+      for (const m of text.matchAll(/from '([^']+)'/g)) expect(m[1], `${f} imports ${m[1]}`).toMatch(/^(\.\/|\.\.\/data\/city|\.\.\/data$|\.\.\/engine\/rng)/);
     }
   });
 });
@@ -465,9 +466,10 @@ describe('6. Raids (RAID)', () => {
 describe('7. Resolution (RES)', () => {
   it('RES-1 the win chance and the auto-resolver follow the formula', () => {
     const s = city();
-    expect(winChance(s, 6, 0)).toBe(100);
-    expect(winChance(s, 6, 4)).toBe(T.res.winBasePercent + 6 * T.res.winPerAgent - 4 * T.res.winPerHostile);
-    expect(winChance(s, 1, 10)).toBe(T.res.winMinPercent);
+    const six = ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6'];
+    expect(winChance(s, six, 0)).toBe(100);
+    expect(winChance(s, six, 4)).toBe(T.res.winBasePercent + 6 * T.res.winPerAgent - 4 * T.res.winPerHostile);
+    expect(winChance(s, ['ag1'], 10)).toBe(T.res.winMinPercent);
     let wins = 0;
     for (let seed = 1; seed <= 200; seed++) {
       const r = ok(atDoor(only(city(seed), 'freight', 30), 'depot-7', ['ag1', 'ag2', 'ag3']), { type: 'resolve', side: 'agency' });
@@ -536,7 +538,7 @@ describe('7. Resolution (RES)', () => {
 describe('8. The roster (ROSTER)', () => {
   it('ROSTER-1 an agent carries its status, until tick, watch building and raids', () => {
     const a = city().agents[0]!;
-    expect(a).toEqual({ id: 'ag1', name: CITY.agency.names[0], status: 'ready', until: 0, building: null, leg: null, raids: 0 });
+    expect(a).toEqual({ id: 'ag1', name: CITY.agency.names[0], status: 'ready', until: 0, building: null, leg: null, raids: 0, kit: issueKit() });
   });
   it('ROSTER-2 the agency starts with eight named agents', () => {
     const s = city();

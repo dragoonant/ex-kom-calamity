@@ -13,7 +13,12 @@ import {
   projectDef,
   researchBlock,
   supplierOrg,
-  working,
+  equipBlock,
+  issueKit,
+  itemDef,
+  kitDownCut,
+  kitPieces,
+  withSuit,
   downChance,
   grantOf,
   hostilesFor,
@@ -29,7 +34,7 @@ import {
   placePoint,
 } from './rules';
 import { absoluteTicks, clockOf, ticksPerDay, ticksPerHour } from './time';
-import { BANDS, type CityAction, type CityEvent, type CityState, type CityStepResult, type RaidResult, type Slip, type SlipKind } from './types';
+import { BANDS, type Agent, type CityAction, type CityEvent, type CityState, type CityStepResult, type RaidResult, type Slip, type SlipKind } from './types';
 
 function clone(s: CityState): CityState {
   // The log's entries are never mutated (appendCityLog returns a new array), so it is shared rather than copied.
@@ -186,9 +191,12 @@ function labHour(s: CityState, events: CityEvent[]): void {
   }
   if (s.shop.item) {
     s.shop.progress += 1;
-    if (s.shop.progress >= itemCost(s, s.shop.item).hours) {
-      s.shop.stock[s.shop.item] += 1;
-      events.push({ type: 'built', item: s.shop.item });
+    if (s.shop.progress >= itemCost(s.shop.item).hours) {
+      // KIT-5: a built piece goes on the armoury shelf.
+      const piece = { id: `pc${s.shop.nextPiece}`, item: s.shop.item, source: 'built' as const, sabotaged: false };
+      s.shop.nextPiece += 1;
+      s.shop.armoury.push(piece);
+      events.push({ type: 'built', item: s.shop.item, piece: piece.id });
       s.shop.item = null;
       s.shop.progress = 0;
     }
@@ -197,11 +205,24 @@ function labHour(s: CityState, events: CityEvent[]): void {
   if (due.length) {
     s.shop.orders = s.shop.orders.filter((o) => o.arriveTick > s.tick);
     for (const o of due) {
-      s.shop.stock[o.item] += 1;
-      if (o.sabotaged) s.shop.sabotaged[o.item] += 1;
-      events.push({ type: 'delivered', item: o.item });
+      // KIT-5, SHOP-3: a delivered piece goes on the shelf, sabotaged or not.
+      const piece = { id: `pc${s.shop.nextPiece}`, item: o.item, source: 'ordered' as const, sabotaged: o.sabotaged };
+      s.shop.nextPiece += 1;
+      s.shop.armoury.push(piece);
+      events.push({ type: 'delivered', item: o.item, piece: piece.id });
     }
   }
+}
+
+/** KIT-6 (PLAN Q23): a dead agent's pieces go back on the shelf when the fight was won, and are lost when it was not. */
+function buryKit(s: CityState, a: Agent, won: boolean, events: CityEvent[]): void {
+  const pieces = kitPieces(a.kit);
+  a.kit = issueKit();
+  if (!pieces.length) return;
+  if (won) {
+    s.shop.armoury.push(...pieces);
+    events.push({ type: 'kitRecovered', agent: a.id, pieces: pieces.map((p) => p.id) });
+  } else events.push({ type: 'kitLost', agent: a.id, pieces: pieces.map((p) => p.id) });
 }
 
 /** ACT-7: the final raid is a raid on the source's tower in act 3. */
@@ -299,14 +320,16 @@ function tick(state: CityState, action: CityAction): CityStepResult {
 
 function autoResult(s: CityState, hostiles: number, agents: string[]): { result: RaidResult; roll: number | null; chance: number | null } {
   if (hostiles <= 0) return { result: { won: true, agentsDown: [], hostilesDown: 0, civiliansDown: 0 }, roll: null, chance: null };
-  const chance = winChance(s, agents.length, hostiles);
+  const chance = winChance(s, agents, hostiles);
   const roll = nextInt(s.rng, 100);
   const won = roll < chance;
   const down = downChance(s, hostiles, won);
-  // SHOP-4: the first agents carry the working plates.
-  const plated = working(s, 'shell-plate', agents.length);
-  const plateDown = Math.floor((down * (100 - s.tuning.shop.plateDownCutPercent)) / 100);
-  const agentsDown = agents.filter((_, i) => nextInt(s.rng, 100) < (i < plated ? plateDown : down));
+  // KIT-7: each agent's own working suit cuts its down chance.
+  const cutFor = (id: string) => {
+    const a = s.agents.find((x) => x.id === id);
+    return a ? kitDownCut(a.kit) : 0;
+  };
+  const agentsDown = agents.filter((id) => nextInt(s.rng, 100) < Math.floor((down * (100 - cutFor(id))) / 100));
   const hostilesDown = won ? hostiles : nextInt(s.rng, hostiles);
   let civiliansDown = nextInt(s.rng, Math.floor(hostiles / 2) + 1);
   if (hasDone(s, 'evacuation')) civiliansDown = Math.floor((civiliansDown * s.tuning.lab.evacuationCivilianPercent) / 100); // LAB-6
@@ -353,6 +376,7 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
       if (dead) {
         s.score.agentsDead += 1;
         addConfidence(s, -s.tuning.fund.agentLoss, 'agent killed', events);
+        buryKit(s, a, result.won, events);
       }
     } else {
       // TRAVEL-4: the squad drives home from the door.
@@ -475,7 +499,10 @@ function defend(state: CityState, action: Extract<CityAction, { type: 'defend' }
     a.status = dead ? 'dead' : 'wounded';
     a.until = dead ? 0 : s.tick + s.tuning.roster.woundDays * ticksPerDay(s.tuning);
     events.push({ type: 'agentDown', agent: a.id, dead, roll: r });
-    if (dead) s.score.agentsDead += 1;
+    if (dead) {
+      s.score.agentsDead += 1;
+      buryKit(s, a, result.won, events);
+    }
   }
   s.score.hostilesDown += result.hostilesDown;
   if (result.won) {
@@ -580,9 +607,10 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
     case 'build':
     case 'order': {
       if (side !== 'agency') return reject(state, `${action.type} is an agency order`);
-      if (action.item !== 'shell-plate' && action.item !== 'arc-carbine') return reject(state, `no item ${String(action.item)}`);
-      if (!hasDone(state, action.item)) return reject(state, 'the design is not researched');
-      const { cost, hours } = itemCost(state, action.item);
+      const def = itemDef(action.item);
+      if (!def || def.kind !== 'limited' || !def.build || !def.design) return reject(state, `no item ${String(action.item)} the workshop can make`);
+      if (!hasDone(state, def.design)) return reject(state, 'the design is not researched');
+      const { cost, hours } = itemCost(action.item);
       if (action.type === 'build') {
         if (state.shop.item) return reject(state, 'the workshop is busy');
         if (state.money < cost) return reject(state, 'not enough money');
@@ -604,6 +632,40 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
       const arriveTick = s.tick + s.tuning.shop.supplierHours * ticksPerHour(s.tuning);
       s.shop.orders.push({ item: action.item, arriveTick, sabotaged });
       return accept(s, action, [{ type: 'ordered', item: action.item, cost: price, arriveTick }]);
+    }
+    case 'equip': {
+      if (side !== 'agency') return reject(state, 'equip is an agency order');
+      if (action.slot !== 'suit' && action.slot !== 'long' && action.slot !== 'side') return reject(state, 'slot must be suit, long or side');
+      if (typeof action.agent !== 'string' || typeof action.item !== 'string' || (action.piece !== undefined && typeof action.piece !== 'string')) return reject(state, 'equip needs an agent and an item');
+      const why = equipBlock(state, action.agent, action.slot, action.item, action.piece);
+      if (why) return reject(state, why);
+      const s = clone(state);
+      const a = s.agents.find((x) => x.id === action.agent)!;
+      // KIT-5: the piece comes off the shelf (the named one, or the first of its item); the old piece goes back.
+      let piece = null;
+      if (itemDef(action.item)!.kind === 'limited') {
+        const i = s.shop.armoury.findIndex((p) => (action.piece !== undefined ? p.id === action.piece : p.item === action.item));
+        piece = s.shop.armoury.splice(i, 1)[0]!;
+      }
+      const old = a.kit[action.slot].piece;
+      if (old) s.shop.armoury.push(old);
+      const ref = { item: action.item, piece };
+      a.kit = action.slot === 'suit' ? withSuit(a.kit, ref) : { ...a.kit, [action.slot]: ref };
+      return accept(s, action, [{ type: 'equipped', agent: a.id, slot: action.slot, item: action.item, piece: piece?.id ?? null, returned: old?.id ?? null }]);
+    }
+    case 'strip': {
+      if (side !== 'agency') return reject(state, 'strip is an agency order');
+      const a0 = state.agents.find((x) => x.id === action.agent);
+      if (!a0) return reject(state, `no agent ${String(action.agent)}`);
+      if (a0.status !== 'ready') return reject(state, 'kit changes only at headquarters, for an agent who is ready');
+      if (!kitPieces(a0.kit).length) return reject(state, 'the agent carries only issued kit');
+      const s = clone(state);
+      const a = s.agents.find((x) => x.id === action.agent)!;
+      // KIT-5: every piece back on the shelf; the agent keeps the issue.
+      const pieces = kitPieces(a.kit);
+      s.shop.armoury.push(...pieces);
+      a.kit = issueKit();
+      return accept(s, action, [{ type: 'stripped', agent: a.id, returned: pieces.map((p) => p.id) }]);
     }
     case 'question': {
       if (side !== 'agency') return reject(state, 'question is an agency order');

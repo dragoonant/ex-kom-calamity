@@ -96,17 +96,14 @@
     "evacuationCivilianPercent": 50
   },
   "shop": {
-    "plateCost": 30,
-    "plateHours": 24,
-    "carbineCost": 25,
-    "carbineHours": 18,
     "supplierPricePercent": 80,
     "supplierHours": 6,
     "sabotageAt": 20,
-    "sabotageBiomassPercent": 50,
-    "plateWin": 2,
-    "plateDownCutPercent": 40,
-    "carbineWin": 3
+    "sabotageBiomassPercent": 50
+  },
+  "kit": {
+    "_": "KIT-4: how many points of weight an agent may carry over the suit's carry (each point slows the agent in battle from M10b). (tune)",
+    "overCarry": 2
   },
   "air": {
     "startDay": 30,

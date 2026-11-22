@@ -197,7 +197,12 @@ test("FIGHT IT at an assault opens the headquarters map with the city's own agen
     s.hqFound = true;
     s.biomass = 200;
     s.lab.done.push('source-trace', 'shell-plate');
-    s.shop.stock['shell-plate'] = 2;
+    // KIT-2: two agents at home wear shell plates of their own.
+    for (const [i, id] of [[0, 'pc1'], [1, 'pc2']] as const) {
+      s.agents[i].kit.suit = { item: 'shell-plate', piece: { id, item: 'shell-plate', source: 'built', sabotaged: false } };
+      s.agents[i].kit.belt.push(null);
+    }
+    s.shop.nextPiece = 3;
     h.load(s);
     h.order({ type: 'assault', side: 'hostile' } as never);
   });
@@ -238,4 +243,67 @@ test('a fought wreck on open ground shows the drive core with its burn clock (OB
   await page.evaluate(() => window.__ekc!.select('a1'));
   await expect(page.getByTestId('capture')).toBeVisible();
   await expect(page.getByTestId('evacuate')).toBeVisible();
+});
+
+test('the ARMOURY fits an agent from the shelf, BEST FIT kits the rest, and the battle fields each agent in its own kit (M10a, KIT)', async ({ page }) => {
+  const errors = watchErrors(page);
+  await startCampaign(page);
+  // A prepared armoury: two shell plates (one built, one bought) and an arc carbine on the shelf.
+  await page.evaluate(() => {
+    const c = window.__ekcCity!;
+    const s = JSON.parse(JSON.stringify(c.state()!));
+    s.lab.done.push('shell-plate', 'arc-carbine');
+    s.shop.armoury = [
+      { id: 'pc1', item: 'shell-plate', source: 'built', sabotaged: false },
+      { id: 'pc2', item: 'shell-plate', source: 'ordered', sabotaged: false },
+      { id: 'pc3', item: 'arc-carbine', source: 'built', sabotaged: false },
+    ];
+    s.shop.nextPiece = 4;
+    c.load(s);
+  });
+  await page.getByTestId('tab-kit').click();
+  await expect(page.getByTestId('armoury-card')).toBeVisible();
+  await expect(page.getByTestId('kit-suit')).toHaveText(/Security gear/);
+  await expect(page.getByTestId('kit-numbers')).toContainText('ARMOUR 4');
+  await expect(page.getByTestId('armoury-shelf')).toContainText('Shell plate suit · 1 built, 1 bought');
+  // Fit the second agent with the built plate and a scatter gun.
+  await page.getByTestId('kit-agent-ag2').click();
+  await page.getByTestId('fit-suit-shell-plate-built').click();
+  await expect(page.getByTestId('kit-suit')).toHaveText(/Shell plate suit/);
+  await expect(page.getByTestId('kit-numbers')).toContainText('ARMOUR 8');
+  await expect(page.getByTestId('kit-belt-2')).toBeVisible(); // the plate's frame has three belt slots
+  await page.getByTestId('fit-long-scatter-gun').click();
+  await expect(page.getByTestId('kit-long')).toHaveText(/Scatter gun/);
+  // BEST FIT gives the rest of the shelf to the first agents at home.
+  await page.getByTestId('best-fit').click();
+  const kits = await page.evaluate(() => window.__ekcCity!.state()!.agents.slice(0, 2).map((a) => [a.kit.suit.piece?.id ?? null, a.kit.long.piece?.id ?? null, a.kit.long.item]));
+  expect(kits).toEqual([
+    ['pc2', 'pc3', 'arc-carbine'],
+    ['pc1', null, 'scatter-gun'],
+  ]);
+  expect(await page.evaluate(() => window.__ekcCity!.state()!.shop.armoury.length)).toBe(0);
+  // The raid card shows the squad's kit and CHANGE KIT goes back to the armoury.
+  await page.evaluate(() => window.__ekcCity!.select('automat-row'));
+  await expect(page.getByTestId('raid-kit')).toContainText('shell plate suit, arc carbine');
+  await page.getByTestId('change-kit').click();
+  await expect(page.getByTestId('armoury-card')).toBeVisible();
+  // FIGHT IT: each agent takes its own suit and long arm into the battle (KIT-8, CJOIN-3).
+  await page.getByTestId('tab-file').click();
+  await page.getByTestId('raid').click();
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(window.__ekcCity!.state()!.raid!.arriveTick - window.__ekcCity!.state()!.tick));
+  await page.getByTestId('fight').click();
+  await expect(page.getByTestId('battle')).toBeVisible({ timeout: 30_000 });
+  const squad = await page.evaluate(() =>
+    window
+      .__ekc!.getState()!
+      .units.filter((u) => u.side === 'agency')
+      .slice(0, 3)
+      .map((u) => [u.template, u.weapon]),
+  );
+  expect(squad).toEqual([
+    ['agent-t2', 'arc-carbine'],
+    ['agent-t2', 'scatter-gun'],
+    ['agent-t1', 'patrol-carbine'],
+  ]);
+  expect(errors).toEqual([]);
 });

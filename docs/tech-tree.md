@@ -169,11 +169,11 @@ Target *(tune)*, measured by `sim:city` with the careful driver once its researc
 - **The AIs:** the agency `normal` driver (the bench's other seat) learns to use each item as it lands. The hostile AI reacts to smoke (it loses sight like anyone), lures (takers go) and flares (revealed hosts run or fight). Every slice re-runs `bench:ai` (gate 95%) and `sim`.
 
 ## 7. The screens
-- **ARMOURY**, a new console tab beside LAB AND WORKSHOP:
+- **ARMOURY**, a new console tab beside LAB AND WORKSHOP. **Built in M10a** as a wide sheet above the console (the console's card column was too narrow for it; on a phone the sheet stacks at the top):
   - *Left:* the roster with status lamps; only agents marked ready can be changed.
   - *Centre:* the selected agent's card. It shows the suit as a silhouette and the slot lamps (SUIT, LONG ARM, SIDEARM, BELT 1 to 4), a carry gauge that turns amber over the limit, and the numbers that matter (hit chance at 5 and 15 tiles, armour, hp, move pace). Every number comes from a new `query.kit` (ARCH-4: the client does no rules maths).
   - *Right:* the shelf, filtered by the slot clicked, with counts and the built or ordered mark. Click a piece to fit it.
-  - *Buttons:* BEST FIT, SAME AS LAST RAID, and STRIP (everything back to the shelf).
+  - *Buttons:* BEST FIT FOR EVERYONE AT HOME, and STRIP (everything back to the shelf). SAME AS LAST RAID was dropped in M10a: an agent keeps its kit between raids, so the last raid's kit is already what it carries.
   - Info cards are drawn by the console, never native tooltips (KB rule 8). The mouse map stays KB rule 27's. On a phone the three columns stack.
 - **Raid card:** the RAID file card lists each picked agent's kit in one row, with a CHANGE KIT link to the armoury (only before the squad leaves).
 - **LAB as a tree.** The LAB tab draws the seven branches as columns of lamps: done, in progress, ready, *needs evidence* (with what is missing and what the shelf holds) and *locked* (with the projects it requires). A click opens the project's card and, once done, its lab report (`docs/strategic-layer.md` 2: the reports tell the story).

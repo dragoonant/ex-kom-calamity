@@ -1,7 +1,7 @@
 // The switchboard's words for the city's slips and events (docs/spec/20-city.md RULING SIGN-2: the engine carries
 // ids, the client words them). The spread reads as "too perfect" by day and "the hum" by night (PLAN.md D25).
 // Every name is a placeholder (D10).
-import { CITY, RESEARCH } from '../../data/city';
+import { CITY, ITEMS, RESEARCH } from '../../data/city';
 import type { Band, CityEvent, CityState, Slip } from '../../city';
 import { clockOf } from '../../city';
 
@@ -40,7 +40,7 @@ export function projectName(id: string): string {
   return RESEARCH.projects.find((p) => p.id === id)?.name ?? id;
 }
 export function itemName(id: string): string {
-  return (RESEARCH.items.find((i) => i.id === id)?.name ?? id).toLowerCase();
+  return (ITEMS.items.find((i) => i.id === id)?.name ?? id).toLowerCase();
 }
 
 /** What each finished project tells the agency (the lab reports carry the story, docs/strategic-layer.md 2). */
@@ -218,6 +218,12 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
         break;
       case 'delivered':
         add(`A ${itemName(e.item)} was delivered. It looks fine.`, 'note', null, 'delivered');
+        break;
+      case 'kitRecovered':
+        add(`The squad brought back ${agentName(after, e.agent)}'s kit: ${e.pieces.length} ${e.pieces.length === 1 ? 'piece' : 'pieces'} to the armoury.`, 'note', null, 'kit');
+        break;
+      case 'kitLost':
+        add(`${agentName(after, e.agent)}'s kit was lost with the raid: ${e.pieces.length} ${e.pieces.length === 1 ? 'piece' : 'pieces'}.`, 'caution', null, 'kit');
         break;
       case 'actBegan':
         add(e.act === 2 ? 'Act two: Open sky. The organism stops whispering; craft cross the city by day.' : 'Act three: Perfect day. The cores point at one tower. The organism knows it has been found, and it is coming.', 'alert', null, `act-${e.act}`);

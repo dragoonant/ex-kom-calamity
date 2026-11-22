@@ -6,10 +6,12 @@ import { create } from 'zustand';
 import { hostilePlanner } from '../../ai/city';
 import {
   cityQuery,
+  bestFitOrders,
   cityStep,
   cityView,
   createCity,
   hashCity,
+  migrateCityV4,
   type CityAction,
   type CityEvent,
   type CityState,
@@ -21,7 +23,7 @@ import { battleOf, rosterOf } from './join';
 import { traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
-export const CAMPAIGN_VERSION = 4; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts; 4: the 24 x 24 city and travel (TRAVEL)
+export const CAMPAIGN_VERSION = 5; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts; 4: the 24 x 24 city and travel (TRAVEL); 5: the armoury and each agent's kit (KIT, migrated from 4 by KIT-10)
 export type CitySpeed = 1 | 4 | 12;
 export const CITY_SPEEDS: CitySpeed[] = [1, 4, 12];
 const MAX_TRAY = 60;
@@ -89,6 +91,8 @@ export interface CityClient {
   setSpeed(s: CitySpeed): void;
   select(id: string | null): void;
   toggleSquad(agent: string): void;
+  /** KIT-9: BEST FIT for the agents at home, worked out on the agency's view (so sabotage stays hidden). */
+  bestFit(): number;
   beginFight(): PendingFight | null;
   finishFight(result: RaidResult | null): void;
   saveNow(): void;
@@ -117,9 +121,14 @@ export function readCampaign(st: StorageLike | null): { ok: true; env: CampaignE
   if (!text) return null;
   try {
     const env = JSON.parse(text) as CampaignEnvelope;
-    if (env.key !== CAMPAIGN_KEY || env.version !== CAMPAIGN_VERSION) return { ok: false, reason: 'it was saved by another version' };
+    if (env.key !== CAMPAIGN_KEY || (env.version !== CAMPAIGN_VERSION && env.version !== 4)) return { ok: false, reason: 'it was saved by another version' };
     if (!env.state || !Array.isArray(env.state.orgs)) return { ok: false, reason: 'it is incomplete' };
     if (hashCity(env.state) !== env.hash) return { ok: false, reason: 'it does not match its checksum' };
+    if (env.version === 4) {
+      // KIT-10: a save from before the armoury is carried forward: the stock becomes pieces on the shelf.
+      const state = migrateCityV4(env.state);
+      return { ok: true, env: { ...env, version: CAMPAIGN_VERSION, state, hash: hashCity(state) } };
+    }
     return { ok: true, env };
   } catch {
     return { ok: false, reason: 'it is not readable' };
@@ -268,6 +277,18 @@ export const useCity = create<CityClient>((set, get) => {
     },
     select(id) {
       set({ selected: id });
+    },
+    bestFit() {
+      const v = get().view;
+      if (!v) return 0;
+      const ready = v.agents.filter((a) => a.status === 'ready').map((a) => a.id);
+      const orders = bestFitOrders(v, ready, (st, a) => {
+        const r = cityStep(st, a);
+        return r.ok ? r.state : null;
+      });
+      let n = 0;
+      for (const o of orders) if (get().order(o).ok) n += 1;
+      return n;
     },
     toggleSquad(agent) {
       const sq = get().squad;

@@ -12,9 +12,5 @@
     { "id": "arc-carbine", "name": "Arc carbine", "branch": "core", "needs": { "core": 2 }, "hours": 72 },
     { "id": "core-study", "name": "The amber core", "branch": "core", "needs": { "core": 3 }, "hours": 48 },
     { "id": "source-trace", "name": "Tracing the source", "branch": "core", "needs": { "core": 5 }, "consumes": { "liveTaker": 1 }, "requires": ["core-study"], "hours": 96 }
-  ],
-  "items": [
-    { "id": "shell-plate", "name": "Shell plate suit", "design": "shell-plate" },
-    { "id": "arc-carbine", "name": "Arc carbine", "design": "arc-carbine" }
   ]
 }

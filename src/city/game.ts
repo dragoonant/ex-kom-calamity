@@ -1,6 +1,7 @@
 // CARCH-1: createCity builds the opening state from the city data and merged tuning.
 import { CITY, CITY_TUNING } from '../data/city';
 import { seedRng } from '../engine/rng';
+import { issueKit } from './rules';
 import type { Agent, CitySetup, CityState, CityTuning } from './types';
 
 export function mergeCityTuning(over?: Partial<CityTuning>): CityTuning {
@@ -22,7 +23,7 @@ export function agentName(index: number): string {
 }
 
 export function newAgent(index: number): Agent {
-  return { id: `ag${index + 1}`, name: agentName(index), status: 'ready', until: 0, building: null, leg: null, raids: 0 };
+  return { id: `ag${index + 1}`, name: agentName(index), status: 'ready', until: 0, building: null, leg: null, raids: 0, kit: issueKit() };
 }
 
 export function createCity(setup: CitySetup): CityState {
@@ -49,7 +50,7 @@ export function createCity(setup: CitySetup): CityState {
     score: { raids: 0, raidsWon: 0, cleanRaids: 0, hostilesDown: 0, agentsDead: 0, civiliansDown: 0, taken: 0, seeds: 0 },
     shelf: { host: 0, taker: 0, fighter: 0, core: 0, liveHost: 0, liveTaker: 0 },
     lab: { project: null, progress: 0, done: [] },
-    shop: { item: null, progress: 0, stock: { 'shell-plate': 0, 'arc-carbine': 0 }, sabotaged: { 'shell-plate': 0, 'arc-carbine': 0 }, orders: [] },
+    shop: { item: null, progress: 0, armoury: [], nextPiece: 1, orders: [] },
     act: 1,
     actDay: 0,
     hqFound: false,

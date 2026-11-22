@@ -1,8 +1,8 @@
 // CARCH-3: every legal action for a side, tick first, never empty.
 import { CITY } from '../data/city';
-import { RESEARCH } from '../data/city';
+import { ITEMS, RESEARCH } from '../data/city';
 import { launchBlock } from './air';
-import { hasDone, itemCost, livingAgents, readyAgents, researchBlock, supplierOrg } from './rules';
+import { buildableItems, equipBlock, hasDone, itemCost, kitPieces, livingAgents, readyAgents, researchBlock, supplierOrg } from './rules';
 import type { CityAction, CitySide, CityState } from './types';
 
 export function cityLegalActions(state: CityState, side: CitySide): CityAction[] {
@@ -22,14 +22,23 @@ export function cityLegalActions(state: CityState, side: CitySide): CityAction[]
     if (state.defence) acts.push({ type: 'defend', side });
     if (state.money >= state.tuning.roster.recruitCost && livingAgents(state).length < state.tuning.roster.cap) acts.push({ type: 'recruit', side });
     for (const p of RESEARCH.projects) if (!researchBlock(state, p.id)) acts.push({ type: 'research', side, project: p.id });
-    for (const item of ['shell-plate', 'arc-carbine'] as const) {
-      if (!hasDone(state, item)) continue;
-      const { cost } = itemCost(state, item);
+    for (const def of buildableItems(state)) {
+      const item = def.id;
+      const { cost } = itemCost(item);
       if (!state.shop.item && state.money >= cost) acts.push({ type: 'build', side, item });
       const sup = supplierOrg(state);
       if (sup && !sup.turned && state.money >= Math.floor((cost * state.tuning.shop.supplierPricePercent) / 100)) acts.push({ type: 'order', side, item });
     }
     if (hasDone(state, 'interrogation') && state.shelf.liveHost > 0) acts.push({ type: 'question', side });
+    // KIT-4, KIT-5: for each ready agent, every free item and every item on the armoury shelf that fits, and STRIP.
+    for (const a of ready) {
+      for (const def of ITEMS.items) {
+        if (def.slot === 'belt') continue;
+        const slot = def.slot;
+        if (!equipBlock(state, a.id, slot, def.id)) acts.push({ type: 'equip', side, agent: a.id, slot, item: def.id });
+      }
+      if (kitPieces(a.kit).length) acts.push({ type: 'strip', side, agent: a.id });
+    }
     // AIR: intercepts with every ready car, posture switches, a new car, raids on crash sites.
     const readyCars = state.cars.filter((c) => c.status === 'ready').map((c) => c.id);
     for (const c of state.craft) {

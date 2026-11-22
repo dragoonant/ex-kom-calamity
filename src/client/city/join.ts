@@ -4,7 +4,7 @@
 // the battle's roster (ARCH-11, CJOIN-3); its result flows back as a fought result (CJOIN-2).
 import { CITY, RAID_SITE_BATTLES } from '../../data/city';
 import { query, type Roster, type State } from '../../engine';
-import { clockOf, hasDone, orgOfBuilding, working, type CityState, type RaidResult } from '../../city';
+import { battleItem, clockOf, hasDone, orgOfBuilding, type CityState, type RaidResult } from '../../city';
 
 /** CJOIN-4 */
 export const SPITTER_AT = 30;
@@ -18,21 +18,19 @@ export function battleOf(state: CityState, kind: 'raid' | 'defence', target: str
   return battleFor(target);
 }
 
-/** CJOIN-3: the squad with its working kit (plates first, then carbines, as SHOP-4) and the hostiles by kind. */
+/** CJOIN-3, KIT-8: the squad, each agent in its own suit with its own long arm, and the hostiles by kind. */
 export function rosterOf(state: CityState, agents: string[], hostiles: { hostiles: number; takers: number; fighters: number }, building?: string): Roster {
-  const plates = working(state, 'shell-plate', agents.length);
-  const carbines = working(state, 'arc-carbine', agents.length);
   return {
     // OBJ-1: restraints let the squad take hosts and takers alive (CJOIN-5).
     capture: hasDone(state, 'restraints'),
     // NIGHT-1, NIGHT-3 (CJOIN-6): the hour of the raid, and whether the lab has the hand scanner.
     night: clockOf(state.tuning, state.tick).night,
     scanner: hasDone(state, 'hand-scanner'),
-    squad: agents.map((id, i) => ({
-      name: state.agents.find((a) => a.id === id)?.name ?? id,
-      ...(i < plates ? { template: 'agent-t2' } : {}),
-      ...(i < carbines ? { weapon: 'arc-carbine' } : {}),
-    })),
+    squad: agents.map((id) => {
+      const a = state.agents.find((x) => x.id === id);
+      if (!a) return { name: id };
+      return { name: a.name, template: battleItem(a.kit.suit, 'suit'), weapon: battleItem(a.kit.long, 'long') };
+    }),
     hostiles: (() => {
       // CJOIN-4: once the owner is at spitterAt infiltration, a fifth of the hostiles are spitters, taken from the hosts.
       const hosts = Math.max(0, hostiles.hostiles - hostiles.takers - hostiles.fighters);
