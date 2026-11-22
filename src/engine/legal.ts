@@ -6,6 +6,7 @@ import { pathField, posOfIndex } from './path';
 import { sideSeesUnit } from './sight';
 import { blastTargets } from './structure';
 import { canSuppress } from './fire';
+import { captureBlock } from './step';
 
 export function legalActions(state: State, side: Side): Action[] {
   const acts: Action[] = [{ type: 'tick' }];
@@ -30,6 +31,12 @@ export function legalActions(state: State, side: Side): Action[] {
       if (sideSeesUnit(state, side, t)) acts.push({ type: 'fire', side, unit: u.id, target: t.id });
     }
     // ORD-9
+    // OBJ-1, OBJ-2: captures and evacuations of the units beside it.
+    for (const t of state.units) {
+      if (t.down || t.level !== u.level || Math.max(Math.abs(t.x - u.x), Math.abs(t.y - u.y)) > 1 || t === u) continue;
+      if (t.side === 'civilian' && !t.evacuating && side === 'agency') acts.push({ type: 'evacuate', side, unit: u.id, target: t.id });
+      if (side === 'agency' && !captureBlock(state, u, t.id)) acts.push({ type: 'capture', side, unit: u.id, target: t.id });
+    }
     // SUP-5: one suppress order per unit, at the nearest seen enemy it can suppress.
     let near: { x: number; y: number; level: number } | null = null;
     let nd = Infinity;

@@ -10,7 +10,7 @@ import { useClient } from '../store';
 import { CameraRig } from './CameraRig';
 import { CorePulse, Effects, FrameTimes } from './Effects';
 import { Figures } from './Figures';
-import { Marks } from './Marks';
+import { CoreMark, Marks } from './Marks';
 import { Props } from './Props';
 import { Tiles, useBoardDerived } from './Tiles';
 import { live } from './world';
@@ -73,6 +73,7 @@ function Board() {
       <Props state={agency} />
       <Figures state={agency} />
       <Marks state={agency} />
+      <CoreMark state={agency} />
       <Effects />
     </>
   );

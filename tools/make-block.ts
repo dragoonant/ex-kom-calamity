@@ -584,6 +584,8 @@ for (const site of SITES) {
     map: wreckMap.id,
     squad: wreckSquad,
     others: wreckOthers,
+    // OBJ-4: the drive at the heart of the hull.
+    core: { x: cx, y: cy, level: 0 },
   };
   writeJson(`src/data/maps/${wreckMap.id}.json`, wreckMap);
   writeJson(`src/data/battles/${wreckBattle.id}.json`, wreckBattle);

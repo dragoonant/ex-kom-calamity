@@ -70,6 +70,13 @@ export interface Unit {
   suppression?: number;
   /** SUP-3: the tile the unit is pinning with suppressive fire, or null. */
   suppressAt?: Pos | null;
+  /** OBJ-1: a capture under way. */
+  capture?: { target: string; progress: number } | null;
+  /** OBJ-1, OBJ-3: taken alive, or evacuated to safety; both leave the field (down) without a body. */
+  captured?: boolean;
+  saved?: boolean;
+  /** OBJ-2: a citizen running for the edge of the map. */
+  evacuating?: boolean;
 }
 
 export interface Score {
@@ -81,6 +88,9 @@ export interface Score {
   civiliansDown: number;
   /** TAKE-3: citizens taken over during the battle. */
   taken: number;
+  /** OBJ-1, OBJ-3 (absent in saves from before D26 slice 4). */
+  captured?: number;
+  saved?: number;
 }
 
 export type Winner = 'agency' | 'hostile' | 'none';
@@ -99,6 +109,8 @@ export interface Roster {
   /** Fills the battle's hostile spawn points (fighters, then takers, then hosts); spare ones hold citizens, and
    * citizen spawn points take the overflow as hosts. */
   hostiles?: { host: number; taker: number; fighter: number; spitter?: number };
+  /** OBJ-1: the agency may capture (it has researched restraints). */
+  capture?: boolean;
 }
 
 export interface Setup {
@@ -117,6 +129,8 @@ export type Action =
   | { type: 'halt'; side: Side; unit: string }
   | { type: 'blast'; side: Side; unit: string; at: Pos }
   | { type: 'suppress'; side: Side; unit: string; at: Pos }
+  | { type: 'capture'; side: Side; unit: string; target: string }
+  | { type: 'evacuate'; side: Side; unit: string; target: string }
   | { type: 'withdraw'; side: Side };
 
 /** ARCH-9: consecutive ticks are stored as one entry. */
@@ -138,6 +152,10 @@ export interface State {
   score: Score;
   over: Over | null;
   log: LogEntry[];
+  /** OBJ-1: the roster allows captures (the city's restraints, ARCH-11). */
+  canCapture?: boolean;
+  /** OBJ-4: the wreck's drive core. */
+  core?: { at: Pos; progress: number; secured: boolean; burnt: boolean } | null;
   /** VIEW-5: only on `view(state, 'agency')`, never on the true state: where the last few hostiles are. */
   marks?: Pos[];
 }
@@ -168,6 +186,11 @@ export type GameEvent =
   | { type: 'ordered'; tick: number; action: Exclude<Action, { type: 'tick' }> }
   | { type: 'suppressFire'; tick: number; unit: string; at: Pos; weapon: string; pinned: string[] }
   | { type: 'strayHit'; tick: number; shooter: string; target: string; victim: string; roll: number }
+  | { type: 'captured'; tick: number; unit: string; by: string }
+  | { type: 'evacuating'; tick: number; unit: string; to: Pos }
+  | { type: 'saved'; tick: number; unit: string }
+  | { type: 'coreSecured'; tick: number; by: string }
+  | { type: 'coreBurnt'; tick: number }
   | { type: 'moved'; tick: number; unit: string; from: Pos; to: Pos }
   | { type: 'arrived'; tick: number; unit: string }
   | { type: 'moveBlocked'; tick: number; unit: string }

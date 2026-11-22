@@ -11,7 +11,7 @@ export interface CityTuning {
   raid: { travelHours: number; maxAgents: number; hostilesPer10Points: number; maxHostiles: number; turnedGuards: number; takersAt: number; fightersAt: number };
   res: { winBasePercent: number; winPerAgent: number; winPerHostile: number; winMinPercent: number; winMaxPercent: number; downPerHostilePercent: number; downOnLossPercent: number; downMaxPercent: number; cleansePerHostile: number; cleanseOnWin: number };
   roster: { startAgents: number; cap: number; woundDays: number; deathPercent: number; recruitCost: number; salaryPerMonth: number };
-  fund: { startMoney: number; startConfidence: number; grantBase: number; lobbyCutPercent: number; turnedCutPercent: number; winGain: number; scandalLoss: number; civilianLoss: number; agentLoss: number; missingPer100Points: number };
+  fund: { startMoney: number; startConfidence: number; grantBase: number; lobbyCutPercent: number; turnedCutPercent: number; winGain: number; scandalLoss: number; civilianLoss: number; agentLoss: number; missingPer100Points: number; savedGain: number };
   end: { confidenceFloor: number; turnedLosePercent: number; containedTotal: number; actDays: number };
   lab: { capturePerRaid: number; tellsAccuracy: number; scannerAccuracy: number; scannerSpot: number; antiserumDeathPercent: number; evacuationCivilianPercent: number };
   act: { act2Days: number; act3Days: number; biomassBonusPercent: number; launchEveryHours: number; hqScoutRange: number; carrierCost: number; carrierSpeed: number; carrierHp: number; carrierAmount: number; carrierSurvivors: number; carrierDamagePercent: number; assaultCost: number; assaultEveryDays: number; assaultHostiles: number; finalHostiles: number };

@@ -89,6 +89,7 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       const u = unitById(st, action.unit)!;
       u.order = { to: { ...action.to }, path, progress: 0, blockedTicks: 0, run: action.run === true };
       u.suppressAt = null; // SUP-3: a move ends suppressive fire
+      u.capture = null;
       // POSE-2: a run stands a crouched unit up.
       if (action.run === true) u.posture = 'stand';
       return accept(st, action);
@@ -105,6 +106,7 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       if (u.fireTarget !== action.target) u.aimProgress = 0;
       u.fireTarget = action.target;
       u.suppressAt = null;
+      u.capture = null;
       return accept(st, action);
     }
     case 'stance': {
@@ -133,6 +135,7 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       u.aimProgress = 0;
       u.blast = null;
       u.suppressAt = null;
+      u.capture = null;
       return accept(st, action);
     }
     case 'blast': {
@@ -143,6 +146,36 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       const st = cloneState(state);
       unitById(st, action.unit)!.blast = { at: { x: action.at.x, y: action.at.y, level: action.at.level }, progress: 0 };
       return accept(st, action);
+    }
+    case 'capture': {
+      // OBJ-1
+      const why = captureBlock(state, target, action.target);
+      if (why) return reject(state, why);
+      const st = cloneState(state);
+      const u = unitById(st, action.unit)!;
+      u.capture = { target: action.target, progress: 0 };
+      u.order = null;
+      u.fireTarget = null;
+      u.suppressAt = null;
+      u.aimProgress = 0;
+      return accept(st, action);
+    }
+    case 'evacuate': {
+      // OBJ-2
+      if (typeof action.target !== 'string') return reject(state, 'missing citizen');
+      const c = unitById(state, action.target);
+      if (!c || c.down || c.side !== 'civilian') return reject(state, 'not a citizen');
+      if (c.evacuating) return reject(state, 'already evacuating');
+      if (c.level !== target.level || Math.max(Math.abs(c.x - target.x), Math.abs(c.y - target.y)) > 1) return reject(state, 'the citizen must be beside the agent');
+      const exit = nearestExit(state, c);
+      if (!exit) return reject(state, 'no way out from there');
+      const st = cloneState(state);
+      const cc = unitById(st, action.target)!;
+      cc.evacuating = true;
+      cc.order = { to: exit.to, path: exit.path, progress: 0, blockedTicks: 0, run: true };
+      const ev = accept(st, action);
+      if (ev.ok) ev.events.push({ type: 'evacuating', tick: st.tick, unit: cc.id, to: exit.to });
+      return ev;
     }
     case 'suppress': {
       // SUP-3
@@ -192,6 +225,29 @@ function runTick(state: State): StepResult {
         continue;
       }
     }
+    // OBJ-1: a capture under way holds the agent beside its target.
+    if (u.capture) {
+      const t = unitById(st, u.capture.target);
+      if (!t || t.down || t.level !== u.level || Math.max(Math.abs(t.x - u.x), Math.abs(t.y - u.y)) > 1) u.capture = null;
+      else {
+        u.moving = false;
+        u.capture.progress += 1;
+        if (u.capture.progress >= st.tuning.objective.captureTicks) {
+          t.down = true;
+          t.captured = true;
+          t.order = null;
+          t.fireTarget = null;
+          t.blast = null;
+          t.moving = false;
+          occ.delete(tileIndex(st, t));
+          st.score.hostilesDown += 1;
+          st.score.captured = (st.score.captured ?? 0) + 1;
+          events.push({ type: 'captured', tick: st.tick, unit: t.id, by: u.id });
+          u.capture = null;
+        }
+        continue;
+      }
+    }
     // SUP-3: suppressive fire on a tile, while the tile stays seen and in range.
     if (u.suppressAt) {
       if (!canSuppress(st, u, u.suppressAt).ok) u.suppressAt = null;
@@ -231,6 +287,32 @@ function runTick(state: State): StepResult {
 
   // SUP-1: suppression fades.
   for (const u of st.units) if (u.suppression) u.suppression = Math.max(0, u.suppression - st.tuning.suppress.decayPerTick);
+
+  // OBJ-3: an evacuating citizen who reaches the map's edge is safe and leaves the field.
+  for (const c of st.units) {
+    if (c.down || !c.evacuating || !isEdge(st, c)) continue;
+    c.down = true;
+    c.saved = true;
+    c.order = null;
+    c.moving = false;
+    occ.delete(tileIndex(st, c));
+    st.score.saved = (st.score.saved ?? 0) + 1;
+    events.push({ type: 'saved', tick: st.tick, unit: c.id });
+  }
+  // OBJ-4: the wreck's core, secured by an agent standing on it, or burnt.
+  if (st.core && !st.core.secured && !st.core.burnt) {
+    const on = st.units.find((v) => !v.down && v.side === 'agency' && v.x === st.core!.at.x && v.y === st.core!.at.y && v.level === st.core!.at.level);
+    if (on) {
+      st.core.progress += 1;
+      if (st.core.progress >= st.tuning.objective.coreTicks) {
+        st.core.secured = true;
+        events.push({ type: 'coreSecured', tick: st.tick, by: on.id });
+      }
+    } else if (st.tick >= st.tuning.objective.burnSeconds * st.tuning.time.ticksPerSecond) {
+      st.core.burnt = true;
+      events.push({ type: 'coreBurnt', tick: st.tick });
+    }
+  }
 
   // TIME-3b: proximity reveals (HIDE-3).
   const reveal = st.tuning.sight.revealRange;
@@ -288,6 +370,43 @@ function suppressFire(st: State, u: Unit, cooldown: number, events: GameEvent[])
     pinned.push(t.id);
   }
   events.push({ type: 'suppressFire', tick: st.tick, unit: u.id, at: { ...at }, weapon: u.weapon!, pinned });
+}
+
+/** OBJ-1: why a capture cannot start, or null. */
+export function captureBlock(st: State, u: Unit, targetId: unknown): string | null {
+  if (!st.canCapture) return 'the agency has no restraints';
+  if (typeof targetId !== 'string') return 'missing target';
+  const t = unitById(st, targetId);
+  if (!t || t.down) return 'no such target';
+  if (t.side !== 'hostile' || (t.template !== 'host' && t.template !== 'taker')) return 'only hosts and takers can be taken alive';
+  if (t.disguised && !t.revealed) return 'that looks like a citizen';
+  if (t.hp * 100 > t.maxHp * st.tuning.objective.captureHpPercent) return 'it is not weak enough to restrain';
+  if (t.level !== u.level || Math.max(Math.abs(t.x - u.x), Math.abs(t.y - u.y)) > 1) return 'the target must be beside the agent';
+  return null;
+}
+
+/** OBJ-3: a tile on the map's outer ring at ground level. */
+function isEdge(st: State, p: { x: number; y: number; level: number }): boolean {
+  return p.level === 0 && (p.x === 0 || p.y === 0 || p.x === st.width - 1 || p.y === st.depth - 1);
+}
+
+/** OBJ-2: the nearest reachable edge tile from a citizen, by path cost. */
+function nearestExit(st: State, c: Unit): { to: Pos; path: Pos[] } | null {
+  const field = pathField(st, c, null);
+  let best: { to: Pos; path: Pos[] } | null = null;
+  let bestLen = Infinity;
+  for (let x = 0; x < st.width; x++) for (const y of [0, st.depth - 1]) consider({ x, y, level: 0 });
+  for (let y = 1; y < st.depth - 1; y++) for (const x of [0, st.width - 1]) consider({ x, y, level: 0 });
+  function consider(p: Pos): void {
+    const t = st.tiles[tileIndex(st, p)];
+    if (!t || !isPassable(t.kind)) return;
+    if (st.units.some((v) => !v.down && v.x === p.x && v.y === p.y && v.level === p.level)) return;
+    const path = pathTo(st, field, p);
+    if (!path || path.length === 0 || path.length >= bestLen) return;
+    best = { to: p, path };
+    bestLen = path.length;
+  }
+  return best;
 }
 
 /** STANCE-3, STANCE-4 */

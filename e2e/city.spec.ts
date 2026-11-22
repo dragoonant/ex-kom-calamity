@@ -196,3 +196,28 @@ test("FIGHT IT at an assault opens the headquarters map with the city's own agen
   await page.getByTestId('close-report').click();
   await expect(page.getByTestId('city-over')).toContainText('LOST');
 });
+
+test('a fought wreck on open ground shows the drive core with its burn clock (OBJ-4)', async ({ page }) => {
+  await startCampaign(page);
+  await page.evaluate(() => {
+    const h = window.__ekcCity!;
+    const s = JSON.parse(JSON.stringify(h.state()!));
+    s.act = 3;
+    s.actDay = 150;
+    s.tick = 16 * 6 + 150 * 144;
+    s.biomass = 0;
+    s.lab.done.push('source-trace', 'restraints');
+    s.crashes.push({ id: 'crash7', kind: 'seeder', x: 55, y: 35, building: null, survivors: 3, until: s.tick + 144 });
+    h.load(s);
+    h.order({ type: 'raid', side: 'agency', building: 'crash7', agents: ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6'] });
+    for (let i = 0; i < 20 && !h.state()!.raid!.arrived; i++) h.advanceTicks(6);
+  });
+  await page.getByTestId('act-continue').click();
+  await page.getByTestId('fight').click();
+  await expect(page.getByTestId('battle')).toBeVisible({ timeout: 30_000 });
+  expect(await page.evaluate(() => window.__ekc!.getState()!.battleId)).toBe('wreck-raid');
+  await expect(page.getByTestId('core-line')).toContainText('DRIVE CORE');
+  await page.evaluate(() => window.__ekc!.select('a1'));
+  await expect(page.getByTestId('capture')).toBeVisible();
+  await expect(page.getByTestId('evacuate')).toBeVisible();
+});

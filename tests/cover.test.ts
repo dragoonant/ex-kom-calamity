@@ -331,3 +331,99 @@ describe('28. The price of standing together (STRAY, PANIC)', () => {
     expect(out.some((a) => a.type === 'blast' && a.unit === sp.id)).toBe(true);
   });
 });
+
+describe('29. Objectives with a clock (OBJ)', () => {
+  const run = (s: State, n: number) => {
+    const evs: { type: string }[] = [];
+    for (let i = 0; i < n; i++) {
+      const r = step(s, { type: 'tick' }) as { state: State; events: { type: string }[] };
+      s = r.state;
+      evs.push(...r.events);
+    }
+    return { s, evs };
+  };
+  function beside(capture: boolean): State {
+    let s = only(yard(), ['a1', 'u2']);
+    s = place(s, 'a1', 5, 5);
+    s = place(s, 'u2', 6, 5);
+    s = clone(s);
+    s.canCapture = capture;
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    u2.revealed = true;
+    u2.stance = 'hold';
+    u2.hp = 10;
+    s.units.find((u) => u.id === 'a1')!.stance = 'hold';
+    return s;
+  }
+  it('OBJ-1 a weak revealed host beside an agent with restraints is captured after captureTicks', () => {
+    expect(step(beside(false), { type: 'capture', side: 'agency', unit: 'a1', target: 'u2' }).ok).toBe(false);
+    const strong = beside(true);
+    strong.units.find((u) => u.id === 'u2')!.hp = 40;
+    expect(step(strong, { type: 'capture', side: 'agency', unit: 'a1', target: 'u2' }).ok).toBe(false);
+    let s = (step(beside(true), { type: 'capture', side: 'agency', unit: 'a1', target: 'u2' }) as { state: State }).state;
+    const r = run(s, TUNING.objective.captureTicks);
+    s = r.s;
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    expect(u2.captured && u2.down).toBe(true);
+    expect(s.score.captured).toBe(1);
+    expect(r.evs.some((e) => e.type === 'captured')).toBe(true);
+  });
+  const citizenId = () => game().units.find((u) => u.side === 'civilian')!.id;
+  it('OBJ-2 an evacuated citizen runs for the edge', () => {
+    let s = only(yard(), ['a1', 'u2', citizenId()]);
+    s = place(s, 'a1', 5, 5);
+    s = clone(s);
+    const c = s.units.find((u) => u.side === 'civilian')!;
+    c.x = 6;
+    c.y = 5;
+    c.level = 0;
+    const r = step(s, { type: 'evacuate', side: 'agency', unit: 'a1', target: c.id });
+    expect(r.ok).toBe(true);
+    const cc = (r as { state: State }).state.units.find((u) => u.id === c.id)!;
+    expect(cc.evacuating).toBe(true);
+    expect(cc.order?.run).toBe(true);
+    expect(step((r as { state: State }).state, { type: 'evacuate', side: 'agency', unit: 'a1', target: c.id }).ok).toBe(false);
+  });
+  it('OBJ-3 a citizen who reaches the edge is saved and leaves no body', () => {
+    let s = only(yard(), ['a1', 'u2', citizenId()]);
+    s = place(s, 'a1', 2, 1);
+    s = clone(s);
+    const c = s.units.find((u) => u.side === 'civilian')!;
+    c.x = 2;
+    c.y = 2;
+    c.level = 0;
+    s = (step(s, { type: 'evacuate', side: 'agency', unit: 'a1', target: c.id }) as { state: State }).state;
+    const r = run(s, 40);
+    const saved = r.s.units.find((u) => u.id === c.id)!;
+    expect(saved.saved && saved.down).toBe(true);
+    expect(r.s.score.saved).toBe(1);
+    expect(r.s.score.civiliansDown).toBe(0);
+  });
+  it('OBJ-4 the core is secured by an agent standing on it, or burns', () => {
+    const s = createGame({ battleId: 'wreck-raid', seed: 1 });
+    expect(s.core).toMatchObject({ secured: false, burnt: false });
+    const on = clone(s);
+    for (const u of on.units) if (u.side !== 'agency') {
+      u.down = true;
+    }
+    on.over = null;
+    const a = on.units.find((u) => u.side === 'agency')!;
+    a.x = on.core!.at.x;
+    a.y = on.core!.at.y;
+    // keep the battle running: a hostile far away
+    const keep = on.units.find((u) => u.side === 'hostile')!;
+    keep.down = false;
+    keep.x = 28;
+    keep.y = 22;
+    keep.stance = 'hold';
+    const r = run(on, TUNING.objective.coreTicks);
+    expect(r.s.core!.secured).toBe(true);
+    const late = clone(s);
+    late.tick = TUNING.objective.burnSeconds * TUNING.time.ticksPerSecond;
+    expect(run(late, 1).s.core!.burnt).toBe(true);
+  });
+  it('OBJ-5 legal actions list evacuations and captures beside an agent', () => {
+    const s = beside(true);
+    expect(legalActions(s, 'agency')).toContainEqual({ type: 'capture', side: 'agency', unit: 'a1', target: 'u2' });
+  });
+});

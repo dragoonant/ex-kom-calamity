@@ -110,4 +110,19 @@ describe('16. The client (CSAV, CJOIN)', () => {
     for (const o of g.orgs) o.infiltration = o.id === 'freight' ? 20 : 0;
     expect(rosterOf(g, ['ag1'], { hostiles: 10, takers: 2, fighters: 2 }, 'depot-7').hostiles!.spitter).toBe(0);
   });
+  it('CJOIN-5 a fought battle carries its captives, evacuees and core back, and the city shelves them live (RES-7)', () => {
+    useCity.getState().start(11);
+    const g = JSON.parse(JSON.stringify(useCity.getState().game!));
+    g.lab.done.push('restraints');
+    expect(rosterOf(g, ['ag1'], { hostiles: 2, takers: 0, fighters: 0 }).capture).toBe(true);
+    let b = createGame({ battleId: 'automat-raid', seed: 1, roster: { capture: true } });
+    b = JSON.parse(JSON.stringify(b));
+    const h = b.units.find((u) => u.template === 'host')!;
+    h.down = true;
+    h.captured = true;
+    b.score.saved = 2;
+    const res = resultFromBattle(b, { kind: 'raid', building: 'automat-row', site: 'automat-row', battle: 'automat-raid', roster: {}, agents: ['ag1'], hostiles: 2 });
+    expect(res.captured).toEqual({ host: 1, taker: 0 });
+    expect(res.saved).toBe(2);
+  });
 });

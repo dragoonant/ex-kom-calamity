@@ -286,7 +286,8 @@ function OrderMarks({ unit }: { unit: Unit }) {
 export function Figures({ state }: { state: State }) {
   const selected = useClient((s) => s.selected);
   const level = useClient((s) => s.level);
-  const drawn = state.units.filter((u) => u.level <= level);
+  // OBJ-1, OBJ-3: captives and evacuated citizens have left the field; no body stays behind.
+  const drawn = state.units.filter((u) => u.level <= level && !u.captured && !u.saved);
   const tps = state.tuning.time.ticksPerSecond;
   const armTicks = state.tuning.blast.armTicks;
   return (
@@ -297,6 +298,7 @@ export function Figures({ state }: { state: State }) {
       ))}
       <HpBars units={drawn} />
       {state.units
+        .filter((u) => !u.captured && !u.saved)
         .filter((u) => u.side === 'agency' && !u.down && u.order && u.level <= level)
         .map((u) => (
           <OrderMarks key={`o-${u.id}`} unit={u} />

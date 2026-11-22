@@ -35,6 +35,7 @@ function lampClass(u: Unit): string {
 function agentStatus(u: Unit): string {
   if (u.down) return '';
   if (u.suppressAt) return 'SUPPRESSING';
+  if (u.capture) return 'CAPTURING';
   if ((u.suppression ?? 0) >= 60) return 'PINNED';
   if (u.blast) return 'ARMING';
   if (u.fireTarget) return 'FIRING';
@@ -157,6 +158,13 @@ export function Hud() {
           </button>
         ))}
       </div>
+      {(mode === 'capture' || mode === 'evacuate') && sel && (
+        <div className="mode-banner" data-testid="mode-banner-objective">
+          {mode === 'capture'
+            ? `CAPTURE: tap a revealed host or taker beside ${sel.name} at half health or less; ${sel.name} holds it for ${(agency.tuning.objective.captureTicks / agency.tuning.time.ticksPerSecond).toFixed(0)} s. Esc cancels.`
+            : `EVACUATE: tap a citizen beside ${sel.name}; it runs for the street edge. Esc cancels.`}
+        </div>
+      )}
       {mode === 'suppress' && sel && (
         <div className="mode-banner" data-testid="mode-banner-suppress">
           SUPPRESS: tap a tile {sel.name} can see in range. Every hostile on or beside it is pinned. Esc cancels.
@@ -269,6 +277,14 @@ export function Hud() {
                   >
                     SUPPRESS
                   </button>
+                  {agency.canCapture && (
+                    <button type="button" className={`toggle ${mode === 'capture' ? 'toggle-alert' : ''} ${sel.capture ? 'toggle-on' : ''}`} data-testid="capture" aria-pressed={mode === 'capture'} onClick={() => setMode(mode === 'capture' ? 'normal' : 'capture')}>
+                      CAPTURE
+                    </button>
+                  )}
+                  <button type="button" className={`toggle ${mode === 'evacuate' ? 'toggle-alert' : ''}`} data-testid="evacuate" aria-pressed={mode === 'evacuate'} onClick={() => setMode(mode === 'evacuate' ? 'normal' : 'evacuate')}>
+                    EVACUATE
+                  </button>
                 </div>
                 <div className="switch-row" role="group" aria-label="Posture and pace">
                   <button
@@ -380,7 +396,18 @@ export function Hud() {
               <span>HOSTILES DOWN {outcome.score.hostilesDown}</span>
               <span>AGENTS DOWN {outcome.score.agentsDown}</span>
               <span>HOSTILES SEEN {agency.units.filter((u) => u.side === 'hostile' && !u.down).length}</span>
+              {(outcome.score.captured ?? 0) > 0 && <span>TAKEN ALIVE {outcome.score.captured}</span>}
+              {(outcome.score.saved ?? 0) > 0 && <span>EVACUATED {outcome.score.saved}</span>}
             </div>
+            {agency.core && (
+              <div className="marks-line num" data-testid="core-line">
+                {agency.core.secured
+                  ? 'THE DRIVE CORE IS SECURED.'
+                  : agency.core.burnt
+                    ? 'THE WRECK HAS BURNT: THE CORE IS LOST.'
+                    : `DRIVE CORE at ${agency.core.at.x},${agency.core.at.y}: stand an agent on it, ${agency.core.progress}/${agency.tuning.objective.coreTicks}; the wreck burns in ${Math.max(0, Math.ceil(agency.tuning.objective.burnSeconds - outcome.seconds))} s.`}
+              </div>
+            )}
             {agency.marks && agency.marks.length > 0 && (
               <div className="marks-line num" data-testid="marks">
                 LAST HOSTILES MARKED: {agency.marks.map((m) => levelName(m.level)).join(', ')}

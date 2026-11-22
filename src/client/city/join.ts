@@ -4,7 +4,7 @@
 // the battle's roster (ARCH-11, CJOIN-3); its result flows back as a fought result (CJOIN-2).
 import { CITY, RAID_SITE_BATTLES } from '../../data/city';
 import { query, type Roster, type State } from '../../engine';
-import { orgOfBuilding, working, type CityState, type RaidResult } from '../../city';
+import { hasDone, orgOfBuilding, working, type CityState, type RaidResult } from '../../city';
 
 /** CJOIN-4 */
 export const SPITTER_AT = 30;
@@ -23,6 +23,8 @@ export function rosterOf(state: CityState, agents: string[], hostiles: { hostile
   const plates = working(state, 'shell-plate', agents.length);
   const carbines = working(state, 'arc-carbine', agents.length);
   return {
+    // OBJ-1: restraints let the squad take hosts and takers alive (CJOIN-5).
+    capture: hasDone(state, 'restraints'),
     squad: agents.map((id, i) => ({
       name: state.agents.find((a) => a.id === id)?.name ?? id,
       ...(i < plates ? { template: 'agent-t2' } : {}),
@@ -52,10 +54,16 @@ export function resultFromBattle(state: State, fight: PendingFight): RaidResult 
     const cityId = fight.agents[i];
     if (u.down && cityId) agentsDown.push(cityId);
   });
+  // CJOIN-5: captives by kind, citizens evacuated, and the wreck's core.
+  const captured = { host: 0, taker: 0 };
+  for (const u of state.units) if (u.captured) captured[u.template === 'taker' ? 'taker' : 'host'] += 1;
   return {
     won: o.over?.winner === 'agency',
     agentsDown,
     hostilesDown: o.score.hostilesDown,
     civiliansDown: o.score.civiliansDown,
+    captured,
+    saved: state.score.saved ?? 0,
+    ...(state.core ? { core: state.core.secured } : {}),
   };
 }

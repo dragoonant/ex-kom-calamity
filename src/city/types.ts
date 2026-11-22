@@ -100,6 +100,10 @@ export interface RaidResult {
   agentsDown: string[];
   hostilesDown: number;
   civiliansDown: number;
+  /** RES-7 (a fought battle only): captives taken alive, citizens evacuated, and a wreck's core secured. */
+  captured?: { host: number; taker: number };
+  saved?: number;
+  core?: boolean;
 }
 
 /** RAID-1..4 */

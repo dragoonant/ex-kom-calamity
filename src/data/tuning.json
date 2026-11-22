@@ -10,6 +10,7 @@
   "cover": {"full": 40, "half": 25, "low": 20},
   "snap": {"penalty": 25, "aimPercent": 50},
   "stray": {"percent": 25},
+  "objective": {"captureTicks": 10, "captureHpPercent": 50, "coreTicks": 30, "burnSeconds": 90},
   "panic": {"range": 3, "amount": 40},
   "suppress": {"perShot": 20, "perHit": 15, "decayPerTick": 3, "aimPercent": 30, "pinnedAt": 60, "fire": 20, "cap": 100, "aiBelow": 30},
   "blast": {"throwRange": 6, "armTicks": 6, "structureDamage": 160, "edgeStructureDamage": 60, "unitDamage": 40, "edgeUnitDamage": 20}

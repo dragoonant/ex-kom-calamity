@@ -76,7 +76,8 @@
     "scandalLoss": 8,
     "civilianLoss": 1,
     "agentLoss": 1,
-    "missingPer100Points": 1
+    "missingPer100Points": 1,
+    "savedGain": 1
   },
   "end": {
     "confidenceFloor": 25,

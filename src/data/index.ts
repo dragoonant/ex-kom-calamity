@@ -40,6 +40,8 @@ export interface Tuning {
   snap: { penalty: number; aimPercent: number };
   /** Section 28 (STRAY, PANIC): the price of standing together. */
   stray: { percent: number };
+  /** Section 29 (OBJ): capture, evacuation and the wreck's core. */
+  objective: { captureTicks: number; captureHpPercent: number; coreTicks: number; burnSeconds: number };
   panic: { range: number; amount: number };
   /** Section 27 (SUP): being shot at, and pinning a tile. */
   suppress: { perShot: number; perHit: number; decayPerTick: number; aimPercent: number; pinnedAt: number; fire: number; cap: number; aiBelow: number };
@@ -169,6 +171,8 @@ export interface BattleDef {
   map: string;
   squad: SquadEntry[];
   others: OtherEntry[];
+  /** OBJ-4: a craft's drive to secure before the wreck burns (wreck maps only). */
+  core?: Pos;
 }
 
 function records<T>(obj: Record<string, unknown>): Record<string, T> {

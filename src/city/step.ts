@@ -307,6 +307,9 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     if (!Array.isArray(given.agentsDown) || given.agentsDown.some((id) => !raid.agents.includes(id))) return reject(state, 'agentsDown must be agents on the raid');
     if (new Set(given.agentsDown).size !== given.agentsDown.length) return reject(state, 'agentsDown repeats an agent');
     if (!isInt(given.hostilesDown) || given.hostilesDown < 0 || !isInt(given.civiliansDown) || given.civiliansDown < 0) return reject(state, 'counts must be non-negative integers');
+    const cap = given.captured;
+    if (cap !== undefined && (typeof cap !== 'object' || cap === null || !isInt(cap.host) || !isInt(cap.taker) || cap.host < 0 || cap.taker < 0)) return reject(state, 'captured must be counts');
+    if (given.saved !== undefined && (!isInt(given.saved) || given.saved < 0)) return reject(state, 'saved must be a count');
     given = { ...given, agentsDown: [...given.agentsDown], hostilesDown: Math.min(given.hostilesDown, raid.hostiles) };
   }
   const s = clone(state);
@@ -356,16 +359,27 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     left -= takers;
     const fighters = Math.min(left, r.fighters);
     const add = { host: hosts, taker: takers, fighter: fighters, core: takers + fighters, liveHost: 0, liveTaker: 0 };
-    if (result.won && hasDone(s, 'restraints') && add.host > 0) {
-      const n = Math.min(add.host, s.tuning.lab.capturePerRaid);
-      add.host -= n;
-      add.liveHost += n;
-    }
-    if (result.won && hasDone(s, 'taker-cage') && add.taker > 0) {
-      const n = Math.min(add.taker, s.tuning.lab.capturePerRaid);
-      add.taker -= n;
-      add.core -= n;
-      add.liveTaker += n;
+    if (result.captured) {
+      // RES-7: a fought battle's captives replace the auto-resolver's capture (LAB-3).
+      const h = Math.min(add.host, result.captured.host);
+      const t = Math.min(add.taker, result.captured.taker);
+      add.host -= h;
+      add.liveHost += h;
+      add.taker -= t;
+      add.core -= t;
+      add.liveTaker += t;
+    } else {
+      if (result.won && hasDone(s, 'restraints') && add.host > 0) {
+        const n = Math.min(add.host, s.tuning.lab.capturePerRaid);
+        add.host -= n;
+        add.liveHost += n;
+      }
+      if (result.won && hasDone(s, 'taker-cage') && add.taker > 0) {
+        const n = Math.min(add.taker, s.tuning.lab.capturePerRaid);
+        add.taker -= n;
+        add.core -= n;
+        add.liveTaker += n;
+      }
     }
     for (const k of EVIDENCE) s.shelf[k] += add[k];
     events.push({ type: 'shelved', ...add });
@@ -375,7 +389,8 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
   if (crash) {
     // AIR-8: the site is cleared either way; a win recovers the craft's amber drive.
     s.crashes = s.crashes.filter((c) => c.id !== crash.id);
-    if (result.won) s.shelf.core += s.tuning.air.crashCores;
+    // RES-7: a fought wreck yields its drive only if the core was secured; an auto-resolved win always does.
+    if (result.core === true || (result.core === undefined && result.won)) s.shelf.core += s.tuning.air.crashCores;
   }
   const scandal = r.hostiles === 0 && !crash;
   if (scandal) {
@@ -388,6 +403,8 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     if (org) org.standing = Math.min(100, org.standing + s.tuning.fund.winGain);
   }
   addConfidence(s, -result.civiliansDown * s.tuning.fund.civilianLoss, 'citizens killed', events);
+  // RES-7: every citizen evacuated alive earns confidence.
+  if (result.saved) addConfidence(s, result.saved * s.tuning.fund.savedGain, 'citizens evacuated', events);
   s.score.raids += 1;
   s.score.hostilesDown += result.hostilesDown;
   s.score.civiliansDown += result.civiliansDown;

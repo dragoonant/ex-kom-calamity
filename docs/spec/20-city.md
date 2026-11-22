@@ -67,6 +67,7 @@
 - **RES-3** The raid cleanses the organisation by `hostiles down * res.cleansePerHostile + (won ? res.cleanseOnWin : 0)` (`res.cleansePerHostile = 6`, `res.cleanseOnWin = 10`), not below 0 (or SPREAD-7's floor).
 - **RES-4** A won raid on an infiltrated building raises confidence `fund.winGain = 4` and the owner's standing as much. Any won raid, a scandal included, leaves the agency knowing the building's band: its report is set to the band after cleansing.
 - **RES-5** Every citizen killed costs `fund.civilianLoss = 1` confidence and every agent killed `fund.agentLoss = 1`.
+- **RES-7** A fought result may also carry `captured` (hosts and takers taken alive: they go to the shelf live instead of LAB-3's capture), `saved` (citizens evacuated: `fund.savedGain = 1` confidence each) and `core` (a wreck's drive: the AIR-8 cores come only if it was secured).
 - **RES-6** With a result (a fought battle, M7), the engine checks it: `won` a boolean, `agentsDown` distinct agents of the raid, counts non-negative integers; hostiles down are clamped to the raid's hostiles. Death rolls (RES-2) still apply.
 
 ## 8. The roster (ROSTER)
@@ -156,6 +157,7 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, a seeder crosses into the city, or the act ends.
 - **CJOIN-1** At a door, or with headquarters under assault, the player may **fight it**. The battle is the raid site the building names (CITY-4); for a wreck, the site of the building it fell on, or `wreck-raid` (a broken hull in a plaza) on open ground; for an assault, `hq-defence` (the squad holds headquarters' corridor, the attackers come from the street).
 - **CJOIN-2** When the battle's report closes, its result returns as a fought result (RES-6, or ACT-5's `defend`): won if the agency won, the downed battle agents mapped in order onto the raid's agents, the battle's hostiles and citizens down. Leaving the battle without a report resolves the raid automatically.
+- **CJOIN-5** A fought battle may capture when the lab has `restraints` (battle OBJ-1), and its result carries the captives by kind, the citizens evacuated and, on a wreck, whether the core was secured (RES-7).
 - **CJOIN-4** In a fought battle, once the building's owner is at 30 infiltration a fifth of the hostiles (floored, taken from the hosts) are spitters (battle STRAY-3); the auto-resolver does not model them (RES-1).
 - **CJOIN-3** The battle is fought with the city's own people (battle ARCH-11): the raid's agents by name in order, the first ones carrying the working shell plates (as `agent-t2`) and then the working arc carbines, as SHOP-4 shares them out; and the raid's hostiles by kind (RAID-3, RAID-7, AIR-8, ACT-5, ACT-7).
 
