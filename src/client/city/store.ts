@@ -10,6 +10,7 @@ import {
   cityView,
   createCity,
   hashCity,
+  ITEMS,
   type CityAction,
   type CityEvent,
   type CityState,
@@ -21,8 +22,11 @@ import { battleOf, rosterOf } from './join';
 import { traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
-export const CAMPAIGN_VERSION = 4; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts; 4: the 24 x 24 city and travel (TRAVEL)
+export const CAMPAIGN_VERSION = 5; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts; 4: the 24 x 24 city and travel (TRAVEL); 5: kit per agent (SHOP-5)
 export type CitySpeed = 1 | 4 | 12;
+/** The headquarters screens: the lab's research, the armoury's purchases and the squad's kit. */
+export type CityScreen = 'lab' | 'armoury' | 'squad';
+export const CITY_SCREENS: CityScreen[] = ['lab', 'armoury', 'squad'];
 export const CITY_SPEEDS: CitySpeed[] = [1, 4, 12];
 const MAX_TRAY = 60;
 const AUTOSAVE_TICKS = 60;
@@ -75,6 +79,10 @@ export interface CityClient {
   summary: CampaignSummary | null;
   loadError: string | null;
   fight: PendingFight | null;
+  /** The headquarters screen open over the city (RULING CSAV-3), or null for the switchboard. */
+  screen: CityScreen | null;
+  /** Whether the city was paused before a screen opened; closing the screen restores it. */
+  pausedBeforeScreen: boolean;
 
   refresh(): void;
   start(seed?: number): void;
@@ -89,6 +97,8 @@ export interface CityClient {
   setSpeed(s: CitySpeed): void;
   select(id: string | null): void;
   toggleSquad(agent: string): void;
+  openScreen(screen: CityScreen): void;
+  closeScreen(): void;
   beginFight(): PendingFight | null;
   finishFight(result: RaidResult | null): void;
   saveNow(): void;
@@ -117,13 +127,30 @@ export function readCampaign(st: StorageLike | null): { ok: true; env: CampaignE
   if (!text) return null;
   try {
     const env = JSON.parse(text) as CampaignEnvelope;
-    if (env.key !== CAMPAIGN_KEY || env.version !== CAMPAIGN_VERSION) return { ok: false, reason: 'it was saved by another version' };
-    if (!env.state || !Array.isArray(env.state.orgs)) return { ok: false, reason: 'it is incomplete' };
+    if (env.key !== CAMPAIGN_KEY || (env.version !== CAMPAIGN_VERSION && env.version !== 4)) return { ok: false, reason: 'it was saved by another version' };
+    if (!env.state || !Array.isArray(env.state.orgs) || !Array.isArray(env.state.agents)) return { ok: false, reason: 'it is incomplete' };
     if (hashCity(env.state) !== env.hash) return { ok: false, reason: 'it does not match its checksum' };
+    if (env.version === 4) return { ok: true, env: { ...env, version: CAMPAIGN_VERSION, state: kitFromVersion4(env.state), hash: '' } };
     return { ok: true, env };
   } catch {
     return { ok: false, reason: 'it is not readable' };
   }
+}
+
+/** CSAV-2, RULING SHOP-5: a version-4 save had no kit; its stock is issued to the living in roster order. */
+export function kitFromVersion4(state: CityState): CityState {
+  const s = JSON.parse(JSON.stringify(state)) as CityState;
+  for (const a of s.agents) a.kit = [];
+  for (const item of ITEMS) {
+    let left = s.shop.stock[item];
+    for (const a of s.agents) {
+      if (left <= 0) break;
+      if (a.status === 'dead') continue;
+      a.kit.push(item);
+      left -= 1;
+    }
+  }
+  return s;
 }
 
 function summaryOf(env: CampaignEnvelope): CampaignSummary {
@@ -162,6 +189,8 @@ export const useCity = create<CityClient>((set, get) => {
     summary: null,
     loadError: null,
     fight: null,
+    screen: null,
+    pausedBeforeScreen: true,
 
     refresh() {
       const r = readCampaign(storage());
@@ -174,7 +203,7 @@ export const useCity = create<CityClient>((set, get) => {
       const s = createCity({ seed: seed ?? ((Date.now() % 100000) + 1) });
       traySeq = 0;
       const intro: TraySlip = { id: nextTrayId(), tick: 0, stamp: 'D1 08:00', text: 'The switchboard is live. Watch the slips: the organism hides, but a building that is too perfect by day, or hums amber by night, gives it away.', tone: 'note', building: null, kind: 'intro' };
-      set({ active: true, game: s, view: cityView(s, 'agency'), paused: true, selected: null, squad: [], tray: [intro], lastEvents: [], fight: null });
+      set({ active: true, game: s, view: cityView(s, 'agency'), paused: true, selected: null, squad: [], tray: [intro], lastEvents: [], fight: null, screen: null });
       get().saveNow();
     },
 
@@ -185,7 +214,7 @@ export const useCity = create<CityClient>((set, get) => {
         return false;
       }
       traySeq = r.env.tray.reduce((m, t) => Math.max(m, t.id), 0);
-      set({ active: true, game: r.env.state, view: cityView(r.env.state, 'agency'), paused: true, selected: null, squad: [], tray: r.env.tray, lastEvents: [], fight: null });
+      set({ active: true, game: r.env.state, view: cityView(r.env.state, 'agency'), paused: true, selected: null, squad: [], tray: r.env.tray, lastEvents: [], fight: null, screen: null });
       return true;
     },
 
@@ -200,7 +229,7 @@ export const useCity = create<CityClient>((set, get) => {
 
     leave() {
       get().saveNow();
-      set({ active: false, game: null, view: null, paused: true, fight: null });
+      set({ active: false, game: null, view: null, paused: true, fight: null, screen: null });
       get().refresh();
     },
 
@@ -274,6 +303,21 @@ export const useCity = create<CityClient>((set, get) => {
       const max = get().game?.tuning.raid.maxAgents ?? 6;
       if (sq.includes(agent)) set({ squad: sq.filter((x) => x !== agent) });
       else if (sq.length < max) set({ squad: [...sq, agent] });
+    },
+
+    openScreen(screen) {
+      // RULING CSAV-3: the city holds still while a headquarters screen is open.
+      if (get().screen) set({ screen });
+      else {
+        set({ screen, pausedBeforeScreen: get().paused });
+        get().setPaused(true);
+      }
+    },
+    closeScreen() {
+      if (!get().screen) return;
+      const back = get().pausedBeforeScreen;
+      set({ screen: null });
+      get().setPaused(back);
     },
 
     beginFight() {

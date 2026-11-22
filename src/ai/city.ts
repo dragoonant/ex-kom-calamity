@@ -1,7 +1,7 @@
 // The city AI (docs/spec/20-city.md section 12). Pure functions of a side's view (CAI-1): the organism's planner and
 // the agency drivers the sim and an autopilot use. No DOM, three.js or React here.
 import { CITY } from '../data/city';
-import { buildingUnder, cityLegalActions, clockOf, hasDone, itemCost, launchBlock, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
+import { atHome, buildingUnder, cityLegalActions, ITEMS, spare, clockOf, hasDone, itemCost, launchBlock, researchBlock, ticksPerDay, ticksPerHour, type CityAction, type CityState } from '../city';
 import { nextInt, seedRng } from '../engine/rng';
 
 export type CityDriver = (view: CityState) => CityAction[];
@@ -140,6 +140,27 @@ export function suspicion(view: CityState): Map<string, number> {
   return score;
 }
 
+/** CAI-7, SHOP-5: equip and unequip orders that put one of each item on each of the squad, as far as the stock goes. */
+export function kitFor(view: CityState, squad: string[]): CityAction[] {
+  const out: CityAction[] = [];
+  for (const item of ITEMS) {
+    let free = spare(view, item);
+    const donors = view.agents.filter((a) => a.kit.includes(item) && atHome(a) && !squad.includes(a.id)).map((a) => a.id);
+    for (const id of squad) {
+      if (view.agents.find((a) => a.id === id)?.kit.includes(item)) continue;
+      if (free <= 0) {
+        const from = donors.shift();
+        if (!from) break;
+        out.push({ type: 'unequip', side: 'agency', agent: from, item });
+        free += 1;
+      }
+      out.push({ type: 'equip', side: 'agency', agent: id, item });
+      free -= 1;
+    }
+  }
+  return out;
+}
+
 /** CAI-6: the careful agency: reads slips, watches the most suspicious buildings, raids what a report confirms. */
 export const agencyCareful: CityDriver = (view) => {
   if (view.defence) return [{ type: 'defend', side: 'agency' }];
@@ -166,6 +187,9 @@ export const agencyCareful: CityDriver = (view) => {
       }
     }
   }
+  // CAI-7, SHOP-5: the kit goes to the agents who will raid next (the first ready, up to a squad), from the store
+  // first, then from the wounded and the ready beyond the squad.
+  out.push(...kitFor(view, ready.slice(0, t.raid.maxAgents)));
   // CAI-9: the air war: every ready car after a seeder (a scout only when no seeder flies), pressing over open
   // ground and shadowing over buildings; crash sites are raided first; a third car when money allows.
   const readyCars = view.cars.filter((c) => c.status === 'ready').map((c) => c.id);

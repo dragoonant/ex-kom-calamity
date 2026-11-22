@@ -48,6 +48,12 @@ export function cityInvariants(s: CityState): string[] {
   if (new Set(s.lab.done).size !== s.lab.done.length) out.push('a project is done twice');
   if (s.lab.project && s.lab.done.includes(s.lab.project)) out.push('the lab works on a done project');
   for (const k of ['shell-plate', 'arc-carbine'] as const) if (s.shop.sabotaged[k] > s.shop.stock[k] || s.shop.stock[k] < 0) out.push(`stock of ${k} is broken`);
+  // CINV-13: kit is carried only from the stock, one of each kind per agent, and never by the dead.
+  for (const k of ['shell-plate', 'arc-carbine'] as const) if (s.agents.filter((a) => a.kit.includes(k)).length > s.shop.stock[k]) out.push(`more ${k} carried than in stock`);
+  for (const a of s.agents) {
+    if (new Set(a.kit).size !== a.kit.length) out.push(`${a.id} carries two of a kind`);
+    if (a.status === 'dead' && a.kit.length) out.push(`${a.id} is dead with kit`);
+  }
   if (s.raid && s.raid.arrived && s.raid.takers + s.raid.fighters > s.raid.hostiles) out.push('raid composition exceeds its hostiles');
   // CINV-10: the air war's cars, craft and crash sites agree.
   for (const car of s.cars) {

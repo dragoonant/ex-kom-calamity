@@ -2,7 +2,7 @@
 import { CITY } from '../data/city';
 import { RESEARCH } from '../data/city';
 import { launchBlock } from './air';
-import { hasDone, itemCost, livingAgents, readyAgents, researchBlock, supplierOrg } from './rules';
+import { equipBlock, hasDone, ITEMS, itemCost, livingAgents, readyAgents, researchBlock, supplierOrg } from './rules';
 import type { CityAction, CitySide, CityState } from './types';
 
 export function cityLegalActions(state: CityState, side: CitySide): CityAction[] {
@@ -29,6 +29,12 @@ export function cityLegalActions(state: CityState, side: CitySide): CityAction[]
       const sup = supplierOrg(state);
       if (sup && !sup.turned && state.money >= Math.floor((cost * state.tuning.shop.supplierPricePercent) / 100)) acts.push({ type: 'order', side, item });
     }
+    // SHOP-5: kit on and off for every agent at headquarters.
+    for (const a of state.agents)
+      for (const item of ITEMS) {
+        if (!equipBlock(state, a.id, item, true)) acts.push({ type: 'equip', side, agent: a.id, item });
+        if (!equipBlock(state, a.id, item, false)) acts.push({ type: 'unequip', side, agent: a.id, item });
+      }
     if (hasDone(state, 'interrogation') && state.shelf.liveHost > 0) acts.push({ type: 'question', side });
     // AIR: intercepts with every ready car, posture switches, a new car, raids on crash sites.
     const readyCars = state.cars.filter((c) => c.status === 'ready').map((c) => c.id);

@@ -10,4 +10,4 @@ export { advanceCity, advanceCityTicks } from './advance';
 export { replayCity, hashCity, appendCityLog, expandCityLog } from './replay';
 export { buildingUnder, launchBlock, craftCost, dist } from './air';
 export { clockOf, ticksPerHour, ticksPerDay, isNightHour } from './time';
-export { bandOf, hostilesFor, winChance, downChance, grantOf, totalInfiltration, sourceOrg, orgOfBuilding, buildingDef, projectDef, researchBlock, hasDone, compositionFor, itemCost, supplierOrg, working, travelTicks, legAt, legFrom, hqPoint, placePoint } from './rules';
+export { bandOf, hostilesFor, winChance, downChance, grantOf, totalInfiltration, sourceOrg, orgOfBuilding, buildingDef, projectDef, researchBlock, hasDone, compositionFor, itemCost, supplierOrg, working, carriers, spare, issued, equipBlock, atHome, ITEMS, travelTicks, legAt, legFrom, hqPoint, placePoint } from './rules';

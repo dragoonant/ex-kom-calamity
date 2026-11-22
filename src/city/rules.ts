@@ -1,7 +1,7 @@
 // Shared rule helpers (docs/spec/20-city.md). Pure, read-only over the state.
 import { CITY, RESEARCH, type BuildingDef, type Evidence, type OrgDef, type ProjectDef } from '../data/city';
 import { ticksPerHour } from './time';
-import type { Band, CityState, ItemId, Leg, Org } from './types';
+import type { Agent, Band, CityState, ItemId, Leg, Org } from './types';
 
 export function buildingDef(id: string): BuildingDef | undefined {
   return CITY.buildings.find((b) => b.id === id);
@@ -42,11 +42,11 @@ export function hostilesFor(state: CityState, org: Org): number {
 }
 
 /** RES-1, SHOP-4: the auto-resolver's win chance in percent, with the squad's working kit. */
-export function winChance(state: CityState, agents: number, hostiles: number): number {
+export function winChance(state: CityState, squad: readonly string[], hostiles: number): number {
   const r = state.tuning.res;
   if (hostiles <= 0) return 100;
-  const kit = state.shop ? working(state, 'shell-plate', agents) * state.tuning.shop.plateWin + working(state, 'arc-carbine', agents) * state.tuning.shop.carbineWin : 0;
-  const p = r.winBasePercent + r.winPerAgent * agents - r.winPerHostile * hostiles + kit;
+  const kit = working(state, 'shell-plate', squad) * state.tuning.shop.plateWin + working(state, 'arc-carbine', squad) * state.tuning.shop.carbineWin;
+  const p = r.winBasePercent + r.winPerAgent * squad.length - r.winPerHostile * hostiles + kit;
   return Math.max(r.winMinPercent, Math.min(r.winMaxPercent, p));
 }
 
@@ -125,13 +125,56 @@ export function supplierOrg(state: CityState): Org | undefined {
   return def ? orgOf(state, def.id) : undefined;
 }
 
-/** SHOP-4: working items carried by a squad of n. */
-export function working(state: CityState, item: ItemId, n: number): number {
+export const ITEMS: readonly ItemId[] = ['shell-plate', 'arc-carbine'];
+
+/** SHOP-5: an agent is at headquarters (and may change its kit) when ready or wounded. */
+export function atHome(a: Agent): boolean {
+  return a.status === 'ready' || a.status === 'wounded';
+}
+
+/** SHOP-5: the items of a kind carried by agents. */
+export function issued(state: CityState, item: ItemId): number {
+  return state.agents.filter((a) => a.kit.includes(item)).length;
+}
+
+/** SHOP-5: the items of a kind in the store, carried by nobody. */
+export function spare(state: CityState, item: ItemId): number {
+  return state.shop.stock[item] - issued(state, item);
+}
+
+/** SHOP-5: why an agent may not take (on) or hand back (off) an item, or null. */
+export function equipBlock(state: CityState, agentId: string, item: ItemId, on: boolean): string | null {
+  if (!ITEMS.includes(item)) return 'no such item';
+  const a = state.agents.find((x) => x.id === agentId);
+  if (!a || a.status === 'dead') return `no living agent ${String(agentId)}`;
+  if (!atHome(a)) return `${a.name} is away from headquarters`;
+  if (on) {
+    if (a.kit.includes(item)) return `${a.name} already carries one`;
+    if (spare(state, item) < 1) return 'none spare in the store';
+  } else if (!a.kit.includes(item)) return `${a.name} carries none`;
+  return null;
+}
+
+/** SHOP-4: the squad members carrying a working item of this kind, in squad order (the sabotaged share falls on the last). */
+export function carriers(state: CityState, item: ItemId, squad: readonly string[]): string[] {
+  const holding = squad.filter((id) => state.agents.find((a) => a.id === id)?.kit.includes(item));
   const stock = state.shop.stock[item];
-  const carried = Math.min(n, stock);
-  if (carried <= 0) return 0;
+  if (holding.length === 0 || stock <= 0) return [];
   const good = stock - state.shop.sabotaged[item];
-  return Math.floor((carried * good) / stock);
+  return holding.slice(0, Math.floor((holding.length * good) / stock));
+}
+
+/** SHOP-4: working items carried by a squad. */
+export function working(state: CityState, item: ItemId, squad: readonly string[]): number {
+  return carriers(state, item, squad).length;
+}
+
+/** SHOP-6: a new item goes to the first agent at headquarters, in roster order, without one; else to the store. */
+export function issueNew(state: CityState, item: ItemId): string | null {
+  const a = state.agents.find((x) => atHome(x) && !x.kit.includes(item));
+  if (!a) return null;
+  a.kit.push(item);
+  return a.id;
 }
 
 /** TRAVEL-1: headquarters, and a building's cell centre, in tenths of a cell. */

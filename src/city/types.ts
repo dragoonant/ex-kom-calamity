@@ -94,6 +94,8 @@ export interface Agent {
   /** TRAVEL-1: the drive under way, or null (ready, watching, wounded, dead, or a squad at the door). */
   leg: Leg | null;
   raids: number;
+  /** SHOP-5: the items this agent carries from the workshop's stock, at most one of each. */
+  kit: ItemId[];
 }
 
 export interface Slip {
@@ -202,6 +204,8 @@ export type CityAction =
   | { type: 'research'; side: 'agency'; project: string }
   | { type: 'build'; side: 'agency'; item: ItemId }
   | { type: 'order'; side: 'agency'; item: ItemId }
+  | { type: 'equip'; side: 'agency'; agent: string; item: ItemId }
+  | { type: 'unequip'; side: 'agency'; agent: string; item: ItemId }
   | { type: 'question'; side: 'agency' }
   | { type: 'intercept'; side: 'agency'; craft: string; cars: string[] }
   | { type: 'posture'; side: 'agency'; craft: string; posture: 'press' | 'shadow' }
@@ -239,6 +243,7 @@ export type CityEvent =
   | { type: 'built'; item: ItemId }
   | { type: 'ordered'; item: ItemId; cost: number; arriveTick: number }
   | { type: 'delivered'; item: ItemId }
+  | { type: 'equipped'; agent: string; item: ItemId; on: boolean }
   | { type: 'launched'; craft: string; kind: CraftKind; x: number; y: number }
   | { type: 'intercepting'; craft: string; cars: string[] }
   | { type: 'dogfight'; craft: string; craftHp: number; hits: number; carsHit: string[]; rolls: number[] }

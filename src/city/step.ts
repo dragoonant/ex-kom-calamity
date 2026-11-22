@@ -13,7 +13,9 @@ import {
   projectDef,
   researchBlock,
   supplierOrg,
-  working,
+  carriers,
+  equipBlock,
+  issueNew,
   downChance,
   grantOf,
   hostilesFor,
@@ -189,6 +191,8 @@ function labHour(s: CityState, events: CityEvent[]): void {
     if (s.shop.progress >= itemCost(s, s.shop.item).hours) {
       s.shop.stock[s.shop.item] += 1;
       events.push({ type: 'built', item: s.shop.item });
+      const to = issueNew(s, s.shop.item); // SHOP-6
+      if (to) events.push({ type: 'equipped', agent: to, item: s.shop.item, on: true });
       s.shop.item = null;
       s.shop.progress = 0;
     }
@@ -200,6 +204,8 @@ function labHour(s: CityState, events: CityEvent[]): void {
       s.shop.stock[o.item] += 1;
       if (o.sabotaged) s.shop.sabotaged[o.item] += 1;
       events.push({ type: 'delivered', item: o.item });
+      const to = issueNew(s, o.item); // SHOP-6
+      if (to) events.push({ type: 'equipped', agent: to, item: o.item, on: true });
     }
   }
 }
@@ -299,14 +305,14 @@ function tick(state: CityState, action: CityAction): CityStepResult {
 
 function autoResult(s: CityState, hostiles: number, agents: string[]): { result: RaidResult; roll: number | null; chance: number | null } {
   if (hostiles <= 0) return { result: { won: true, agentsDown: [], hostilesDown: 0, civiliansDown: 0 }, roll: null, chance: null };
-  const chance = winChance(s, agents.length, hostiles);
+  const chance = winChance(s, agents, hostiles);
   const roll = nextInt(s.rng, 100);
   const won = roll < chance;
   const down = downChance(s, hostiles, won);
-  // SHOP-4: the first agents carry the working plates.
-  const plated = working(s, 'shell-plate', agents.length);
+  // SHOP-4: the agents carrying working plates.
+  const plated = carriers(s, 'shell-plate', agents);
   const plateDown = Math.floor((down * (100 - s.tuning.shop.plateDownCutPercent)) / 100);
-  const agentsDown = agents.filter((_, i) => nextInt(s.rng, 100) < (i < plated ? plateDown : down));
+  const agentsDown = agents.filter((id) => nextInt(s.rng, 100) < (plated.includes(id) ? plateDown : down));
   const hostilesDown = won ? hostiles : nextInt(s.rng, hostiles);
   let civiliansDown = nextInt(s.rng, Math.floor(hostiles / 2) + 1);
   if (hasDone(s, 'evacuation')) civiliansDown = Math.floor((civiliansDown * s.tuning.lab.evacuationCivilianPercent) / 100); // LAB-6
@@ -347,6 +353,7 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
       const deathPercent = hasDone(s, 'antiserum') ? Math.floor((s.tuning.roster.deathPercent * s.tuning.lab.antiserumDeathPercent) / 100) : s.tuning.roster.deathPercent;
       const dead = d < deathPercent;
       a.status = dead ? 'dead' : 'wounded';
+      if (dead) a.kit = []; // SHOP-6: a killed agent's kit goes back to the store
       a.leg = null;
       a.until = dead ? 0 : s.tick + s.tuning.roster.woundDays * ticksPerDay(s.tuning);
       events.push({ type: 'agentDown', agent: a.id, dead, roll: d });
@@ -473,6 +480,7 @@ function defend(state: CityState, action: Extract<CityAction, { type: 'defend' }
     const r = nextInt(s.rng, 100);
     const dead = r < s.tuning.roster.deathPercent;
     a.status = dead ? 'dead' : 'wounded';
+    if (dead) a.kit = []; // SHOP-6
     a.until = dead ? 0 : s.tick + s.tuning.roster.woundDays * ticksPerDay(s.tuning);
     events.push({ type: 'agentDown', agent: a.id, dead, roll: r });
     if (dead) s.score.agentsDead += 1;
@@ -604,6 +612,17 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
       const arriveTick = s.tick + s.tuning.shop.supplierHours * ticksPerHour(s.tuning);
       s.shop.orders.push({ item: action.item, arriveTick, sabotaged });
       return accept(s, action, [{ type: 'ordered', item: action.item, cost: price, arriveTick }]);
+    }
+    case 'equip':
+    case 'unequip': {
+      if (side !== 'agency') return reject(state, `${action.type} is an agency order`);
+      const on = action.type === 'equip';
+      const why = equipBlock(state, action.agent, action.item, on);
+      if (why) return reject(state, why);
+      const s = clone(state);
+      const a = s.agents.find((x) => x.id === action.agent)!;
+      a.kit = on ? [...a.kit, action.item] : a.kit.filter((k) => k !== action.item);
+      return accept(s, action, [{ type: 'equipped', agent: a.id, item: action.item, on }]);
     }
     case 'question': {
       if (side !== 'agency') return reject(state, 'question is an agency order');

@@ -1,11 +1,13 @@
 // docs/spec/20-city.md sections 17 to 19 (M5b): the lab, the workshop and raid composition.
 import { describe, expect, it } from 'vitest';
 import { advanceCityTicks, cityLegalActions, cityStep, cityView, compositionFor, createCity, researchBlock, winChance, working, type CityAction, type CityEvent, type CityState, type CityTuning } from '../src/city';
-import { CITY_TUNING, RESEARCH } from '../src/data/city';
-import { agencyCareful, RESEARCH_ORDER } from '../src/ai/city';
+import { CITY, CITY_TUNING, RESEARCH } from '../src/data/city';
+import { agencyCareful, kitFor, RESEARCH_ORDER } from '../src/ai/city';
 import { cityInvariants } from '../src/sim/cityInvariants';
+import { seedRng } from '../src/engine/rng';
 
 const T = CITY_TUNING;
+const SIX = ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6'];
 const HOUR = 6;
 const clone = <S,>(s: S): S => JSON.parse(JSON.stringify(s)) as S;
 function ok(s: CityState, a: CityAction): { state: CityState; events: CityEvent[] } {
@@ -138,16 +140,74 @@ describe('18. The workshop (SHOP)', () => {
     const v = cityView(s, 'agency');
     expect(v.shop.sabotaged['arc-carbine']).toBe(0);
     expect(v.shop.stock['arc-carbine']).toBe(1);
-    expect(working(s, 'arc-carbine', 6)).toBe(0);
+    expect(s.agents[0]!.kit).toEqual(['arc-carbine']); // SHOP-6: issued on arrival, sabotage and all
+    expect(working(s, 'arc-carbine', SIX)).toBe(0);
   });
   it('SHOP-4 working kit raises the win chance', () => {
     const s = clone(city());
-    const base = winChance(s, 6, 5);
+    const base = winChance(s, SIX, 5);
     s.shop.stock['shell-plate'] = 6;
     s.shop.stock['arc-carbine'] = 3;
-    expect(winChance(s, 6, 5)).toBe(base + 6 * T.shop.plateWin + 3 * T.shop.carbineWin);
+    expect(winChance(s, SIX, 5)).toBe(base); // in the store, carried by nobody
+    for (const a of s.agents.slice(0, 6)) a.kit.push('shell-plate');
+    for (const a of s.agents.slice(3, 6)) a.kit.push('arc-carbine');
+    expect(winChance(s, SIX, 5)).toBe(base + 6 * T.shop.plateWin + 3 * T.shop.carbineWin);
+    expect(winChance(s, ['ag1', 'ag2', 'ag3'], 5)).toBe(winChance(clone(city()), ['ag1', 'ag2', 'ag3'], 5) + 3 * T.shop.plateWin);
     s.shop.sabotaged['arc-carbine'] = 3;
-    expect(winChance(s, 6, 5)).toBe(base + 6 * T.shop.plateWin);
+    expect(winChance(s, SIX, 5)).toBe(base + 6 * T.shop.plateWin);
+  });
+  it('SHOP-5 CINV-13 equip and unequip move kit between the store and agents at headquarters', () => {
+    let s = clone(city());
+    s.shop.stock['shell-plate'] = 1;
+    const legal = cityLegalActions(s, 'agency');
+    expect(legal).toContainEqual({ type: 'equip', side: 'agency', agent: 'ag2', item: 'shell-plate' });
+    expect(legal.some((a) => a.type === 'equip' && a.item === 'arc-carbine')).toBe(false);
+    const r = ok(s, { type: 'equip', side: 'agency', agent: 'ag2', item: 'shell-plate' });
+    expect(r.events).toContainEqual({ type: 'equipped', agent: 'ag2', item: 'shell-plate', on: true });
+    s = r.state;
+    expect(s.agents[1]!.kit).toEqual(['shell-plate']);
+    expect(cityStep(s, { type: 'equip', side: 'agency', agent: 'ag3', item: 'shell-plate' }).ok).toBe(false); // none spare
+    expect(cityStep(s, { type: 'equip', side: 'agency', agent: 'ag2', item: 'shell-plate' }).ok).toBe(false); // one of each kind
+    expect(cityStep(s, { type: 'unequip', side: 'agency', agent: 'ag3', item: 'shell-plate' }).ok).toBe(false); // carries none
+    // away from headquarters: no change
+    const away = ok(s, { type: 'watch', side: 'agency', agent: 'ag2', building: CITY.buildings[0]!.id }).state;
+    expect(cityStep(away, { type: 'unequip', side: 'agency', agent: 'ag2', item: 'shell-plate' }).ok).toBe(false);
+    s = ok(s, { type: 'unequip', side: 'agency', agent: 'ag2', item: 'shell-plate' }).state;
+    s = ok(s, { type: 'equip', side: 'agency', agent: 'ag4', item: 'shell-plate' }).state;
+    expect(s.agents.map((a) => a.kit.length)).toEqual(s.agents.map((a) => (a.id === 'ag4' ? 1 : 0)));
+    expect(cityInvariants(s)).toEqual([]);
+  });
+  it('SHOP-6 a new item goes to the first agent at home without one, and a killed agent drops its kit', () => {
+    let s = done(city(), 'shell-plate');
+    s.money = 1000;
+    s.shop.stock['shell-plate'] = 1;
+    s.agents[0]!.kit = ['shell-plate']; // ag1 has one
+    Object.assign(s.agents[1]!, { status: 'watching', building: CITY.buildings[0]!.id, until: 1e6 }); // ag2 is out
+    s.agents[2]!.status = 'wounded'; // ag3 is home, wounded
+    s = ok(s, { type: 'build', side: 'agency', item: 'shell-plate' }).state;
+    s = advanceCityTicks(s, T.shop.plateHours * HOUR).state;
+    expect(s.shop.stock['shell-plate']).toBe(2);
+    expect(s.agents.filter((a) => a.kit.length).map((a) => a.id)).toEqual(['ag1', 'ag3']);
+    // a killed agent's kit returns to the store
+    const c = clone(s);
+    c.agents[2]!.status = 'ready';
+    const atDoorState = ok(c, { type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag3'] }).state;
+    atDoorState.raid!.arrived = true;
+    atDoorState.raid!.hostiles = 1;
+    for (let seed = 0; seed < 50; seed++) {
+      const t = clone(atDoorState);
+      t.rng = seedRng(seed + 1);
+      const r = cityStep(t, { type: 'resolve', side: 'agency', result: { won: false, agentsDown: ['ag3'], hostilesDown: 0, civiliansDown: 0 } });
+      if (!r.ok) throw new Error(r.reason);
+      const ag = r.state.agents[2]!;
+      if (ag.status === 'dead') {
+        expect(ag.kit).toEqual([]);
+        expect(cityInvariants(r.state)).toEqual([]);
+        return;
+      }
+      expect(ag.kit).toEqual(['shell-plate']); // wounded keep theirs
+    }
+    throw new Error('no seed killed the agent');
   });
 });
 
@@ -178,5 +238,23 @@ describe('13 and 12. Invariants and the careful lab (CINV-9, CAI-7)', () => {
     expect(cityLegalActions(s, 'agency').some((a) => a.type === 'research' && a.project === 'restraints')).toBe(true);
     const acts = agencyCareful(cityView(s, 'agency'));
     expect(acts).toContainEqual({ type: 'research', side: 'agency', project: RESEARCH_ORDER[0] });
+  });
+  it('CAI-7 the careful agency hands the kit to the agents who would raid next', () => {
+    const s = clone(city());
+    s.shop.stock['shell-plate'] = 2;
+    s.agents[0]!.status = 'wounded';
+    s.agents[0]!.kit = ['shell-plate']; // held by a wounded agent
+    s.agents[7]!.kit = ['shell-plate']; // held by an agent beyond the squad
+    const squad = ['ag2', 'ag3', 'ag4'];
+    const acts = kitFor(cityView(s, 'agency'), squad);
+    expect(acts).toEqual([
+      { type: 'unequip', side: 'agency', agent: 'ag1', item: 'shell-plate' },
+      { type: 'equip', side: 'agency', agent: 'ag2', item: 'shell-plate' },
+      { type: 'unequip', side: 'agency', agent: 'ag8', item: 'shell-plate' },
+      { type: 'equip', side: 'agency', agent: 'ag3', item: 'shell-plate' },
+    ]);
+    let t = s;
+    for (const a of acts) t = ok(t, a).state;
+    expect(t.agents.filter((a) => a.kit.length).map((a) => a.id)).toEqual(['ag2', 'ag3']);
   });
 });

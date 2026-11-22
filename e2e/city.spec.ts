@@ -113,7 +113,7 @@ test('FIGHT IT opens the real battle on the building site; its result returns to
   expect(kinds).toContain('resolved');
 });
 
-test('a raid stocks the lab shelf and the LAB tab starts and finishes research (M5b)', async ({ page }) => {
+test('a raid stocks the lab shelf and the LAB screen starts and finishes research (M5b)', async ({ page }) => {
   await startCampaign(page);
   await page.evaluate(() => window.__ekcCity!.select('ambrel-works'));
   await page.getByTestId('raid').click();
@@ -121,14 +121,61 @@ test('a raid stocks the lab shelf and the LAB tab starts and finishes research (
   await page.getByTestId('auto-resolve').click();
   const shelf = await page.evaluate(() => window.__ekcCity!.state()!.shelf);
   test.skip(shelf.host < 1, 'this seed lost the raid; the shelf stays empty');
-  await page.getByTestId('tab-lab').click();
+  await page.getByTestId('open-lab').click();
+  await expect(page.getByTestId('lab-screen')).toBeVisible();
   await expect(page.getByTestId('shelf')).toContainText('host bodies');
   await page.getByTestId('research-restraints').click();
-  await expect(page.getByTestId('lab-project')).toContainText('Stun baton');
+  await expect(page.getByTestId('lab-project')).toContainText('STUN BATON');
+  await page.getByTestId('hq-close').click();
+  await expect(page.getByTestId('hq-screen')).toHaveCount(0);
   await page.evaluate(() => window.__ekcCity!.advanceTicks(6 * 25));
   expect(await page.evaluate(() => window.__ekcCity!.state()!.lab.done)).toContain('restraints');
   const kinds = await page.evaluate(() => window.__ekcCity!.tray().map((t) => t.kind));
   expect(kinds).toContain('research-done');
+});
+
+test('the LAB, ARMOURY and SQUAD are screens of their own that hold the city still; kit is bought and handed out (SHOP-5)', async ({ page }) => {
+  await startCampaign(page);
+  await page.evaluate(() => {
+    const h = window.__ekcCity!;
+    const s = JSON.parse(JSON.stringify(h.state()!));
+    s.lab.done.push('shell-plate', 'arc-carbine');
+    s.money = 500;
+    h.load(s);
+    h.resume();
+  });
+  expect(await page.evaluate(() => window.__ekcCity!.isPaused())).toBe(false);
+  // ARMOURY: its own sheet over the city, which holds still while it is open.
+  await page.getByTestId('open-armoury').click();
+  await expect(page.getByTestId('armoury-screen')).toBeVisible();
+  await expect(page.getByTestId('hq-title')).toHaveText('ARMOURY');
+  await expect(page.getByTestId('city-console')).toBeVisible();
+  expect(await page.evaluate(() => window.__ekcCity!.isPaused())).toBe(true);
+  await expect(page.getByTestId('lab-screen')).toHaveCount(0);
+  await expect(page.getByTestId('squad-screen')).toHaveCount(0);
+  await page.getByTestId('build-shell-plate').click();
+  await expect(page.getByTestId('stock')).toContainText('MAKING A SHELL PLATE SUIT');
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(6 * 24));
+  await expect(page.getByTestId('stock-shell-plate')).toContainText('Owned 1 · in the store 0 · carried 1');
+  // SHOP-6: the new suit went to the first agent at home; the SQUAD screen moves it to the third.
+  await page.getByTestId('hq-go-squad').click();
+  await expect(page.getByTestId('squad-screen')).toBeVisible();
+  await expect(page.getByTestId('armoury-screen')).toHaveCount(0);
+  await expect(page.getByTestId('kit-ag1-shell-plate')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByTestId('kit-ag3-shell-plate')).toBeDisabled(); // none spare
+  await page.getByTestId('kit-ag1-shell-plate').click();
+  await page.getByTestId('kit-ag3-shell-plate').click();
+  await expect(page.getByTestId('kit-ag3-shell-plate')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => window.__ekcCity!.state()!.agents.map((a) => a.kit.join('+')))).toEqual(['', '', 'shell-plate', '', '', '', '', '']);
+  await page.getByTestId('pick-ag3').click();
+  await expect(page.getByTestId('agent-ag3')).toHaveAttribute('aria-pressed', 'true');
+  // LAB, then Escape back to the city, which runs again as it was.
+  await page.getByTestId('hq-go-lab').click();
+  await expect(page.getByTestId('lab-screen')).toBeVisible();
+  await expect(page.getByTestId('lab-done')).toContainText('SHELL PLATE');
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('hq-screen')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__ekcCity!.isPaused())).toBe(false);
 });
 
 test('a seeder pauses the city and opens the SKY tab; INTERCEPT sends the cars into a dogfight (M5c)', async ({ page }) => {
@@ -198,6 +245,8 @@ test("FIGHT IT at an assault opens the headquarters map with the city's own agen
     s.biomass = 200;
     s.lab.done.push('source-trace', 'shell-plate');
     s.shop.stock['shell-plate'] = 2;
+    s.agents[0].kit = ['shell-plate'];
+    s.agents[1].kit = ['shell-plate'];
     h.load(s);
     h.order({ type: 'assault', side: 'hostile' } as never);
   });

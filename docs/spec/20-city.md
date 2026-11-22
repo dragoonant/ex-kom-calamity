@@ -71,7 +71,7 @@
 - **RES-6** With a result (a fought battle, M7), the engine checks it: `won` a boolean, `agentsDown` distinct agents of the raid, counts non-negative integers; hostiles down are clamped to the raid's hostiles. Death rolls (RES-2) still apply.
 
 ## 8. The roster (ROSTER)
-- **ROSTER-1** An agent has an id, a name, a status (`ready`, `travelling`, `watching`, `raiding`, `returning`, `wounded`, `dead`), an `until` tick, the building it drives to or watches, the drive under way (`leg`, TRAVEL-1) and its raid count.
+- **ROSTER-1** An agent has an id, a name, a status (`ready`, `travelling`, `watching`, `raiding`, `returning`, `wounded`, `dead`), an `until` tick, the building it drives to or watches, the drive under way (`leg`, TRAVEL-1), its raid count and the kit it carries (`kit`, SHOP-5).
 - **ROSTER-2** The agency starts with `roster.startAgents = 8` agents, named in order from `city.json`.
 - **ROSTER-3** `recruit` costs `roster.recruitCost = 40` and adds one agent while the living are below `roster.cap = 12`.
 - **ROSTER-4** A wound heals at its `until` tick.
@@ -113,7 +113,7 @@
 - **CAI-9** The careful agency sends every ready car after the first seeder (a scout only with two cars free), presses over open ground and shadows over buildings, raids a crash site first with three or more agents, and buys a third car with money to spare.
 - **CAI-10** From act 2 the planner sends scouts to look for headquarters over its nearest building until it is found; in act 3 it launches carriers when it can afford one and assaults headquarters whenever it may.
 - **CAI-11** The careful agency meets every assault, sends carriers' interceptors before seeders', and in act 3 makes the final raid as soon as a full squad is home.
-- **CAI-7** The careful agency also researches in a fixed order (restraints, the host's tells, antiserum, questioning, shell plate, arc carbine, hand scanner, evacuation, taker cage, the amber core, tracing the source) whenever the lab is idle and the next project it can start is found, questions captives, and builds kit up to a squad's worth when it has the cost plus a recruit's and 20 to spare. It never buys from the supplier.
+- **CAI-7** The careful agency also researches in a fixed order (restraints, the host's tells, antiserum, questioning, shell plate, arc carbine, hand scanner, evacuation, taker cage, the amber core, tracing the source) whenever the lab is idle and the next project it can start is found, questions captives, and builds kit up to a squad's worth when it has the cost plus a recruit's and 20 to spare. Every hour it hands the kit to the agents who would raid next (the first ready, up to a squad), from the store first, then from the wounded and the ready beyond the squad (SHOP-5). It never buys from the supplier.
 
 ## 13. Invariants (CINV) - checked by `sim:city` every city day
 - **CINV-1** No NaN or Infinity; every number an integer.
@@ -127,12 +127,22 @@
 - **CINV-8** An end is never in the future.
 - **CINV-11** The act is 1, 2 or 3; an assault waits only in act 3; headquarters is found only from act 2.
 - **CINV-10** A car is flying exactly when it chases a craft, and that craft exists; car and craft health stay in range; craft stay on the map; crash ids are unique.
+- **CINV-13** The agents never carry more of a kind than the stock holds, never two of a kind, and the dead carry nothing.
 - **CINV-9** The shelf never goes below 0; no project is done twice or worked on once done; sabotaged stock never exceeds the stock; a raid's takers and fighters never exceed its hostiles.
 
 ## 14. Sim (CSIM)
 - **CSIM-1** `npm run sim:city` plays seeded campaigns (40 per driver by default) of each agency driver against the planner. Drivers decide on the hour and whenever a squad is at the door; the invariants run every city day.
 - **CSIM-2** Targets, for the whole campaign: the passive agency never wins; the random agency wins at most 10%; the careful agency wins 40% to 85%.
 - **CSIM-3** Seed 1 with the careful driver replays from its log to the same hash.
+
+### Sim baseline, kit per agent (2026-11-22, 40 campaigns per driver, seeds 1-40, acts 1 to 3)
+| Agency driver | Wins | Reached act 2 | Reached act 3 | Mean days | Raids | Agents killed | End confidence | Ends |
+|---|---|---|---|---|---|---|---|---|
+| passive | 0.0% | 0% | 0% | 28.2 | 0 | 0 | 7 | turned 40 |
+| random | 0.0% | 0% | 0% | 30.7 | 9.2 | 2.3 | 9 | confidence 28, turned 12 |
+| careful | 67.5% | 88% | 70% | 121.5 | 219.8 | 18.4 | 78 | source 27, time 6, turned 4, hq 1, spread 1, confidence 1 |
+
+SHOP-4..6 (RULING SHOP-5): kit belongs to agents, new items go to the first agent at home, and the careful driver hands its kit to the next squad every hour (CAI-7). The careful agency moved from 65.0% to 67.5%, inside CSIM-2. No number was tuned. Seed 1 (careful) replays to `6a810e97`.
 
 ### Sim baseline, the whole campaign on the 24 x 24 city with travel (2026-11-22, 40 campaigns per driver, seeds 1-40, acts 1 to 3)
 | Agency driver | Wins | Reached act 2 | Reached act 3 | Mean days | Raids | Agents killed | End confidence | Ends |
@@ -163,14 +173,14 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 
 ## 16. The client: save and the join (CSAV, CJOIN) - M6, M7
 - **CSAV-1** The campaign saves under `ekc-campaign` (KB rule 22; `PLAN.md` Q5's real-time form): on start, on every accepted order, on every pause, whenever the city pauses itself (CSAV-3), and every 600 ticks of play. The envelope holds the key, a version, the time, the state, its `hashCity` and the tray.
-- **CSAV-2** Continue reopens the save paused, and only if its key, version, shape and hash agree; otherwise the title says why and offers to discard it.
-- **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, a seeder crosses into the city, or the act ends.
+- **CSAV-2** Continue reopens the save paused, and only if its key, version, shape and hash agree; otherwise the title says why and offers to discard it. A save of the version before (4, without kit) is checked against its own hash and carried over: every agent gets an empty kit, then the stock is issued to the living in roster order, one of each kind each (RULING SHOP-5).
+- **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, a seeder crosses into the city, or the act ends. It also holds still while a headquarters screen (LAB, ARMOURY, SQUAD) is open, and on closing runs again only if it was running when the screen opened (RULING CSAV-3).
 - **CJOIN-1** At a door, or with headquarters under assault, the player may **fight it**. The battle is the raid site the building names (CITY-4); for a wreck, the site of the building it fell on, or `wreck-raid` (a broken hull in a plaza) on open ground; for an assault, `hq-defence` (the squad holds headquarters' corridor, the attackers come from the street).
 - **CJOIN-2** When the battle's report closes, its result returns as a fought result (RES-6, or ACT-5's `defend`): won if the agency won, the downed battle agents mapped in order onto the raid's agents, the battle's hostiles and citizens down. Leaving the battle without a report resolves the raid automatically.
 - **CJOIN-6** A fought battle is at night when the city's clock says night (CLOCK-5; battle NIGHT-1), and marks its last hostiles only once the lab has the `hand-scanner` (battle NIGHT-3).
 - **CJOIN-5** A fought battle may capture when the lab has `restraints` (battle OBJ-1), and its result carries the captives by kind, the citizens evacuated and, on a wreck, whether the core was secured (RES-7).
 - **CJOIN-4** In a fought battle, once the building's owner is at 30 infiltration a fifth of the hostiles (floored, taken from the hosts) are spitters (battle STRAY-3); the auto-resolver does not model them (RES-1).
-- **CJOIN-3** The battle is fought with the city's own people (battle ARCH-11): the raid's agents by name in order, the first ones carrying the working shell plates (as `agent-t2`) and then the working arc carbines, as SHOP-4 shares them out; and the raid's hostiles by kind (RAID-3, RAID-7, AIR-8, ACT-5, ACT-7).
+- **CJOIN-3** The battle is fought with the city's own people (battle ARCH-11): the raid's agents by name in order, those carrying a working shell plate (as `agent-t2`) or a working arc carbine wearing it, as SHOP-4 counts them; and the raid's hostiles by kind (RAID-3, RAID-7, AIR-8, ACT-5, ACT-7).
 
 ## 17. The lab (LAB) - M5b: evidence-gated research (`PLAN.md` D24 c)
 - **LAB-1** The **shelf** holds evidence: `host`, `taker` and `fighter` bodies, amber `core`s, and live `liveHost` and `liveTaker` captives. A resolved raid shelves its hostiles down, filled hosts first, then takers, then fighters (RAID-7); every taker and fighter body also yields one core.
@@ -185,7 +195,9 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - **SHOP-1** `shell-plate` and `arc-carbine` research give designs. `build { item }` starts one item when the workshop is idle and the design is done: a plate costs `shop.plateCost = 30` and `shop.plateHours = 24` hours, a carbine `shop.carbineCost = 25` and `shop.carbineHours = 18` hours. The money is paid at the start; the item joins the stock when done.
 - **SHOP-2** `order { item }` buys a designed item from the supplier organisation (`kind: "arms"`) for `shop.supplierPricePercent = 80` percent of the cost, delivered after `shop.supplierHours = 6` hours. It is legal while the supplier has not turned.
 - **SHOP-3** **Sabotage:** an order placed while the supplier's infiltration is at least `shop.sabotageAt = 20` is sabotaged: it arrives and counts in the stock, but gives nothing, and `shop.sabotageBiomassPercent = 50` percent of its price feeds the organism's biomass. Which items are sabotaged is hidden from the agency (CVIEW-1).
-- **SHOP-4** **On a raid** (auto-resolved only), the first agents carry the stock, one item of each kind per agent; the working ones (the stock less the sabotaged, shared out in proportion) add `shop.plateWin = 2` (plate) and `shop.carbineWin = 3` (carbine) per agent to the win chance, and a plated agent's down chance falls by `shop.plateDownCutPercent = 40` percent.
+- **SHOP-4** **On a raid**, the squad's members who carry an item of a kind (SHOP-5) take it; the working ones (the carried items scaled by the stock less the sabotaged over the stock, floored, counted from the front of the squad) add `shop.plateWin = 2` (plate) and `shop.carbineWin = 3` (carbine) per agent to the win chance, and a plated agent's down chance falls by `shop.plateDownCutPercent = 40` percent.
+- **SHOP-5** **Kit:** the stock is the agency's items, in the store or carried; an agent carries at most one item of each kind. `equip { agent, item }` hands an agent at headquarters (`ready` or `wounded`) a spare item from the store; `unequip { agent, item }` returns it. An agent away (driving, watching, on a raid) keeps what it carries and cannot change it.
+- **SHOP-6** A new item (built or delivered) is issued to the first agent at headquarters, in roster order, without one of that kind; with nobody to take it, it waits in the store. A killed agent's kit returns to the store; a wounded agent keeps its kit.
 
 ## 19. Raid composition (RAID-7)
 - **RAID-7** Of a raid's hostiles, a quarter (floored, at least 1 when there are 2 or more) are takers once the organisation is at `raid.takersAt = 20`, and a quarter (floored) are fighters once it is at `raid.fightersAt = 40`; the rest are hosts. Turned guards count as hosts.
@@ -235,3 +247,5 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - RULING: TRAVEL-1 | drives are straight lines at one speed, by car, with no traffic or roads in the rules | the owner asked to see agents travel and to pay travel time (2026-11-22); the client draws the car on the street grid's line of sight, and roads would add a path search to every order for no decision. provisional
 - RULING: TRAVEL-4 | a squad drives home after a raid, and the wounded are off the books at once | an agent tied up on the drive home is the travel cost the owner asked for; carrying the wounded home changes no decision. provisional
 - RULING: AIR-1 | the craft and car speeds doubled with the city (scout 60, seeder 24, car 80, carrier 16 tenths an hour), and with them the range at which a scout finds headquarters (ACT-4, 15 -> 30 tenths, the same share of a scout's hourly step) | a crossing takes as many hours as before, so the air war's timing and balance carry over. provisional
+- RULING: SHOP-5 | kit is carried per agent and changed only at headquarters, through the new SQUAD screen; new items are issued to the first agent at home without one (SHOP-6) | the owner asked for the lab, the armory and squad equip on screens of their own (2026-11-22); the old share-out (the first agents of any squad carry the stock) left nothing to equip. Issuing new items to the roster's front keeps the old share-out for a player who never opens the SQUAD screen and for the careful driver, which raids with the first ready agents (`sim:city` below). A save of version 4 is carried over by issuing its stock this way to the living (CSAV-2). provisional
+- RULING: CSAV-3 | the lab, the armoury and the squad are sheets of their own over the city (`src/client/city/Screens.tsx`), and the city holds still while one is open, running again as it was on closing | the owner asked for each on a screen of its own (2026-11-22, PLAN D29); a sheet hides the board and the tray, so time passing behind it would let a squad reach a door or a craft cross unseen. provisional

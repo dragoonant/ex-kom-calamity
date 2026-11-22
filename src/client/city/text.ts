@@ -219,6 +219,10 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
       case 'delivered':
         add(`A ${itemName(e.item)} was delivered. It looks fine.`, 'note', null, 'delivered');
         break;
+      case 'equipped':
+        // SHOP-6: only a new item's issue is news; the SQUAD screen shows the player's own changes.
+        if (e.on && events.some((x) => x.type === 'built' || x.type === 'delivered')) add(`${agentName(after, e.agent)} takes the new ${itemName(e.item)}.`, 'note', null, 'issued');
+        break;
       case 'actBegan':
         add(e.act === 2 ? 'Act two: Open sky. The organism stops whispering; craft cross the city by day.' : 'Act three: Perfect day. The cores point at one tower. The organism knows it has been found, and it is coming.', 'alert', null, `act-${e.act}`);
         break;

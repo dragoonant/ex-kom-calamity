@@ -12,7 +12,7 @@ export const cityQuery = {
   /** CQRY-3: the raid's odds once the squad is at the door. */
   raidOdds: (s: CityState) => {
     if (!s.raid || !s.raid.arrived) return { ok: false as const };
-    return { ok: true as const, hostiles: s.raid.hostiles, agents: s.raid.agents.length, winChance: winChance(s, s.raid.agents.length, s.raid.hostiles) };
+    return { ok: true as const, hostiles: s.raid.hostiles, agents: s.raid.agents.length, winChance: winChance(s, s.raid.agents, s.raid.hostiles) };
   },
   /** CQRY-4: what the agency knows of each building. */
   board: (s: CityState) =>

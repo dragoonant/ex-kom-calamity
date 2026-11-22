@@ -4,6 +4,7 @@ import { CAMPAIGN_KEY, readCampaign, useCity } from '../src/client/city/store';
 import { battleFor, battleOf, resultFromBattle, rosterOf } from '../src/client/city/join';
 import { createGame, step } from '../src/engine';
 import { hashCity } from '../src/city';
+import { cityInvariants } from '../src/sim/cityInvariants';
 import type { StorageLike } from '../src/client/save';
 
 function memory(): StorageLike & { data: Map<string, string> } {
@@ -41,6 +42,21 @@ describe('16. The client (CSAV, CJOIN)', () => {
     const r = readCampaign(store);
     expect(r && !r.ok && r.reason).toMatch(/checksum/);
   });
+  it('CSAV-2 a version-4 save without kit is carried over with its stock issued to the living (RULING SHOP-5)', () => {
+    useCity.getState().start(4);
+    const old = JSON.parse(JSON.stringify(useCity.getState().game!));
+    for (const a of old.agents) delete a.kit;
+    old.agents[0].status = 'dead';
+    old.shop.stock['shell-plate'] = 2;
+    old.shop.stock['arc-carbine'] = 1;
+    store.data.set(CAMPAIGN_KEY, JSON.stringify({ key: CAMPAIGN_KEY, version: 4, savedAt: '', hash: hashCity(old), state: old, tray: [] }));
+    const r = readCampaign(store);
+    expect(r && r.ok).toBe(true);
+    const kits = r && r.ok ? r.env.state.agents.map((a) => a.kit) : [];
+    expect(kits.slice(0, 4)).toEqual([[], ['shell-plate', 'arc-carbine'], ['shell-plate'], []]);
+    expect(useCity.getState().resume()).toBe(true);
+    expect(cityInvariants(useCity.getState().game!)).toEqual([]);
+  });
   it('CSAV-3 the city pauses itself when a squad reaches a door', () => {
     useCity.getState().start(5);
     useCity.getState().setPaused(false);
@@ -50,6 +66,21 @@ describe('16. The client (CSAV, CJOIN)', () => {
     expect(useCity.getState().game!.raid!.arrived).toBe(true);
     expect(useCity.getState().paused).toBe(true);
     expect(useCity.getState().game!.tick).toBe(arrive);
+  });
+  it('CSAV-3 a headquarters screen holds the city still and closing it restores the clock as it was', () => {
+    useCity.getState().start(5);
+    useCity.getState().setPaused(false);
+    useCity.getState().openScreen('armoury');
+    expect(useCity.getState().paused).toBe(true);
+    useCity.getState().openScreen('squad'); // switching sheets keeps what the city was doing before
+    expect(useCity.getState().screen).toBe('squad');
+    useCity.getState().closeScreen();
+    expect(useCity.getState().screen).toBeNull();
+    expect(useCity.getState().paused).toBe(false);
+    useCity.getState().setPaused(true);
+    useCity.getState().openScreen('lab');
+    useCity.getState().closeScreen();
+    expect(useCity.getState().paused).toBe(true);
   });
   it('CJOIN-1 a fight opens the battle of the building site', () => {
     expect(battleFor('automat-row')).toBe('automat-raid');
@@ -84,6 +115,8 @@ describe('16. The client (CSAV, CJOIN)', () => {
     const g = JSON.parse(JSON.stringify(useCity.getState().game!));
     g.shop.stock['shell-plate'] = 2;
     g.shop.stock['arc-carbine'] = 1;
+    g.agents[2].kit = ['shell-plate', 'arc-carbine'];
+    g.agents[0].kit = ['shell-plate'];
     const roster = rosterOf(g, ['ag3', 'ag1', 'ag5'], { hostiles: 7, takers: 1, fighters: 2 });
     expect(roster.squad).toEqual([
       { name: g.agents[2].name, template: 'agent-t2', weapon: 'arc-carbine' },
@@ -92,6 +125,8 @@ describe('16. The client (CSAV, CJOIN)', () => {
     ]);
     expect(roster.hostiles).toEqual({ host: 4, taker: 1, fighter: 2, spitter: 0 });
     g.shop.sabotaged['shell-plate'] = 2;
+    g.agents[0].kit = ['shell-plate', 'arc-carbine'];
+    g.agents[2].kit = [];
     expect(rosterOf(g, ['ag1'], { hostiles: 1, takers: 0, fighters: 0 }).squad![0]).toEqual({ name: g.agents[0].name, weapon: 'arc-carbine' }); // the plates are sabotaged, the carbine works
     // the maps: a defence, an open-ground wreck, a wreck on a building
     expect(battleOf(g, 'defence', 'hq')).toBe('hq-defence');

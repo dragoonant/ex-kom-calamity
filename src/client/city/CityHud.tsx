@@ -1,12 +1,14 @@
 // The switchboard for the city (docs/presentation-concept.md): a time dial and PAUSE paddle, the agency's money,
-// confidence and roster, a file card for the chosen building with WATCH and RAID, the message tray, and a hinged
-// cover over the console when a squad stands at a door or the act ends. Every number is an engine field or a
+// confidence and roster, a file card for the chosen building with WATCH and RAID, the sky, the switches to the
+// headquarters screens (LAB, ARMOURY, SQUAD in Screens.tsx), the message tray, and a hinged cover over the console
+// when a squad stands at a door or the act ends. Every number is an engine field or a
 // cityQuery result (CARCH-4). No title attributes (KB rule 8).
 import { useEffect, useState } from 'react';
-import { CITY, RESEARCH } from '../../data/city';
-import { buildingUnder, cityQuery, hasDone, itemCost, projectDef, researchBlock, supplierOrg, type Agent, type CityState } from '../../city';
-import { BAND_WORDS, buildingName, districtName, itemName, orgName, OVER_TEXT } from './text';
+import { CITY } from '../../data/city';
+import { buildingUnder, cityQuery, type Agent, type CityState } from '../../city';
+import { BAND_WORDS, buildingName, districtName, orgName, OVER_TEXT } from './text';
 import { CITY_SPEEDS, useCity } from './store';
+import { HqScreen } from './Screens';
 import { SceneryToggle } from '../scenery';
 
 const STATUS_WORD: Record<Agent['status'], string> = { ready: 'READY', travelling: 'DRIVING OUT', watching: 'WATCHING', raiding: 'ON RAID', returning: 'DRIVING HOME', wounded: 'WOUNDED', dead: 'KILLED' };
@@ -68,71 +70,6 @@ function BuildingCard({ view }: { view: CityState }) {
         <button type="button" className="toggle" onClick={() => select(null)}>
           CLOSE
         </button>
-      </div>
-    </div>
-  );
-}
-
-const SHELF_WORDS: [keyof CityState['shelf'], string][] = [
-  ['host', 'host bodies'],
-  ['taker', 'taker bodies'],
-  ['fighter', 'fighter bodies'],
-  ['core', 'amber cores'],
-  ['liveHost', 'live hosts'],
-  ['liveTaker', 'live takers'],
-];
-
-/** LAB and WORKSHOP (spec sections 17 and 18): the shelf, the project under way, what can start, and the kit. */
-function LabCard({ view }: { view: CityState }) {
-  const { order } = useCity.getState();
-  const p = view.lab.project ? projectDef(view.lab.project) : null;
-  const open = RESEARCH.projects.filter((x) => !hasDone(view, x.id));
-  const sup = supplierOrg(view);
-  return (
-    <div className="card" data-testid="lab-card">
-      <div className="num" data-testid="shelf">
-        Shelf: {SHELF_WORDS.map(([k, w]) => `${view.shelf[k]} ${w}`).join(', ')}
-      </div>
-      <div className="num" data-testid="lab-project">
-        {p ? `Working on ${p.name}: ${view.lab.progress} of ${p.hours} h` : `The lab is idle. Done: ${view.lab.done.length} of ${RESEARCH.projects.length}.`}
-      </div>
-      <div className="switch-row lab-list">
-        {open.map((x) => {
-          const why = researchBlock(view, x.id);
-          return (
-            <button type="button" key={x.id} className="toggle lab-project" data-testid={`research-${x.id}`} disabled={!!why || !!view.over} onClick={() => order({ type: 'research', side: 'agency', project: x.id })}>
-              {x.name.toUpperCase()} <span className="num">{x.hours} H</span>
-              {why && <span className="lab-why">{why}</span>}
-            </button>
-          );
-        })}
-      </div>
-      {hasDone(view, 'interrogation') && (
-        <button type="button" className="toggle toggle-alert" data-testid="question" disabled={view.shelf.liveHost < 1} onClick={() => order({ type: 'question', side: 'agency' })}>
-          QUESTION A CAPTIVE ({view.shelf.liveHost})
-        </button>
-      )}
-      <div className="num" data-testid="stock">
-        Workshop: {view.shop.item ? `making a ${itemName(view.shop.item)} (${view.shop.progress} h)` : 'idle'} · stock {view.shop.stock['shell-plate']} plates, {view.shop.stock['arc-carbine']} carbines
-        {view.shop.orders.length > 0 && ` · ${view.shop.orders.length} on order`}
-      </div>
-      <div className="switch-row">
-        {(['shell-plate', 'arc-carbine'] as const)
-          .filter((it) => hasDone(view, it))
-          .map((it) => {
-            const { cost } = itemCost(view, it);
-            const price = Math.floor((cost * view.tuning.shop.supplierPricePercent) / 100);
-            return (
-              <span key={it} className="switch-row">
-                <button type="button" className="toggle" data-testid={`build-${it}`} disabled={!!view.shop.item || view.money < cost} onClick={() => order({ type: 'build', side: 'agency', item: it })}>
-                  BUILD {itemName(it).toUpperCase()} ({cost})
-                </button>
-                <button type="button" className="toggle" data-testid={`order-${it}`} disabled={!sup || sup.turned || view.money < price} onClick={() => order({ type: 'order', side: 'agency', item: it })}>
-                  BUY FROM {orgName(sup?.id ?? null).toUpperCase()} ({price})
-                </button>
-              </span>
-            );
-          })}
       </div>
     </div>
   );
@@ -315,9 +252,9 @@ export function CityHud() {
   const squad = useCity((s) => s.squad);
   const selected = useCity((s) => s.selected);
   const saveOk = useCity((s) => s.saveOk);
-  const { togglePause, setSpeed, leave, order, toggleSquad, select } = useCity.getState();
+  const { togglePause, setSpeed, leave, order, toggleSquad, select, openScreen } = useCity.getState();
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const [tab, setTab] = useState<'file' | 'lab' | 'sky'>('file');
+  const [tab, setTab] = useState<'file' | 'sky'>('file');
   const seeders = view?.craft.filter((c) => c.kind !== 'scout').length ?? 0;
   useEffect(() => {
     if (seeders > 0) setTab('sky');
@@ -328,7 +265,7 @@ export function CityHud() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
+      if (e.code === 'Space' && !useCity.getState().screen) {
         e.preventDefault();
         togglePause();
       }
@@ -347,6 +284,7 @@ export function CityHud() {
       <DefenceCover view={view} />
       <ActCover view={view} />
       <OverCover view={view} />
+      <HqScreen />
       <div className="console city-console" data-testid="city-console">
         <div className="console-bead" />
         <div className="console-row">
@@ -426,19 +364,27 @@ export function CityHud() {
             <div className="hint">Tick agents to pick a raid squad; with none ticked, the first ready go.</div>
           </section>
 
-          <section className="panel panel-card" aria-label="File card and lab">
+          <section className="panel panel-card" aria-label="File card, sky and headquarters">
             <div className="switch-row" role="group" aria-label="Card">
               <button type="button" className={`toggle tab ${tab === 'file' ? 'toggle-on' : ''}`} data-testid="tab-file" aria-pressed={tab === 'file'} onClick={() => setTab('file')}>
                 FILE CARD
               </button>
-              <button type="button" className={`toggle tab ${tab === 'lab' ? 'toggle-on' : ''}`} data-testid="tab-lab" aria-pressed={tab === 'lab'} onClick={() => setTab('lab')}>
-                LAB AND WORKSHOP{view.lab.project ? ' ·' : ''}
-              </button>
               <button type="button" className={`toggle tab ${tab === 'sky' ? 'toggle-on' : ''} ${view.craft.length || view.crashes.length ? 'tab-alert' : ''}`} data-testid="tab-sky" aria-pressed={tab === 'sky'} onClick={() => setTab('sky')}>
                 SKY{view.craft.length ? ` (${view.craft.length})` : ''}
               </button>
+              <span className="hq-switches" role="group" aria-label="Headquarters">
+                <button type="button" className="toggle tab hq-open" data-testid="open-lab" onClick={() => openScreen('lab')}>
+                  LAB{view.lab.project ? ' ·' : ''}
+                </button>
+                <button type="button" className="toggle tab hq-open" data-testid="open-armoury" onClick={() => openScreen('armoury')}>
+                  ARMOURY{view.shop.item || view.shop.orders.length ? ' ·' : ''}
+                </button>
+                <button type="button" className="toggle tab hq-open" data-testid="open-squad" onClick={() => openScreen('squad')}>
+                  SQUAD
+                </button>
+              </span>
             </div>
-            {tab === 'file' ? <BuildingCard view={view} /> : tab === 'lab' ? <LabCard view={view} /> : <SkyCard view={view} />}
+            {tab === 'file' ? <BuildingCard view={view} /> : <SkyCard view={view} />}
           </section>
 
           <section className="panel panel-tray" aria-label="Message slips">

@@ -8,7 +8,7 @@ import type { CameraPose } from '../hook';
 import { cellCentre } from './cityMeshes';
 import { lotHeights } from './CityScene';
 import { overlayCounts } from './CityOverlays';
-import { useCity, type CitySpeed } from './store';
+import { useCity, type CityScreen, type CitySpeed } from './store';
 
 export interface CityHook {
   start(seed?: number): void;
@@ -35,6 +35,8 @@ export interface CityHook {
   setCamera(pose: Partial<CameraPose>): void;
   /** What the board's overlays drew last frame: cars on a drive, parked watchers, a squad at a door, route dashes, report rings, slip pins. */
   overlays(): typeof overlayCounts;
+  /** The headquarters screen open over the city (lab, armoury, squad), or null. */
+  screen(): CityScreen | null;
 }
 
 declare global {
@@ -74,5 +76,6 @@ export function installCityHook(): void {
       clampRig();
     },
     overlays: () => ({ ...overlayCounts }),
+    screen: () => s().screen,
   };
 }
