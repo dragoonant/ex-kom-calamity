@@ -13,10 +13,14 @@ import { MAPS, MATERIALS } from '../../data';
 import { query, tileIndex, type Pos, type State, type Tile } from '../../engine';
 import { useClient } from '../store';
 import { LEVEL_H, live } from './world';
-import { OVERLAY, WALL_H_ACTIVE, baseColour, buildingIndex, fillLayers, layerCapacity, makeLayers, openingYaw, styleAt, type Layer, type LayerKind } from './tileset';
+import { OVERLAY, WALL_H_ACTIVE, baseColour, buildingIndex, fillLayers, isRoad, layerCapacity, makeLayers, openingYaw, styleAt, tileSurface, type Layer, type LayerKind } from './tileset';
+import { patchSurface } from './surface';
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const NO_RAYCAST = () => undefined;
+/** The pick mesh's one material: the style colour per instance, the facade and floor patterns in the shader. */
+const TILE_MATERIAL = patchSurface(new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0.05 }));
+const HIDDEN = new THREE.Color();
 
 export interface Derived {
   visible: Set<number>;
@@ -67,6 +71,14 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
   tilesRef.current = tiles;
   const map = MAPS[state.mapId];
   const bIndex = useMemo(() => (map ? buildingIndex(map) : null), [map]);
+  // Each level owns its box, so its per-instance surface codes (surface.ts) are its own.
+  const geometry = useMemo(() => {
+    const g = BOX.clone();
+    g.setAttribute('aSurf', new THREE.InstancedBufferAttribute(new Float32Array(count * 4), 4));
+    g.setAttribute('aAlt', new THREE.InstancedBufferAttribute(new Float32Array(count * 3).fill(1), 3));
+    return g;
+  }, [count]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
 
   const tileOf = (instanceId: number): Pos | null => {
     const t = tilesRef.current[base + instanceId];
@@ -98,8 +110,8 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
           m.compose(V.set(cx, y0 + wallH / 2 - 0.07, cz), Q, S.set(1, wallH, 1));
           break;
         case 'window':
-          // The sill and spandrel under the pane; the pane itself is the glass layer.
-          m.compose(V.set(cx, y0 + wallH * 0.17 - 0.07, cz), Q, S.set(1, wallH * 0.34, 1));
+          // A full wall body, glazed flush on both faces by the glass layer (tileset.ts), so no gap shows round the pane.
+          m.compose(V.set(cx, y0 + wallH / 2 - 0.07, cz), Q, S.set(1, wallH, 1));
           break;
         case 'door':
           // The frame: a full-height jamb pair drawn as one thinner box; the leaf is a layer.
@@ -117,13 +129,21 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
     }
     mesh.instanceMatrix.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [tiles, base, count, level, active]);
+    // Surfaces follow the tiles (a wall turned to rubble, a door opened changes a floor's shaded edges).
+    if (map) {
+      const surf = geometry.getAttribute('aSurf') as THREE.InstancedBufferAttribute;
+      const alt = geometry.getAttribute('aAlt') as THREE.InstancedBufferAttribute;
+      for (let i = 0; i < count; i++) tileSurface(state, map, tiles[base + i]!, surf.array as Float32Array, alt.array as Float32Array, i);
+      surf.needsUpdate = true;
+      alt.needsUpdate = true;
+    }
+  }, [tiles, base, count, level, active, geometry, map]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
     const c = new THREE.Color();
-    const dim = level < active ? 0.82 : 1;
+    const dim = level < active ? 0.9 : 1;
     for (let i = 0; i < count; i++) {
       const t = tiles[base + i]!;
       const idx = base + i;
@@ -132,11 +152,16 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
         continue;
       }
       const where = bIndex ? styleAt(bIndex, state.width, t.x, t.y) : { style: 'street' as const, building: null };
-      baseColour(t, where.style, !!where.building && level === where.building.floors, c);
+      baseColour(t, where.style, !!where.building && level === where.building.floors, c, t.kind === 'ground' && !!map && isRoad(map, t.x, t.y));
       // Damage shows: a tile darkens as its hp falls below its material's (STR-3).
       const max = MATERIALS[t.material]?.hp ?? 0;
       if (max > 0 && t.hp < max) c.lerp(OVERLAY.scorch, 0.55 * (1 - t.hp / max));
-      if (!derived.visible.has(idx)) c.lerp(OVERLAY.hidden, 0.42);
+      // Out of the squad's sight: greyed and cooled rather than blacked out, so the city still reads.
+      // RULING ART-12: walls and windows take a light share, so buildings keep their colour; where units stand takes it all.
+      if (!derived.visible.has(idx)) {
+        const l = c.r * 0.3 + c.g * 0.59 + c.b * 0.11;
+        c.lerp(HIDDEN.setRGB(l * 0.62, l * 0.7, l * 0.78), t.kind === 'wall' || t.kind === 'window' ? 0.18 : 0.5);
+      }
       if (derived.path.has(idx)) c.lerp(OVERLAY.path, 0.7);
       if (derived.blast.has(idx)) c.lerp(OVERLAY.blast, 0.65);
       if (hover && hover.level === t.level && hover.x === t.x && hover.y === t.y) c.lerp(OVERLAY.hover, 0.55);
@@ -144,7 +169,7 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
       mesh.setColorAt(i, c);
     }
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width]);
+  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width, map]);
 
   useLayoutEffect(() => {
     const mesh = ref.current;
@@ -185,15 +210,15 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
   return (
     <instancedMesh
       ref={ref}
-      args={[BOX, undefined, count]}
+      args={[geometry, TILE_MATERIAL, count]}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerMove={onPointerMove}
       onPointerOut={onPointerOut}
       frustumCulled={false}
-    >
-      <meshStandardMaterial roughness={0.85} metalness={0.05} />
-    </instancedMesh>
+      castShadow
+      receiveShadow
+    />
   );
 }
 
@@ -206,6 +231,8 @@ function DressingLayer({ layer }: { layer: Layer }) {
     mesh.count = layer.count;
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    const surf = layer.geometry.getAttribute('aSurf');
+    if (surf) surf.needsUpdate = true;
     mesh.computeBoundingSphere();
   });
   // The buffers are the layer's own arrays: filling them in place and flagging needsUpdate is the whole upload.
@@ -217,7 +244,9 @@ function DressingLayer({ layer }: { layer: Layer }) {
     mesh.instanceMatrix = matrixAttr;
     mesh.instanceColor = colourAttr;
   }, [matrixAttr, colourAttr]);
-  return <instancedMesh ref={ref} args={[layer.geometry, layer.material, layer.capacity]} raycast={NO_RAYCAST} frustumCulled={false} />;
+  // Flat overlays (cracks, kerb dashes, scorch) and the panes throw no shadow; the rest does.
+  const casts = !['crack', 'scorch', 'glass', 'kerb', 'gravel'].includes(layer.kind);
+  return <instancedMesh ref={ref} args={[layer.geometry, layer.material, layer.capacity]} raycast={NO_RAYCAST} frustumCulled={false} castShadow={casts} receiveShadow />;
 }
 
 function Dressing({ state, active }: { state: State; active: number }) {

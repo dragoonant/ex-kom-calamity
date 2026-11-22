@@ -8,7 +8,7 @@ import { Title } from './Title';
 import { Director } from './audio/director';
 import { Scene } from './board/Scene';
 import { unitHeadWorld } from './board/Figures';
-import { clampRig, perfReport, shake, readMouseMode, rig, tileAtScreen, tileToWorld, worldToScreen } from './board/world';
+import { clampRig, perfReport, shake, view, readMouseMode, rig, tileAtScreen, tileToWorld, worldToScreen } from './board/world';
 import { installHook } from './hook';
 import { preloadModels } from './models';
 import { browserStorage } from './save';
@@ -126,6 +126,7 @@ export function App() {
       fx: () => s().fx,
       audio: () => director.report(),
       shake: () => ({ amp: shake.amp, enabled: shake.enabled }),
+      detail: () => ({ detail: view.detail, shadows: view.shadows }),
       setAudio: (a) => {
         if (a.volume !== undefined) director.setVolume(a.volume);
         if (a.muted !== undefined) director.setMuted(a.muted);

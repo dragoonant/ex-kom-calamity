@@ -1,5 +1,5 @@
-// The world past the board (docs/art/dressing.md): the title poster and its lamp test, the raid's surroundings
-// and the dressed city, drawn with the scenery switch forced to full (headless Chromium draws in software, where
+// The world past the board (docs/art/dressing.md): the title poster and its lamp test, the switch that picks the
+// raid's control room tier, and the dressed city, drawn with the scenery switch forced to full (headless Chromium draws in software, where
 // `auto` is plain, RULING ART-11). Remakes the m8 shots.
 import { expect, test, type Page } from '@playwright/test';
 import { openTitle, startRaid, watchErrors } from './helpers';
@@ -38,37 +38,26 @@ test('the title is a poster with moving traffic, and the console runs its lamp t
   expect(errors).toEqual([]);
 });
 
-test('full scenery puts a street, rows and a skyline around the raid inside the budget; the switch turns it off', async ({ page }) => {
+test('the title switch picks the control room\'s detail tier: SCENERY draws it full, PLAIN draws the low tier', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = watchErrors(page);
   await openTitle(page);
   await forceScenery(page, 'full');
   await expect(page.getByTestId('title-scenery')).toHaveText('SCENERY');
   await startRaid(page, 'automat-raid');
+  expect(await page.evaluate(() => window.__ekc!.detail().detail)).toBe('full');
   await page.evaluate(() => window.__ekc!.setCamera({ yaw: 0.7, pitch: 0.62, distance: 34 }));
   await page.waitForTimeout(800);
   const full = await page.evaluate(() => window.__ekc!.perf()!);
   expect(full.drawCalls).toBeLessThanOrEqual(BUDGET_DRAWS);
-  await page.screenshot({ path: 'docs/art/shots/m8-raid-street.png' });
-  await page.evaluate(() => window.__ekc!.setCamera({ yaw: 0.7, pitch: 0.4, distance: 70 }));
-  await page.waitForTimeout(800);
-  await page.screenshot({ path: 'docs/art/shots/m8-raid-wide.png' });
-  // The switch (on the title, and in the city beside LEAVE): plain drops the surroundings and is remembered.
-  await page.evaluate(() => {
-    localStorage.setItem('ekc-view', JSON.stringify({ shake: true, scenery: 'plain' }));
-    localStorage.removeItem('ekc-save');
-  });
+  // The switch is remembered under ekc-view; the raid board reads it when its canvas is made (world.ts detectDetail).
+  await page.evaluate(() => localStorage.removeItem('ekc-save'));
   await page.reload();
   await page.getByTestId('title-scenery').click();
-  await expect(page.getByTestId('title-scenery')).toHaveText('SCENERY');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ekc-view')!).scenery)).toBe('full');
-  await page.getByTestId('title-scenery').click();
   await expect(page.getByTestId('title-scenery')).toHaveText('PLAIN');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ekc-view')!).scenery)).toBe('plain');
   await startRaid(page, 'automat-raid');
-  await page.evaluate(() => window.__ekc!.setCamera({ yaw: 0.7, pitch: 0.62, distance: 34 }));
-  await page.waitForTimeout(800);
-  const plain = await page.evaluate(() => window.__ekc!.perf()!);
-  expect(plain.drawCalls).toBeLessThan(full.drawCalls);
+  expect(await page.evaluate(() => window.__ekc!.detail().detail)).toBe('low');
   expect(errors).toEqual([]);
 });
 

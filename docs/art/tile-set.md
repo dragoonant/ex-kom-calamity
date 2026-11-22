@@ -11,7 +11,23 @@ What the client draws for every tile kind of `docs/spec/10-rules.md` MAP-2 and e
 | Figures | Placeholders in `placeholders.tsx` (`docs/figures.md` section 3) or a rigged GLB per role from `models.ts` | per unit | none |
 | Effects | Two `InstancedMesh`es (debris 320, flashes 64) fed by the store's fx queue (`src/client/fx.ts`) | pooled | none |
 
+| Name boards | One enamel board per building over its main street door, the name painted to a canvas in the display face (`Signs.tsx`); shown once the storey above the street is drawn | two meshes a building | none |
+| Control room | Our console, the hall, 42 operators, their desks and scopes, in six merged meshes (`room.ts`, `ConsoleRoom.tsx`; section 9) | merged, animated in the shader | none |
+
 Draw calls on the whole block at level 6: 7 pick meshes + 10 layers + 15 props + 4 glows + 2 effects + figures (each placeholder is 15 to 30 meshes; about 30 units) = about 110. The e2e `e2e/art.spec.ts` holds the block under 120 draw calls and 2 M triangles and times `advance(1)` plus the following frame (section 6).
+
+### 1b. Surfaces in the shader (D28, `surface.ts`)
+The pick mesh and most layers carry a per-instance `aSurf` (side pattern, top pattern, interior-face mask, edge-shade mask) and `aAlt` (the interior face's colour as a ratio of the instance colour); the standard material's fragment shader draws the pattern in world space, so courses line up across tiles, and fades it to the flat colour where cells shrink under a few pixels. No texture file (ART-5 holds).
+
+| Face | Patterns |
+|---|---|
+| Outer wall, by style | residential brick (16 courses a storey, lime mortar), office scored render, bank ashlar (rusticated at the foot), depot ribbed steel, automat glazed enamel tile; a `plaster` partition always plaster, a `steel` wall always steel |
+| A wall face that looks into a room | plaster in the partition's colour, a dark skirting and a picture rail (outer walls are stone outside and plaster inside) |
+| Floor, by style | residential boards, office and bank terrazzo slabs, automat glazed tiles (grout on the chequer), depot concrete with saw cuts; roofs rolled roofing with lapped seams and gravel |
+| Street | paving slabs within two tiles of a building (`PAVEMENT`), asphalt beyond (`isRoad`), kerb stones where they meet, a dashed centre line between the two lanes of the ring road |
+| Shading | a floor edge that meets a wall, window or shut door is shaded (`EDGE`); walls darken towards their foot inside every storey and outside on the street storey; a slow grime variation everywhere |
+
+Windows are **flush glazed** (D28): the window tile's body is a full-height wall, the pane box stands 0.015 proud of both faces with a frame top and bottom, a centre bar, a transom and a projecting sill; a lit pane (62%, ART-2) glows in the style's colour with a blind drawn to a stable height and a band of furniture below, a dark pane is deep glass with one reflection streak (`patchPane`). The top storey of a building carries a deeper cornice; masonry corners carry quoins; street-storey windows and street doors get striped awnings and canopies where the style has them (`AWNING`: residential teal, office mustard, automat coral; the bank a stone hood, the depot none).
 
 ## 2. Styles (MAP-9 `buildings[].style`) and their palettes
 Every colour is a role of `src/styles.css` or a material of the block carried into 3D. `STYLE_PALETTE` in `tileset.ts`.
@@ -20,7 +36,7 @@ Every colour is a role of `src/styles.css` or a material of the block carried in
 |---|---|---|---|---|---|---|---|---|
 | `residential` | Halcyon Arms, 6 floors | warm brick `#b86a4c` | plaster `#e6dcc6` | parquet `#d9c9a8` | tar `#7d7466` | walnut `#5f3e2c` | warm `#ffc478` | beds, lockers, a desk per flat; a concierge counter and planters in the lobby |
 | `office` | Meridian Wireless, 4 floors | rendered stone `#c4b79b` | pale `#eee8d8` | linoleum `#cfd3cf` | gravel grey `#6e7378` | teal `#3f7f82` | fluorescent `#dfe9c8` | two desks and a shelf per room, a machine in the lobby, the **mast** on the roof |
-| `bank` | Civic Savings, branch 12, 3 floors | ashlar `#9c8d78` | cream `#ece4d2` | marble `#b9a98f` with a runner stripe on the ground floor | lead `#6b6a66` | deep teal `#2f5f62` | lamp gold `#ffd27a` | counters along the banking hall, benches for customers; desks, lockers (deposit boxes) and shelves above |
+| `bank` | Civic Savings, branch 12, 3 floors | ashlar `#b9ab92` (lightened in D28) | cream `#ece4d2` | marble `#b9a98f` with a runner stripe on the ground floor | lead `#6b6a66` | deep teal `#2f5f62` | lamp gold `#ffd27a` | counters along the banking hall, benches for customers; desks, lockers (deposit boxes) and shelves above |
 | `depot` | Depot 7, 2 floors | sheet steel `#7d8a94` | plaster `#d9d2c0` | concrete `#9a9a94` | `#5f666c` | mustard `#d9a62e` | sodium `#fff1c0` | racks of shelves between the pillars, crates, a machine, lockers and a desk in the back office |
 | `automat` | Sunbeam Automat, 1 floor | enamel `#e0c9a6` | `#f4ece0` | **chequer** `#f0e6d2` / teal `#3f7f82` | `#8a8072` | coral `#d9533f` | `#ffe9a0` | vending machines along the long wall, a counter, benches in rows |
 | `street` | streets, courtyard, kiosk | brick `#a8624a` (planters, kiosk) | | paving `#aab3a8` with kerb seams every 6 tiles | | | | lamps, benches, planters, parked saloons, the kiosk sign, two crates by the depot door |
@@ -61,8 +77,8 @@ Sizes in tiles; a figure is 1.2 tall. Where a style places them is section 2; `t
 | `mast` | 4.6 | pole, base, two cross bars, a dish, **coral beacon** | the office roof |
 | `crate` | 0.6 | box, three bands, a mustard stencil plate | depot, outside its door |
 
-## 4. Light and glow (Scene.tsx `EveningLights`, `EVENING`)
-Fixed early evening (RULING ART-1 below): a hemisphere light (sky `#9fb8c9`, ground `#6b5a4a`, 0.95), a warm low sun from the west (`#ffb774`, 1.5, from (-28, 16, 12)), a cool fill from the north-east (`#7fa7b8`, 0.35), the canvas cleared to a dusk grey `#c7bfb2` (light, not black: the concept's "must not look like" list), and since 2026-11-22 a sky dome, fog and the street around the site drawn over it (`docs/art/dressing.md`). No shadow maps. Glow is emissive geometry only: window panes (`glass` layer, emissive 0.55 tinted per instance), lamp heads, vending displays, the kiosk sign and the mast beacon (`PROP_GLOW`), and the **amber alien core** (`CORE_MATERIAL`, one material pulsing 0.3 to 1.2 at 3.1 rad/s on every revealed host, taker and fighter). No point lights.
+## 4. Light and glow (Scene.tsx `EveningLights`, `BoardLights`, `EVENING`)
+**D28, the board:** `BoardLights` keeps the evening register with a paler sun (`#ffe2bf`, 2.1, from (-24, 22, 14), higher than before so a three-storey shadow stays near its building) so stone and steel keep their colour instead of turning brown, a lighter sky and ground bounce (`#d3e0e8` / `#9c9384`, 1.25) and the cool fill; neutral tone mapping. The sun throws **one 2048 shadow map** fitted to the site and redrawn each frame (tiles, layers, props, signs and the figures cast; panes, cracks, scorch, kerbs and gravel do not); the SHADOWS switch (`ekc-view`, `viewSettings.ts`) turns it off for a slow GPU. The gallery and the moves sheet keep `EveningLights` below. Before D28, fixed early evening (RULING ART-1 below): a hemisphere light (sky `#9fb8c9`, ground `#6b5a4a`, 0.95), a warm low sun from the west (`#ffb774`, 1.5, from (-28, 16, 12)), a cool fill from the north-east (`#7fa7b8`, 0.35), the canvas cleared to a dusk grey `#c7bfb2` (light, not black: the concept's "must not look like" list). No shadow maps. Glow is emissive geometry only: window panes (`glass` layer, emissive 0.55 tinted per instance), lamp heads, vending displays, the kiosk sign and the mast beacon (`PROP_GLOW`), and the **amber alien core** (`CORE_MATERIAL`, one material pulsing 0.3 to 1.2 at 3.1 rad/s on every revealed host, taker and fighter). No point lights. Night raids (NIGHT-1) dim the same rig to a cool moonlight (`NIGHT_BOARD` in Scene.tsx), keeping the shadow map. The street, rows and skyline of the 2026-11-22 art pass were dropped from raids in favour of the room (owner, 2026-11-22; `docs/art/dressing.md` section 1).
 
 ## 5. Effects from engine events (fx.ts, Effects.tsx)
 | Event | Effect | Sound (`audio/synth.ts`) |
@@ -76,7 +92,12 @@ Fixed early evening (RULING ART-1 below): a hemisphere light (sky `#9fb8c9`, gro
 | `revealed`, `taken` (seen) | an amber bloom at the throat for 0.5 s | `revealed` or `taking`, then the two-tone `alert` |
 Particles freeze while the sim is paused (pause is the absence of ticks and of time). Nothing is drawn for what the agency cannot see (VIEW-2, AI-9); structure is public (VIEW-1).
 
-## 6. Frame budget (e2e `art.spec.ts`; `window.__ekc.perf()`)
+## 6. Frame budget
+**Detail tiers (D28 i, `world.ts` `detectDetail`).** The renderer names itself; on a software renderer (SwiftShader, llvmpipe), where each shader instruction runs on the CPU, the tier is **low**: the facade and floor patterns are compiled out (colours, edge shading and the panes stay), no shadow map is made (the SHADOWS switch reads NO SHADOWS and is disabled), and the room draws unlit with the board's light baked into its vertex colours once (`light.ts` `bakeLight`) and a plain floor. Measured headless at 1440 x 900 on 2026-11-21: the old build 225 ms a frame, the full tier 820-970 ms, the low tier 330-370 ms. `?detail=full` or `?detail=low` on the URL overrides the guess; `e2e/art.spec.ts` asks for full, so the budget and the shots cover the full look, and every other spec runs the low tier.
+
+D28 on the Civic Savings site, whole building drawn (headless, 2026-11-21): **68 draws with shadows (41 without: the shadow pass is 27), about 360k triangles**, of which the control room is 6 draws and 110k triangles; inside the budget below.
+
+ (e2e `art.spec.ts`; `window.__ekc.perf()`)
 | Measure | Budget | Why |
 |---|---|---|
 | Draw calls, whole block at level 6 | at most 120 | about 40 meshes of structure and props plus the figures; an integrated GPU draws a few hundred instanced calls at 60 fps |
@@ -91,13 +112,26 @@ Headless Chromium draws through SwiftShader at a few frames a second, so wall-cl
 - RULING: ART-3 | A damaged prop leans and darkens; it never breaks on its own | Props have no health (RULING MAP-9); the tile's health is the only truth, so the prop shows it. provisional
 - RULING: ART-4 | Effects and sounds only for what the agency sees, structure excepted | The fx queue is built from the same `view` the tray uses (VIEW-2, AI-9); tiles are public (VIEW-1), so a far breach is heard and seen. provisional
 - Rulings ART-6..ART-10 (the sky, the city dressing, the raid surroundings, the title poster) are in `docs/art/dressing.md` section 5.
+- RULING: ART-12 | Out of the squad's sight, walls and windows take a light share of the grey (0.18) and walkable tiles the full one (0.5) | The tint tells the player where they cannot see a unit; units stand on floors, streets and stairs, so the walls can keep their colour and the building reads (D28). provisional
 - RULING: ART-5 | Pass 1 ships no textures and no GPU assets | The owner's GPU host (PLAN.md Q7) is not reachable from this session; the merged-geometry props and style palettes are designed so a GLB per kind can replace a merged geometry by name in `propGeometry` without touching the map or the layers. provisional
 
 ## 8. For the GPU pass (M4b)
 - Replace `propGeometry(kind)` with a loaded GLB per kind (same origin: standing on y = 0, facing +z, one tile wide); keep the glow parts as separate emissive meshes or bake emissive into the GLB.
 - Facade textures (brick courses, enamel panels, signage) as a small atlas on the pick mesh and the layers; the palettes above are the colour keys.
 - Rigged figures into `public/models/<role>.glb` and `FIGURE_SLOTS[role].url` (`models.ts`); the gallery measures them by named nodes (head, torso, leg).
-- Shadows: a single directional shadow map on the active level only, if a phone tier allows it (M9).
+- Shadows: done in D28 as one directional shadow map over the whole site, with an off switch; a phone tier may default it off (M9).
+
+## 9. The control room (D28; `room.ts`, `ConsoleRoom.tsx`)
+The board is the top of **our console**, a plotting desk standing in a light enamel operations hall where other operators sweep the city for aliens. Built once per map size, six draws, about 110k triangles.
+
+| Piece | What |
+|---|---|
+| Our console | The board sits in a dark gutter (0.5) inside a chrome bead (0.35); the enamel deck (7 wide, top at y 0.3) carries a lamp row (blinking green, mustard, red), a row of chrome toggles, dials with coral needles every 6.4 and teal label plates; the sides drop to the floor in enamel panels with a teal band, a graphite kick plate, chrome strips and screw heads at each panel's corners, a chrome lip along the top |
+| Scale | 6.1 units a metre (`ROOM_SCALE`): the floor is a desk top's height (0.95 m) below the street, an operator stands about ten city figures tall |
+| Operators | Two rings of desk pairs (6 and 9 banks) facing out to the walls, 30 seated operators in headsets, each desk with a sloping panel, a **scope** (phosphor sweep, range rings, four drifting contacts, one in a few coral), eight blinking lamps, two dials, six toggles, a telephone, slips and a mug; 12 plotters with grease pencils at the wall boards; a supervisor with a clipboard walks the inlay ring between the rings. Shirts, trousers, skin and hair are stable draws per figure; limbs are capsules |
+| Motion | In the vertex shader on the wall clock (`uTime`, not the sim, so the room keeps working while the battle is paused): heads look across the scope and nod, right hands work the switches, plotters look along the board, the walker's legs and arms swing |
+| Hall | Sixteen sides at radius 96, 8 m high: teal dado with darker panels, a chrome rail, cream enamel walls, pilasters, a teal frieze; two city-map boards (street grid, district lamps, coral alerts), two tote boards of lamp columns, four clocks; a ceiling with three rings of light panels; a terrazzo floor with brass joints, a graphite apron round our console, teal and mustard inlay rings and rubber flooring under the desks. Every surface is lifted by 22% of its own colour so side walls never sink into the ground bounce |
+| Fade | A station whose top rises into the sight line from the camera to our console's near edge, within about 40 degrees of the view, dissolves by a 4 x 4 ordered dither (`stationFade`), so a low or far camera always sees the board; the walls are single-sided and vanish when the camera passes behind them; the ceiling faces down and vanishes from above |
 
 ## Sources
-`PLAN.md` D11, D16, M4; `docs/presentation-concept.md` section 3; `docs/spec/10-rules.md` MAP-2, MAP-3, MAP-8, MAP-9, STR-2..4, VIEW-1, VIEW-2; `tools/make-block.ts`; KB `rules.md` 21, 25, 26; KB `gotchas.md` (instancing with rule 25, additive materials need `fog: false`, hidden panes throttle frames).
+`PLAN.md` D11, D16, D28, M4; `docs/presentation-concept.md` section 3; `docs/spec/10-rules.md` MAP-2, MAP-3, MAP-8, MAP-9, STR-2..4, VIEW-1, VIEW-2; `tools/make-block.ts`; KB `rules.md` 21, 25, 26; KB `gotchas.md` (instancing with rule 25, additive materials need `fog: false`, hidden panes throttle frames).
