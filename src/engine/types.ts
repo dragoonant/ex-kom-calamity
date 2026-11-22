@@ -66,6 +66,22 @@ export interface Unit {
   posture?: Posture;
   /** POSE-4: the last tick the unit advanced a running step, or null (absent in old saves: never). */
   lastRunTick?: number | null;
+  /** SUP-1: 0..suppress.cap (absent in saves from before D26: 0). */
+  suppression?: number;
+  /** SUP-3: the tile the unit is pinning with suppressive fire, or null. */
+  suppressAt?: Pos | null;
+  /** AMMO-1..3: rounds left (null: the weapon never runs dry) and ticks of reload left (0: not reloading). */
+  ammo?: number | null;
+  reloadLeft?: number;
+  /** BLEND-1: the last tick the agency saw this revealed host. */
+  lastSeenTick?: number;
+  /** OBJ-1: a capture under way. */
+  capture?: { target: string; progress: number } | null;
+  /** OBJ-1, OBJ-3: taken alive, or evacuated to safety; both leave the field (down) without a body. */
+  captured?: boolean;
+  saved?: boolean;
+  /** OBJ-2: a citizen running for the edge of the map. */
+  evacuating?: boolean;
 }
 
 export interface Score {
@@ -77,6 +93,9 @@ export interface Score {
   civiliansDown: number;
   /** TAKE-3: citizens taken over during the battle. */
   taken: number;
+  /** OBJ-1, OBJ-3 (absent in saves from before D26 slice 4). */
+  captured?: number;
+  saved?: number;
 }
 
 export type Winner = 'agency' | 'hostile' | 'none';
@@ -88,10 +107,26 @@ export interface Over {
   tick: number;
 }
 
+/** ARCH-11: who fights, from the city (M7). Absent: the battle file's own squad and spawns. */
+export interface Roster {
+  /** Fills the battle's squad spawn points in order; spare spawn points stay empty. */
+  squad?: { name: string; template?: string; weapon?: string }[];
+  /** Fills the battle's hostile spawn points (fighters, then takers, then hosts); spare ones hold citizens, and
+   * citizen spawn points take the overflow as hosts. */
+  hostiles?: { host: number; taker: number; fighter: number; spitter?: number };
+  /** OBJ-1: the agency may capture (it has researched restraints). */
+  capture?: boolean;
+  /** NIGHT-1: the raid is fought at night. */
+  night?: boolean;
+  /** NIGHT-3: the agency has the hand scanner; without it a city battle marks no last hostiles (VIEW-5). */
+  scanner?: boolean;
+}
+
 export interface Setup {
   battleId: string;
   seed: number;
   tuning?: Partial<Tuning>;
+  roster?: Roster;
 }
 
 export type Action =
@@ -102,6 +137,10 @@ export type Action =
   | { type: 'posture'; side: Side; unit: string; posture: Posture }
   | { type: 'halt'; side: Side; unit: string }
   | { type: 'blast'; side: Side; unit: string; at: Pos }
+  | { type: 'suppress'; side: Side; unit: string; at: Pos }
+  | { type: 'capture'; side: Side; unit: string; target: string }
+  | { type: 'reload'; side: Side; unit: string }
+  | { type: 'evacuate'; side: Side; unit: string; target: string }
   | { type: 'withdraw'; side: Side };
 
 /** ARCH-9: consecutive ticks are stored as one entry. */
@@ -123,6 +162,12 @@ export interface State {
   score: Score;
   over: Over | null;
   log: LogEntry[];
+  /** OBJ-1: the roster allows captures (the city's restraints, ARCH-11). */
+  canCapture?: boolean;
+  /** NIGHT-1 */
+  night?: boolean;
+  /** OBJ-4: the wreck's drive core. */
+  core?: { at: Pos; progress: number; secured: boolean; burnt: boolean } | null;
   /** VIEW-5: only on `view(state, 'agency')`, never on the true state: where the last few hostiles are. */
   marks?: Pos[];
 }
@@ -138,12 +183,29 @@ export interface ShotBreakdown {
   crouchBonus: number;
   /** POSE-4: the shooter ran within the last fire.runSettleTicks. */
   runPenalty: number;
+  /** COVER-4: what the target's cover took off, and its grade. */
+  cover: number;
+  coverGrade: 'none' | 'low' | 'half' | 'full';
+  /** SNAP-2: a snap shot's penalty (0 for an aimed, ordered shot). */
+  snapPenalty: number;
+  /** SUP-2: the shooter's own suppression spoils its aim. */
+  suppressPenalty: number;
   raw: number;
   chance: number;
 }
 
 export type GameEvent =
   | { type: 'ordered'; tick: number; action: Exclude<Action, { type: 'tick' }> }
+  | { type: 'suppressFire'; tick: number; unit: string; at: Pos; weapon: string; pinned: string[] }
+  | { type: 'strayHit'; tick: number; shooter: string; target: string; victim: string; roll: number }
+  | { type: 'captured'; tick: number; unit: string; by: string }
+  | { type: 'blended'; tick: number; unit: string }
+  | { type: 'reloading'; tick: number; unit: string; ticks: number }
+  | { type: 'reloaded'; tick: number; unit: string }
+  | { type: 'evacuating'; tick: number; unit: string; to: Pos }
+  | { type: 'saved'; tick: number; unit: string }
+  | { type: 'coreSecured'; tick: number; by: string }
+  | { type: 'coreBurnt'; tick: number }
   | { type: 'moved'; tick: number; unit: string; from: Pos; to: Pos }
   | { type: 'arrived'; tick: number; unit: string }
   | { type: 'moveBlocked'; tick: number; unit: string }

@@ -185,8 +185,8 @@ describe('9. Fire (FIRE)', () => {
     const a1 = unit(s, 'a1');
     const u2 = unit(s, 'u2');
     const w = weaponOf(a1)!;
-    expect(hitBreakdown(game(), a1, u2, w, 3)).toEqual({ accuracy: 70, aim: 10, falloff: 6, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 74, chance: 74 });
-    expect(hitBreakdown(game(), a1, { ...u2, moving: true }, w, 3.6)).toEqual({ accuracy: 70, aim: 10, falloff: 6, movingPenalty: 15, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 59, chance: 59 });
+    expect(hitBreakdown(game(), a1, u2, w, 3)).toEqual({ accuracy: 70, aim: 10, falloff: 6, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, cover: 0, coverGrade: 'none', snapPenalty: 0, suppressPenalty: 0, raw: 74, chance: 74 });
+    expect(hitBreakdown(game(), a1, { ...u2, moving: true }, w, 3.6)).toEqual({ accuracy: 70, aim: 10, falloff: 6, movingPenalty: 15, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, cover: 0, coverGrade: 'none', snapPenalty: 0, suppressPenalty: 0, raw: 59, chance: 59 });
     expect(hitBreakdown(game(), { ...a1, aim: 100 }, u2, w, 0).chance).toBe(95);
     expect(hitBreakdown(game(), { ...a1, aim: -100 }, u2, w, 0).chance).toBe(5);
     const q = query.hitChance(s, 'a1', 'u2');
@@ -229,7 +229,7 @@ describe('9. Fire (FIRE)', () => {
     const e = r.events.find((x) => x.type === 'shot');
     expect(e).toMatchObject({ type: 'shot', shooter: 'a1', target: 'u2', weapon: 'patrol-carbine', distance: 3, moving: false, hit: true });
     if (e && e.type === 'shot') {
-      expect(Object.keys(e.breakdown).sort()).toEqual(['accuracy', 'aim', 'chance', 'crouchBonus', 'crouchPenalty', 'falloff', 'movingPenalty', 'raw', 'runPenalty']);
+      expect(Object.keys(e.breakdown).sort()).toEqual(['accuracy', 'aim', 'chance', 'cover', 'coverGrade', 'crouchBonus', 'crouchPenalty', 'falloff', 'movingPenalty', 'raw', 'runPenalty', 'snapPenalty', 'suppressPenalty']);
       expect(typeof e.roll).toBe('number');
     }
   });

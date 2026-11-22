@@ -1,3 +1,4 @@
+import { WEAPONS } from '../data';
 // ARCH-3, ORD-8: every legal action for a side, tick first, never empty.
 import type { Action, Side, State } from './types';
 import { POSTURES, SIDES, STANCES } from './types';
@@ -5,6 +6,8 @@ import { tileIndex } from './map';
 import { pathField, posOfIndex } from './path';
 import { sideSeesUnit } from './sight';
 import { blastTargets } from './structure';
+import { canSuppress } from './fire';
+import { captureBlock } from './step';
 
 export function legalActions(state: State, side: Side): Action[] {
   const acts: Action[] = [{ type: 'tick' }];
@@ -29,6 +32,29 @@ export function legalActions(state: State, side: Side): Action[] {
       if (sideSeesUnit(state, side, t)) acts.push({ type: 'fire', side, unit: u.id, target: t.id });
     }
     // ORD-9
+    // AMMO-4: an early reload.
+    {
+      const w = u.weapon ? WEAPONS[u.weapon] : undefined;
+      if (w?.magazine && u.ammo !== null && u.ammo !== undefined && u.ammo < w.magazine && !(u.reloadLeft ?? 0)) acts.push({ type: 'reload', side, unit: u.id });
+    }
+    // OBJ-1, OBJ-2: captures and evacuations of the units beside it.
+    for (const t of state.units) {
+      if (t.down || t.level !== u.level || Math.max(Math.abs(t.x - u.x), Math.abs(t.y - u.y)) > 1 || t === u) continue;
+      if (t.side === 'civilian' && !t.evacuating && side === 'agency') acts.push({ type: 'evacuate', side, unit: u.id, target: t.id });
+      if (side === 'agency' && !captureBlock(state, u, t.id)) acts.push({ type: 'capture', side, unit: u.id, target: t.id });
+    }
+    // SUP-5: one suppress order per unit, at the nearest seen enemy it can suppress.
+    let near: { x: number; y: number; level: number } | null = null;
+    let nd = Infinity;
+    for (const t of state.units) {
+      if (t.down || t.side === side || t.side === 'civilian' || !sideSeesUnit(state, side, t) || !canSuppress(state, u, t).ok) continue;
+      const d = Math.hypot(t.x - u.x, t.y - u.y);
+      if (d < nd) {
+        nd = d;
+        near = { x: t.x, y: t.y, level: t.level };
+      }
+    }
+    if (near) acts.push({ type: 'suppress', side, unit: u.id, at: near });
     for (const at of blastTargets(state, u)) acts.push({ type: 'blast', side, unit: u.id, at });
   }
   if (side === 'agency') acts.push({ type: 'withdraw', side });

@@ -23,7 +23,7 @@ export interface EkcHook {
   resume(): void;
   isPaused(): boolean;
   select(id: string | null): void;
-  setMode(mode: 'normal' | 'blast'): void;
+  setMode(mode: 'normal' | 'blast' | 'suppress' | 'capture' | 'evacuate'): void;
   setLevel(level: number): void;
   level(): number;
   tapTile(p: Pos, opts?: { shift?: boolean }): TapResult;

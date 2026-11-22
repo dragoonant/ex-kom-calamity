@@ -17,7 +17,7 @@ Pass of 2026-11-22 (owner's ask: "make the game more pretty: title screen, build
 - The ambient clock (`ambient.t`) drives the train and the traffic and stops while the city is paused or a fight is open (RULING ART-7).
 - `window.__ekcCity.setCamera(pose)` moves the city camera for shots.
 
-### The strategic overlays (2026-11-22, PLAN D26)
+### The strategic overlays (2026-11-22, PLAN D27)
 The city grew to 24 x 24 (96 world units): the street grid, the filled lots, the outer city and the far towers follow `CITY.size`; the monorail loops the Civic Centre's own streets; the camera opens on the whole city (distance 135, up to 230) with fog and shadows sized to it. The filled lots inside the play area are kept to one storey, and the outer city is tinted cooler, so the 48 real buildings (floors now 2.1 units) stand above them. `CityOverlays.tsx` draws what the agency knows from its own view: each agent on a drive is a red-and-black car flying its leg (TRAVEL-1) with a dashed red route on the ground and a pulsing ring at its goal; a squad shares one larger van and parks at the door; a watcher's car parks at the lot; each building's last report is a ring in its band's colour (clean green, low mustard, some coral, heavy red) fading over four days; a building a slip named in the last day carries a pin card in the slip's tone. `labels.tsx` is a DOM layer beside the canvas (drei's Html made React unmount roots during render): the hovered and the selected building's name card (name, owner, last report, who is out there) and the district names when the camera is high. None of it takes a pointer (KB rule 25).
 
 ## 3. The title (`src/client/Poster.tsx`, `Title.tsx`)

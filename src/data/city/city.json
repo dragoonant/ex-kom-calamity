@@ -73,6 +73,7 @@
   ],
   "agency": {
     "hq": { "name": "Agency Headquarters", "x": 14, "y": 14 },
+    "final": "ambrel-tower",
     "names": ["Vance", "Okoro", "Lindqvist", "Marsh", "Teodoro", "Quill", "Hale", "Moreau", "Sato", "Brannigan", "Ruiz", "Adeyemi", "Kowalczyk", "Fenn", "Delacroix", "Nakamura", "Price", "Osei", "Varga", "Castellan"]
   }
 }

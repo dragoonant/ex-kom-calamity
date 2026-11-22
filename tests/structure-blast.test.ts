@@ -289,9 +289,9 @@ describe('19. Structure (STR)', () => {
 });
 
 describe('20. Charges (BLAST)', () => {
-  it('BLAST-1 agents start with two charges and nobody else has any; a blast order sets the pending charge', () => {
+  it('BLAST-1 agents start with two charges, hosts with one, citizens none; a blast order sets the pending charge', () => {
     const s = game();
-    for (const u of s.units) expect(u.charges, u.id).toBe(u.side === 'agency' ? 2 : 0);
+    for (const u of s.units) expect(u.charges, u.id).toBe(u.side === 'agency' ? 2 : u.template === 'host' ? 1 : 0);
     for (const u of s.units) expect(u.blast).toBeNull();
     const r = order(place(only(s, ['a1']), 'a1', 4, 11), { type: 'blast', side: 'agency', unit: 'a1', at: pos(4, 9) });
     expect(unit(r.state, 'a1').blast).toEqual({ at: pos(4, 9), progress: 0 });
@@ -306,7 +306,7 @@ describe('20. Charges (BLAST)', () => {
     expect(expectReject(s, { type: 'blast', side: 'agency', unit: 'a1', at: pos(4, 10, 1) })).toMatch(/another level/);
     expect(expectReject(s, { type: 'blast', side: 'agency', unit: 'a1', at: pos(4, 8) })).toMatch(/not seen/); // behind the south wall
     expect(expectReject(s, { type: 'blast', side: 'agency', unit: 'a1', at: pos(99, 0) })).toMatch(/off the map/);
-    expect(expectReject(s, { type: 'blast', side: 'hostile', unit: 'u2', at: pos(unit(s, 'u2').x + 1, unit(s, 'u2').y, unit(s, 'u2').level) })).toMatch(/no charges/);
+    expect(expectReject(patch(s, 'u2', { charges: 0 }), { type: 'blast', side: 'hostile', unit: 'u2', at: pos(unit(s, 'u2').x + 1, unit(s, 'u2').y, unit(s, 'u2').level) })).toMatch(/no charges/);
     expect(expectReject(patch(s, 'a1', { charges: 0 }), { type: 'blast', side: 'agency', unit: 'a1', at: pos(4, 9) })).toMatch(/no charges/);
     // ORD-8: legalActions lists every legal blast tile in tile-index order, and each is accepted.
     const blasts = legalActions(s, 'agency').filter((a) => a.type === 'blast' && a.unit === 'a1');
@@ -314,7 +314,7 @@ describe('20. Charges (BLAST)', () => {
     const idx = blasts.map((a) => (a.type === 'blast' ? tileIndex(s, a.at) : -1));
     expect([...idx].sort((a, b) => a - b)).toEqual(idx);
     for (const a of blasts.slice(0, 10)) expect(step(s, a).ok).toBe(true);
-    expect(legalActions(s, 'hostile').some((a) => a.type === 'blast')).toBe(false);
+    expect(legalActions(patch(s, 'u2', { charges: 0 }), 'hostile').some((a) => a.type === 'blast')).toBe(false);
     // A second order replaces the first; halt clears it.
     let t = order(s, { type: 'blast', side: 'agency', unit: 'a1', at: pos(4, 9) }).state;
     t = order(t, { type: 'blast', side: 'agency', unit: 'a1', at: pos(5, 9) }).state;

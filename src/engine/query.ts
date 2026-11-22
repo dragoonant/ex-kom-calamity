@@ -1,5 +1,6 @@
 // ARCH-4, section 14: every number a client could show.
-import type { Pos, ShotBreakdown, Side, State } from './types';
+import type { Pos, ShotBreakdown, Side, State, Unit } from './types';
+import { coverAgainst, type CoverGrade } from './cover';
 import { distance as tileDistance, hasLineOfSight, tileIndex } from './map';
 import { pathField, pathTo, posOfIndex } from './path';
 import { sideSeesUnit, unitById, visibleTileIndices } from './sight';
@@ -30,6 +31,21 @@ export const query = {
     const cf = canFire(state, shooter, target);
     if (!cf.ok) return cf;
     return { ok: true, shooter: shooterId, target: targetId, weapon: shooter.weapon!, distance: cf.distance, ...hitBreakdown(state, shooter, target, cf.weapon, cf.distance) };
+  },
+  /** QRY-9 (COVER-1..2): the cover a tile would give against the nearest hostile the side sees on its level, for the file card. */
+  coverAt(state: State, side: Side, at: Pos): { grade: CoverGrade; value: number; from: string } | null {
+    let best: Unit | null = null;
+    let bd = Infinity;
+    for (const u of state.units) {
+      if (u.down || u.side === side || u.side === 'civilian' || u.level !== at.level || !sideSeesUnit(state, side, u)) continue;
+      const d = Math.hypot(u.x - at.x, u.y - at.y);
+      if (d < bd) {
+        best = u;
+        bd = d;
+      }
+    }
+    if (!best) return null;
+    return { ...coverAgainst(state, at, best), from: best.id };
   },
   damageRange(state: State, shooterId: string, targetId: string): { min: number; max: number } | null {
     const shooter = unitById(state, shooterId);

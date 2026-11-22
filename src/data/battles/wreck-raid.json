@@ -1,0 +1,87 @@
+{
+  "id": "wreck-raid",
+  "name": "Raid on the wreck",
+  "_": "Written by tools/make-block.ts. A downed craft on open ground (city AIR-8): the squad starts in the west street. The city fills the hostile spawns from the wreck's survivors (ARCH-11).",
+  "map": "wreck-site",
+  "squad": [
+    {
+      "name": "Vance",
+      "template": "agent-t1",
+      "weapon": "patrol-carbine",
+      "at": { "x": 2, "y": 10, "level": 0 }
+    },
+    {
+      "name": "Okoro",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 2, "y": 11, "level": 0 }
+    },
+    {
+      "name": "Lindqvist",
+      "template": "agent-t1",
+      "weapon": "scatter-gun",
+      "at": { "x": 2, "y": 12, "level": 0 }
+    },
+    {
+      "name": "Marsh",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 2, "y": 13, "level": 0 }
+    },
+    {
+      "name": "Teodoro",
+      "template": "agent-t1",
+      "weapon": "patrol-carbine",
+      "at": { "x": 2, "y": 14, "level": 0 }
+    },
+    {
+      "name": "Quill",
+      "template": "agent-t1",
+      "weapon": "service-pistol",
+      "at": { "x": 1, "y": 12, "level": 0 }
+    }
+  ],
+  "others": [
+    {
+      "template": "host",
+      "at": { "x": 14, "y": 12, "level": 0 }
+    },
+    {
+      "template": "host",
+      "at": { "x": 9, "y": 9, "level": 0 }
+    },
+    {
+      "template": "taker",
+      "at": { "x": 16, "y": 11, "level": 0 }
+    },
+    {
+      "template": "taker",
+      "at": { "x": 20, "y": 13, "level": 0 }
+    },
+    {
+      "template": "taker",
+      "at": { "x": 13, "y": 16, "level": 0 }
+    },
+    {
+      "template": "fighter",
+      "at": { "x": 17, "y": 12, "level": 0 }
+    },
+    {
+      "template": "fighter",
+      "at": { "x": 19, "y": 9, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 6, "y": 20, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 24, "y": 3, "level": 0 }
+    },
+    {
+      "template": "citizen",
+      "at": { "x": 27, "y": 12, "level": 0 }
+    }
+  ],
+  "core": { "x": 15, "y": 12, "level": 0 }
+}

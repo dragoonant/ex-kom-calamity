@@ -114,6 +114,8 @@ export function slipText(sl: Slip): string {
       return `${b}: a watcher saw one of the staff stand without blinking for an hour. A host, most likely.`;
     case 'landing':
       return `A craft set down on the roof of ${b}. By morning nobody inside remembers it.`;
+    case 'found':
+      return 'A pale scout circled headquarters twice before it left. The organism knows where we are.';
     case 'confession':
       return `The captive talked before it went still: its cell answers to ${o}.`;
     default:
@@ -122,7 +124,7 @@ export function slipText(sl: Slip): string {
 }
 
 function slipTone(sl: Slip): Tone {
-  if (sl.kind === 'hum' || sl.kind === 'spotted' || sl.kind === 'confession' || sl.kind === 'landing') return 'alert';
+  if (sl.kind === 'hum' || sl.kind === 'spotted' || sl.kind === 'confession' || sl.kind === 'landing' || sl.kind === 'found') return 'alert';
   if (sl.kind === 'power' || sl.kind === 'perfect' || sl.kind === 'vote') return 'caution';
   return 'note';
 }
@@ -217,7 +219,20 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
       case 'delivered':
         add(`A ${itemName(e.item)} was delivered. It looks fine.`, 'note', null, 'delivered');
         break;
+      case 'actBegan':
+        add(e.act === 2 ? 'Act two: Open sky. The organism stops whispering; craft cross the city by day.' : 'Act three: Perfect day. The cores point at one tower. The organism knows it has been found, and it is coming.', 'alert', null, `act-${e.act}`);
+        break;
+      case 'assault':
+        add(`Headquarters is under assault: ${e.hostiles} hostiles at the doors.`, 'alert', null, 'assault');
+        break;
+      case 'defended':
+        add(e.result.won ? `Headquarters held: ${e.result.hostilesDown} attackers down.` : 'Headquarters has fallen.', e.result.won ? 'ok' : 'alert', null, 'defended');
+        break;
       case 'launched':
+        if (e.kind === 'carrier') {
+          add('A carrier the size of a city block is over the rooftops. It is dropping fighters.', 'alert', null, 'launched-carrier');
+          break;
+        }
         add(e.kind === 'seeder' ? 'Something large and slow is crossing into the city from the edge. The sky watch calls it a seeder.' : 'A fast pale craft is over the city. The sky watch calls it a scout.', 'alert', null, `launched-${e.kind}`);
         break;
       case 'intercepting':
@@ -252,8 +267,10 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
 }
 
 export const OVER_TEXT: Record<string, string> = {
-  contained: 'The spread is contained. The source still waits under the city, but the whispers have stopped for now.',
+  source: 'The tower is quiet. The amber at its root has gone grey and cold, and across the city the windows stop pulsing. The City of Tomorrow wakes up ordinary.',
   spread: 'Ninety days on, the organism is everywhere. The city still smiles; it no longer belongs to its citizens.',
+  hq: 'Headquarters has fallen. The switchboard is lit, and someone else is answering it.',
+  time: 'The agency ran out of time. The city is perfect now, every window lit at once, every citizen in step.',
   confidence: 'The council has withdrawn the agency’s charter.',
   turned: 'Half the city’s organisations work openly for the organism. The agency cannot operate.',
   squad: 'No agents left and no money to hire more. The agency is finished.',

@@ -19,6 +19,7 @@ export function cityLegalActions(state: CityState, side: CitySide): CityAction[]
       for (const b of CITY.buildings) acts.push({ type: 'raid', side, building: b.id, agents: squad });
     }
     if (state.raid?.arrived) acts.push({ type: 'resolve', side });
+    if (state.defence) acts.push({ type: 'defend', side });
     if (state.money >= state.tuning.roster.recruitCost && livingAgents(state).length < state.tuning.roster.cap) acts.push({ type: 'recruit', side });
     for (const p of RESEARCH.projects) if (!researchBlock(state, p.id)) acts.push({ type: 'research', side, project: p.id });
     for (const item of ['shell-plate', 'arc-carbine'] as const) {
@@ -42,7 +43,8 @@ export function cityLegalActions(state: CityState, side: CitySide): CityAction[]
     if (state.tick >= state.hostileReadyTick && state.biomass >= sp.seedCost) {
       for (const o of state.orgs) if (o.infiltration < sp.cap) acts.push({ type: 'seed', side, org: o.id });
     }
-    for (const kind of ['scout', 'seeder'] as const) for (const b of CITY.buildings) if (!launchBlock(state, kind, b.id)) acts.push({ type: 'launch', side, kind, target: b.id });
+    if (state.act === 3 && state.hqFound && !state.defence && state.tick >= state.assaultReadyTick && state.biomass >= state.tuning.act.assaultCost) acts.push({ type: 'assault', side });
+    for (const kind of ['scout', 'seeder', 'carrier'] as const) for (const b of CITY.buildings) if (!launchBlock(state, kind, b.id)) acts.push({ type: 'launch', side, kind, target: b.id });
   }
   return acts;
 }

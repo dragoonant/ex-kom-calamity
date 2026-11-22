@@ -10,7 +10,7 @@ import { useClient } from '../store';
 import { CameraRig } from './CameraRig';
 import { CorePulse, Effects, FrameTimes } from './Effects';
 import { Figures } from './Figures';
-import { Marks } from './Marks';
+import { CoreMark, Marks } from './Marks';
 import { Props } from './Props';
 import { Surroundings } from './Surroundings';
 import { RendererName, useSceneryLevel } from '../scenery';
@@ -52,6 +52,17 @@ export function RendererHandle() {
   return null;
 }
 
+/** NIGHT-1: a raid at night: a dim moonlit fill, a faint cool key; the lamps and windows carry the light. */
+export function NightLights() {
+  return (
+    <>
+      <hemisphereLight args={['#3a4a66', '#1f1a16', 0.45]} />
+      <directionalLight position={[-20, 24, 10]} intensity={0.35} color="#9fb8e0" />
+      <directionalLight position={[18, 10, -22]} intensity={0.12} color={EVENING.fill} />
+    </>
+  );
+}
+
 export function EveningLights() {
   return (
     <>
@@ -72,11 +83,12 @@ function Board() {
   if (!agency) return null;
   return (
     <>
-      {scenery === 'full' && <Surroundings width={agency.width} depth={agency.depth} />}
+      {scenery === 'full' && <Surroundings width={agency.width} depth={agency.depth} night={agency.night === true} />}
       <Tiles state={agency} derived={derived} />
       <Props state={agency} />
       <Figures state={agency} />
       <Marks state={agency} />
+      <CoreMark state={agency} />
       <Effects />
     </>
   );
@@ -84,6 +96,11 @@ function Board() {
 
 export function Scene() {
   const hoverClear = useClient((s) => s.setHover);
+  const night = useClient((s) => s.agency?.night === true);
+  const gl = useRef<{ setClearColor: (c: string) => void } | null>(null);
+  useEffect(() => {
+    gl.current?.setClearColor(night ? '#141a26' : EVENING.clear);
+  }, [night]);
   useEffect(() => () => hoverClear(null), [hoverClear]);
   return (
     <Canvas
@@ -92,11 +109,12 @@ export function Scene() {
       dpr={[1, 1.5]}
       gl={{ antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance' }}
       camera={{ fov: 42, near: 0.1, far: 520, position: [20, 16, 20] }}
-      onCreated={({ gl }) => {
-        gl.setClearColor(EVENING.clear);
+      onCreated={({ gl: renderer }) => {
+        gl.current = renderer;
+        renderer.setClearColor(useClient.getState().agency?.night ? '#141a26' : EVENING.clear);
       }}
     >
-      <EveningLights />
+      {night ? <NightLights /> : <EveningLights />}
       <RendererHandle />
       <RendererName />
       <CameraRig />

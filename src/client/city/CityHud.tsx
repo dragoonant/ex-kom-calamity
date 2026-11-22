@@ -42,6 +42,7 @@ function BuildingCard({ view }: { view: CityState }) {
       <div className="num">
         {orgName(row.org)} · {districtName(row.district)} · {def.floors} {def.floors === 1 ? 'floor' : 'floors'}
         {row.turned && <span className="warn"> · TURNED</span>}
+        {view.act === 3 && row.id === CITY.agency.final && <span className="warn"> · THE SOURCE: RAID IT TO END THIS</span>}
       </div>
       <div className="num" data-testid="building-report">
         {row.band ? `Last report: ${BAND_WORDS[row.band]} (${ago(view, row.bandTick!)})` : 'No report yet'}
@@ -166,7 +167,7 @@ function SkyCard({ view }: { view: CityState }) {
         return (
           <div key={c.id} className="sky-row" data-testid={`craft-${c.id}`}>
             <div className="num">
-              <strong>{c.kind === 'seeder' ? 'SEEDER' : 'SCOUT'}</strong> {overWhat(c.x, c.y)} · hull {Math.round((100 * c.hp) / c.maxHp)}% · {chasing ? `${chasing} car${chasing > 1 ? 's' : ''} on it` : 'unchallenged'}
+              <strong>{c.kind.toUpperCase()}</strong> {overWhat(c.x, c.y)} · hull {Math.round((100 * c.hp) / c.maxHp)}% · {chasing ? `${chasing} car${chasing > 1 ? 's' : ''} on it` : 'unchallenged'}
             </div>
             <div className="switch-row">
               <button type="button" className="toggle toggle-alert" data-testid={`intercept-${c.id}`} disabled={ready.length === 0} onClick={() => order({ type: 'intercept', side: 'agency', craft: c.id, cars: ready })}>
@@ -206,7 +207,7 @@ function DoorCover({ view }: { view: CityState }) {
   const chance = odds;
   return (
     <div className="cover" data-testid="door">
-      <div className="cover-title">SQUAD AT THE DOOR: {(view.raid.building.startsWith('crash') ? 'THE WRECK' : buildingName(view.raid.building)).toUpperCase()}</div>
+      <div className="cover-title">SQUAD AT THE DOOR: {(view.raid.building.startsWith('crash') ? 'THE WRECK' : view.act === 3 && view.raid.building === CITY.agency.final ? `${buildingName(view.raid.building)}, THE SOURCE` : buildingName(view.raid.building)).toUpperCase()}</div>
       <div className="num">
         {view.raid.agents.length} agents: {view.raid.agents.map((id) => view.agents.find((a) => a.id === id)?.name).join(', ')}
       </div>
@@ -225,13 +226,66 @@ function DoorCover({ view }: { view: CityState }) {
   );
 }
 
+const ACT_CARDS: Record<2 | 3, { title: string; text: string }> = {
+  2: {
+    title: 'ACT TWO: OPEN SKY',
+    text: 'The council reports the city quiet, and for a week it is. Then the craft come by daylight: pale scouts looking for us, and slow seeders settling on rooftops. The organism has stopped whispering. Trace the amber cores to where they all lead before the city is lost.',
+  },
+  3: {
+    title: 'ACT THREE: PERFECT DAY',
+    text: 'Every core leans toward one place: the tower of the company that sold the city its miracle amber. The organism knows we know. Carriers drop fighters into the streets, and once it finds our headquarters it will come for it. Take a full squad into the tower and end it.',
+  },
+};
+
+/** ACT-1: a card between acts; it shows once per act and the city stays paused until it is closed. */
+function ActCover({ view }: { view: CityState }) {
+  const [seen, setSeen] = useState(view.act);
+  if (view.act <= seen || view.over) return null;
+  const card = ACT_CARDS[view.act as 2 | 3];
+  return (
+    <div className="cover" data-testid="act-cover">
+      <div className="cover-title">{card.title}</div>
+      <div>{card.text}</div>
+      <div className="switch-row">
+        <button type="button" className="toggle toggle-big" data-testid="act-continue" onClick={() => setSeen(view.act)}>
+          TO THE SWITCHBOARD
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** ACT-5: headquarters under assault; it is fought, or left to the agents at home. */
+function DefenceCover({ view }: { view: CityState }) {
+  const { order, beginFight } = useCity.getState();
+  if (!view.defence) return null;
+  const home = view.agents.filter((a) => a.status === 'ready');
+  return (
+    <div className="cover" data-testid="defence">
+      <div className="cover-title">HEADQUARTERS UNDER ASSAULT</div>
+      <div className="num">
+        {view.defence.hostiles} hostiles at the doors. At home: {home.length ? home.map((a) => a.name).join(', ') : 'nobody'}.
+      </div>
+      <div className="warn">If headquarters falls, the campaign is lost.</div>
+      <div className="switch-row">
+        <button type="button" className="toggle toggle-big" data-testid="defence-fight" disabled={home.length === 0} onClick={() => beginFight()}>
+          FIGHT IT
+        </button>
+        <button type="button" className="toggle toggle-big" data-testid="defence-auto" onClick={() => order({ type: 'defend', side: 'agency' })}>
+          LET THE AGENTS AT HOME HOLD IT
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function OverCover({ view }: { view: CityState }) {
   const { leave, discard } = useCity.getState();
   if (!view.over) return null;
   const s = view.score;
   return (
     <div className="cover" data-testid="city-over">
-      <div className="cover-title">{view.over.winner === 'agency' ? 'ACT ONE: THE CITY HOLDS' : 'ACT ONE: THE CITY IS LOST'}</div>
+      <div className="cover-title">{view.over.winner === 'agency' ? 'THE CITY IS SAVED' : `ACT ${view.act === 1 ? 'ONE' : view.act === 2 ? 'TWO' : 'THREE'}: THE CITY IS LOST`}</div>
       <div>{OVER_TEXT[view.over.reason]}</div>
       <div className="num">
         Day {cityQuery.clock(view).day + 1}. Raids {s.raids}, won {s.raidsWon}, on clean buildings {s.cleanRaids}. Hostiles down {s.hostilesDown}, agents killed {s.agentsDead}, citizens killed {s.civiliansDown}.
@@ -264,7 +318,7 @@ export function CityHud() {
   const { togglePause, setSpeed, leave, order, toggleSquad, select } = useCity.getState();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [tab, setTab] = useState<'file' | 'lab' | 'sky'>('file');
-  const seeders = view?.craft.filter((c) => c.kind === 'seeder').length ?? 0;
+  const seeders = view?.craft.filter((c) => c.kind !== 'scout').length ?? 0;
   useEffect(() => {
     if (seeders > 0) setTab('sky');
   }, [seeders]);
@@ -290,13 +344,15 @@ export function CityHud() {
   return (
     <>
       <DoorCover view={view} />
+      <DefenceCover view={view} />
+      <ActCover view={view} />
       <OverCover view={view} />
       <div className="console city-console" data-testid="city-console">
         <div className="console-bead" />
         <div className="console-row">
           <section className="panel panel-time" aria-label="Time">
             <div className="dial" data-testid="city-clock">
-              <span className="dial-label">{c.night ? 'NIGHT' : 'DAY'} {c.day + 1}</span>
+              <span className="dial-label">ACT {view.act} · {c.night ? 'NIGHT' : 'DAY'} {c.day + 1}</span>
               <span className="dial-value num">
                 {String(c.hour).padStart(2, '0')}:{String(c.minute).padStart(2, '0')}
               </span>

@@ -2,7 +2,7 @@
 // Everything here mutates the step's own clone of the state; the tile array is copied once per step.
 import { MATERIALS, type WeaponDef } from '../data';
 import type { GameEvent, Pos, State, Tile, Unit } from './types';
-import { chebyshev, distance, inBounds, isPassable, tileIndex } from './map';
+import { chebyshev, distance, inBounds, isPassable, tileIndex, hasLineOfSight } from './map';
 import { appearsCivilianTo, unitSeesTile } from './sight';
 
 const ownsTiles = new WeakSet<State>();
@@ -35,6 +35,15 @@ function putDown(st: State, t: Unit, events: GameEvent[], occ: Map<number, Unit>
   else if (t.side === 'hostile') st.score.hostilesDown += 1;
   else st.score.civiliansDown += 1;
   events.push({ type: 'down', tick: st.tick, unit: t.id });
+  // PANIC-1: allies who see a unit go down nearby are shaken (as suppression, SUP-1).
+  const p = st.tuning.panic;
+  if (p && t.side !== 'civilian') {
+    for (const a of st.units) {
+      if (a.down || a === t || a.side !== t.side || a.level !== t.level) continue;
+      if (Math.hypot(a.x - t.x, a.y - t.y) > p.range || !hasLineOfSight(st, a, t)) continue;
+      a.suppression = Math.min(st.tuning.suppress?.cap ?? 100, (a.suppression ?? 0) + p.amount);
+    }
+  }
 }
 
 /** DMG-2..DMG-4 without the roll: `raw` less `armour`, the damaged event, and down at 0 hp. */

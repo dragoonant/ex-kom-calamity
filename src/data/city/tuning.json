@@ -78,7 +78,8 @@
     "scandalLoss": 8,
     "civilianLoss": 1,
     "agentLoss": 1,
-    "missingPer100Points": 1
+    "missingPer100Points": 1,
+    "savedGain": 1
   },
   "end": {
     "confidenceFloor": 25,
@@ -135,5 +136,22 @@
     "crashHours": 24,
     "crashCores": 2,
     "scatterPerSurvivor": 2
+  },
+  "act": {
+    "act2Days": 100,
+    "act3Days": 90,
+    "biomassBonusPercent": 50,
+    "launchEveryHours": 12,
+    "hqScoutRange": 30,
+    "carrierCost": 40,
+    "carrierSpeed": 16,
+    "carrierHp": 160,
+    "carrierAmount": 15,
+    "carrierSurvivors": 4,
+    "carrierDamagePercent": 200,
+    "assaultCost": 50,
+    "assaultEveryDays": 10,
+    "assaultHostiles": 6,
+    "finalHostiles": 12
   }
 }

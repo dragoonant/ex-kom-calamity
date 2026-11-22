@@ -30,7 +30,7 @@ export function cityInvariants(s: CityState): string[] {
     const out_ = a.status === 'watching' || a.status === 'travelling';
     if (out_ !== (a.building !== null)) out.push(`${a.id} watch building mismatch`);
     if (out_ && !CITY.buildings.some((b) => b.id === a.building)) out.push(`${a.id} watches no building`);
-    // CINV-11: a drive is under way exactly when the agent is driving (a squad until it reaches the door).
+    // CINV-12: a drive is under way exactly when the agent is driving (a squad until it reaches the door).
     const driving = a.status === 'travelling' || a.status === 'returning' || (a.status === 'raiding' && !!s.raid && !s.raid.arrived);
     if (driving !== (a.leg !== null)) out.push(`${a.id} leg mismatch (${a.status})`);
     if (a.leg && (a.status === 'travelling' || a.status === 'returning') && a.leg.arrive !== a.until) out.push(`${a.id} leg ends off its until`);
@@ -60,6 +60,10 @@ export function cityInvariants(s: CityState): string[] {
     if (c.x < 0 || c.y < 0 || c.x > CITY.size * 10 || c.y > CITY.size * 10) out.push(`${c.id} off the map`);
   }
   if (new Set(s.crashes.map((c) => c.id)).size !== s.crashes.length) out.push('crash ids repeat');
+  // CINV-11
+  if (![1, 2, 3].includes(s.act)) out.push(`act ${s.act}`);
+  if (s.defence && s.act !== 3) out.push('an assault outside act 3');
+  if (s.hqFound && s.act < 2) out.push('headquarters found in act 1');
   // CINV-8
   if (s.over && s.over.tick > s.tick) out.push('over in the future');
   return out;

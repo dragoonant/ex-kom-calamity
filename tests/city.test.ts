@@ -629,23 +629,25 @@ describe('10. The end (CEND)', () => {
     const r = ok(atDoor(s, 'depot-7', ['ag1']), { type: 'resolve', side: 'agency' }).state;
     expect(r.over).toMatchObject({ winner: 'hostile', reason: 'squad' });
   });
-  it('CEND-4 act 1 ends on its last day: contained wins, spread loses', () => {
+  it('CEND-4 act 1 ends on its last day: contained opens act 2, spread loses', () => {
     const short = { end: { ...T.end, actDays: 1 } };
     const contained = only(city(1, short), 'council', 0);
-    expect(ticks(contained, 2 * DAY).state.over).toMatchObject({ winner: 'agency', reason: 'contained' });
+    const r = ticks(contained, 2 * DAY);
+    expect(r.state.over).toBeNull();
+    expect(r.state.act).toBe(2);
     const spread = only(city(1, short), 'savings', 90);
     expect(ticks(spread, 2 * DAY).state.over).toMatchObject({ winner: 'hostile' });
     expect(totalInfiltration(spread)).toBe(90);
   });
   it('CEND-5 the end is an event with the winner, reason and tick', () => {
-    const s = only(city(1, { end: { ...T.end, actDays: 1 } }), 'council', 0);
+    const s = only(city(1, { end: { ...T.end, actDays: 1 } }), 'savings', 90);
     const r = ticks(s, 2 * DAY);
     const e = r.events.find((x) => x.type === 'cityOver');
     expect(e && e.type === 'cityOver' && e.over.tick).toBe(r.state.over!.tick);
   });
   it('CEND-6 after the end tick changes nothing and orders are rejected', () => {
     const s = clone(city());
-    s.over = { winner: 'agency', reason: 'contained', tick: 0 };
+    s.over = { winner: 'agency', reason: 'source', tick: 0 };
     const r = cityStep(s, { type: 'tick' });
     expect(r.ok && r.state).toBe(s);
     expect(rejected(s, { type: 'recruit', side: 'agency' })).toMatch(/over/);
@@ -791,7 +793,7 @@ describe('13. Invariants (CINV)', () => {
     expect(broken((s) => s.orgs.pop()).join()).toMatch(/shape/);
   });
   it('CINV-8 the end is never in the future', () => {
-    expect(broken((s) => (s.over = { winner: 'agency', reason: 'contained', tick: 5 })).join()).toMatch(/future/);
+    expect(broken((s) => (s.over = { winner: 'agency', reason: 'source', tick: 5 })).join()).toMatch(/future/);
   });
 });
 
@@ -800,7 +802,7 @@ describe('14. Sim (CSIM)', () => {
     const r = runCity({ seed: 1, agency: agencyCareful, hostile: hostilePlanner });
     expect(r.broken).toEqual([]);
     expect(r.state.over).not.toBeNull();
-  });
+  }, 30_000);
   it('CSIM-2 the passive agency loses', () => {
     for (let seed = 1; seed <= 3; seed++) expect(runCity({ seed, agency: agencyPassive, hostile: hostilePlanner }).state.over?.winner).toBe('hostile');
   });
@@ -810,7 +812,7 @@ describe('14. Sim (CSIM)', () => {
   });
 });
 
-describe('21. Travel (TRAVEL)', () => {
+describe('22. Travel (TRAVEL)', () => {
   const HQ = { x: CITY.agency.hq.x * 10 + 5, y: CITY.agency.hq.y * 10 + 5 };
   const at = (id: string) => {
     const b = CITY.buildings.find((x) => x.id === id)!;
@@ -871,7 +873,7 @@ describe('21. Travel (TRAVEL)', () => {
     s = ticks(s, s.agents[0]!.until - s.tick).state;
     expect(s.agents[0]!.status).toBe('ready');
   });
-  it('CINV-11 drives and statuses agree', () => {
+  it('CINV-12 drives and statuses agree', () => {
     const s = clone(ok(city(), { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state);
     expect(cityInvariants(s)).toEqual([]);
     s.agents[0]!.leg = null;

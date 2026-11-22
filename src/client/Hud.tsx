@@ -22,7 +22,11 @@ function fmtSeconds(s: number): string {
 }
 
 function weaponName(u: Unit): string {
-  return u.weapon ? (WEAPONS[u.weapon]?.name ?? u.weapon) : 'unarmed';
+  if (!u.weapon) return 'unarmed';
+  const w = WEAPONS[u.weapon];
+  const name = w?.name ?? u.weapon;
+  // AMMO-1: rounds left of a load.
+  return w?.magazine && u.ammo !== null && u.ammo !== undefined ? `${name} ${u.ammo}/${w.magazine}` : name;
 }
 
 function lampClass(u: Unit): string {
@@ -34,6 +38,10 @@ function lampClass(u: Unit): string {
 
 function agentStatus(u: Unit): string {
   if (u.down) return '';
+  if ((u.reloadLeft ?? 0) > 0) return 'RELOADING';
+  if (u.suppressAt) return 'SUPPRESSING';
+  if (u.capture) return 'CAPTURING';
+  if ((u.suppression ?? 0) >= 60) return 'PINNED';
   if (u.blast) return 'ARMING';
   if (u.fireTarget) return 'FIRING';
   if (u.order) return 'MOVING';
@@ -92,7 +100,7 @@ export function Hud() {
           else s.select(u.id);
         }
       } else if (e.code === 'Escape') {
-        if (s.mode === 'blast') s.setMode('normal');
+        if (s.mode !== 'normal') s.setMode('normal');
         else s.select(null);
         setConfirmWithdraw(false);
       } else if (e.code === 'PageUp' || e.code === 'BracketRight') {
@@ -103,6 +111,12 @@ export function Hud() {
         s.order({ type: 'halt', side: 'agency', unit: s.selected });
       } else if (e.code === 'KeyB' && s.selected) {
         s.setMode(s.mode === 'blast' ? 'normal' : 'blast');
+      } else if (e.code === 'KeyL' && s.selected) {
+        // AMMO-4: L reloads the selected agent.
+        s.order({ type: 'reload', side: 'agency', unit: s.selected });
+      } else if (e.code === 'KeyV' && s.selected) {
+        // SUP-3: V arms suppressive fire for the next tap.
+        s.setMode(s.mode === 'suppress' ? 'normal' : 'suppress');
       } else if (e.code === 'KeyF' && s.selected) {
         s.focusUnit(s.selected);
       } else if (e.code === 'KeyC' && s.selected) {
@@ -130,9 +144,11 @@ export function Hud() {
     const blast = sel && mode === 'blast' ? query.blastPreview(agency, sel.id, hover) : null;
     const path = sel && !unit && mode === 'normal' ? query.path(agency, sel.id, hover) : null;
     const hit = sel && unit && unit.side !== 'agency' && mode === 'normal' ? query.hitChance(agency, sel.id, unit.id) : null;
+    // QRY-9: what an empty tile would give the selected agent against the nearest hostile in view.
+    const cover = sel && !unit && mode === 'normal' ? query.coverAt(agency, 'agency', hover) : null;
     const dmg = hit ? query.damageRange(agency, sel!.id, unit!.id) : null;
     const building = buildings.find((b) => hover.x >= b.x && hover.x < b.x + b.w && hover.y >= b.y && hover.y < b.y + b.d && hover.level <= b.floors);
-    return { tile, unit: unit ?? body, path, hit, dmg, blast, building };
+    return { tile, unit: unit ?? body, path, hit, dmg, blast, building, cover };
   }, [agency, hover, sel, mode, buildings]);
 
   if (!agency || !outcome) return null;
@@ -150,6 +166,18 @@ export function Hud() {
           </button>
         ))}
       </div>
+      {(mode === 'capture' || mode === 'evacuate') && sel && (
+        <div className="mode-banner" data-testid="mode-banner-objective">
+          {mode === 'capture'
+            ? `CAPTURE: tap a revealed host or taker beside ${sel.name} at half health or less; ${sel.name} holds it for ${(agency.tuning.objective.captureTicks / agency.tuning.time.ticksPerSecond).toFixed(0)} s. Esc cancels.`
+            : `EVACUATE: tap a citizen beside ${sel.name}; it runs for the street edge. Esc cancels.`}
+        </div>
+      )}
+      {mode === 'suppress' && sel && (
+        <div className="mode-banner" data-testid="mode-banner-suppress">
+          SUPPRESS: tap a tile {sel.name} can see in range. Every hostile on or beside it is pinned. Esc cancels.
+        </div>
+      )}
       {mode === 'blast' && sel && (
         <div className="mode-banner" data-testid="mode-banner">
           CHARGE: tap a tile {sel.name} can see within {agency.tuning.blast.throwRange} tiles. Esc cancels.
@@ -248,6 +276,26 @@ export function Hud() {
                   >
                     CHARGE <span className="num">{sel.charges}</span>
                   </button>
+                  <button
+                    type="button"
+                    className={`toggle ${mode === 'suppress' ? 'toggle-alert' : ''} ${sel.suppressAt ? 'toggle-on' : ''}`}
+                    data-testid="suppress"
+                    aria-pressed={mode === 'suppress'}
+                    onClick={() => setMode(mode === 'suppress' ? 'normal' : 'suppress')}
+                  >
+                    SUPPRESS
+                  </button>
+                  {agency.canCapture && (
+                    <button type="button" className={`toggle ${mode === 'capture' ? 'toggle-alert' : ''} ${sel.capture ? 'toggle-on' : ''}`} data-testid="capture" aria-pressed={mode === 'capture'} onClick={() => setMode(mode === 'capture' ? 'normal' : 'capture')}>
+                      CAPTURE
+                    </button>
+                  )}
+                  <button type="button" className={`toggle ${(sel.reloadLeft ?? 0) > 0 ? 'toggle-on' : ''}`} data-testid="reload" onClick={() => order({ type: 'reload', side: 'agency', unit: sel.id })}>
+                    RELOAD
+                  </button>
+                  <button type="button" className={`toggle ${mode === 'evacuate' ? 'toggle-alert' : ''}`} data-testid="evacuate" aria-pressed={mode === 'evacuate'} onClick={() => setMode(mode === 'evacuate' ? 'normal' : 'evacuate')}>
+                    EVACUATE
+                  </button>
                 </div>
                 <div className="switch-row" role="group" aria-label="Posture and pace">
                   <button
@@ -273,7 +321,7 @@ export function Hud() {
                 </div>
               </>
             ) : (
-              <div className="hint">Select an agent: tap one on the board or press 1 to 6. Tap a tile to move, an enemy to fire.</div>
+              <div className="hint">Select an agent: tap one on the board or press 1 to 6. Tap a tile to move, an enemy to order an aimed shot; left to their stance, agents snap-fire at -{agency.tuning.snap?.penalty ?? 0} to hit.</div>
             )}
             <div className="switch-row">
               {confirmWithdraw ? (
@@ -314,6 +362,11 @@ export function Hud() {
                   {hoverInfo.tile.kind === 'door' ? (hoverInfo.tile.open ? ' (open)' : ' (closed)') : ''}
                   {hoverInfo.tile.breakable ? `, ${hoverInfo.tile.materialName.toLowerCase()} ${hoverInfo.tile.hp}/${hoverInfo.tile.maxHp}` : ''}
                 </div>
+                {hoverInfo.cover && (
+                  <div className="num" data-testid="cover-line">
+                    {hoverInfo.cover.grade === 'none' ? 'No cover here from the nearest hostile in view.' : `${hoverInfo.cover.grade[0]!.toUpperCase()}${hoverInfo.cover.grade.slice(1)} cover here from the nearest hostile in view: -${hoverInfo.cover.value} to hit.`}
+                  </div>
+                )}
                 {hoverInfo.unit && (
                   <div className="card-unit">
                     <strong>{unitLabel(hoverInfo.unit)}</strong> {hoverInfo.unit.side === 'agency' ? 'agency' : hoverInfo.unit.side === 'hostile' ? 'HOSTILE' : 'citizen'}
@@ -327,7 +380,7 @@ export function Hud() {
                 {hoverInfo.hit && (
                   <div className="num" data-testid="hit-chance">
                     {hoverInfo.hit.ok
-                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
+                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit with an aimed shot (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''}${hoverInfo.hit.cover ? ` - ${hoverInfo.hit.cover} ${hoverInfo.hit.coverGrade} cover` : ''}${hoverInfo.hit.suppressPenalty ? ` - ${hoverInfo.hit.suppressPenalty} suppressed` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
                       : `${sel!.name} cannot fire: ${hoverInfo.hit.reason}`}
                   </div>
                 )}
@@ -354,7 +407,23 @@ export function Hud() {
               <span>HOSTILES DOWN {outcome.score.hostilesDown}</span>
               <span>AGENTS DOWN {outcome.score.agentsDown}</span>
               <span>HOSTILES SEEN {agency.units.filter((u) => u.side === 'hostile' && !u.down).length}</span>
+              {(outcome.score.captured ?? 0) > 0 && <span>TAKEN ALIVE {outcome.score.captured}</span>}
+              {(outcome.score.saved ?? 0) > 0 && <span>EVACUATED {outcome.score.saved}</span>}
             </div>
+            {agency.night && (
+              <div className="marks-line num" data-testid="night-line">
+                NIGHT RAID: on dark streets sight is cut to {agency.tuning.night?.sightPercent ?? 100}%; lamps and lit rooms show everything.
+              </div>
+            )}
+            {agency.core && (
+              <div className="marks-line num" data-testid="core-line">
+                {agency.core.secured
+                  ? 'THE DRIVE CORE IS SECURED.'
+                  : agency.core.burnt
+                    ? 'THE WRECK HAS BURNT: THE CORE IS LOST.'
+                    : `DRIVE CORE at ${agency.core.at.x},${agency.core.at.y}: stand an agent on it, ${agency.core.progress}/${agency.tuning.objective.coreTicks}; the wreck burns in ${Math.max(0, Math.ceil(agency.tuning.objective.burnSeconds - outcome.seconds))} s.`}
+              </div>
+            )}
             {agency.marks && agency.marks.length > 0 && (
               <div className="marks-line num" data-testid="marks">
                 LAST HOSTILES MARKED: {agency.marks.map((m) => levelName(m.level)).join(', ')}

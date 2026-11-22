@@ -34,3 +34,20 @@ export function Marks({ state }: { state: State }) {
     </group>
   );
 }
+
+/** OBJ-4: the wreck's drive core, an amber disc that dims once secured or burnt. */
+export function CoreMark({ state }: { state: State }) {
+  const ref = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (ref.current) ref.current.scale.setScalar(1 + 0.12 * Math.sin(clock.getElapsedTime() * 4));
+  });
+  const c = state.core;
+  if (!c) return null;
+  const live = !c.secured && !c.burnt;
+  return (
+    <mesh ref={ref} position={[c.at.x + 0.5, c.at.level * LEVEL_H + 0.06, c.at.y + 0.5]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null} name="core-mark">
+      <ringGeometry args={[0.18, 0.42, 24]} />
+      <meshBasicMaterial color={live ? '#e0a030' : c.secured ? '#3fae63' : '#5a5650'} transparent opacity={0.85} />
+    </mesh>
+  );
+}

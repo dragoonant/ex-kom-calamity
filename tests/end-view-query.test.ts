@@ -151,7 +151,7 @@ describe('14. Queries (QRY)', () => {
     s = place(s, 'a1', 2, 0);
     s = place(s, 'a2', 2, 1);
     s = place(s, 'u2', 5, 0);
-    expect(query.hitChance(s, 'a1', 'u2')).toEqual({ ok: true, shooter: 'a1', target: 'u2', weapon: 'patrol-carbine', distance: 3, accuracy: 70, aim: 10, falloff: 6, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 74, chance: 74 });
+    expect(query.hitChance(s, 'a1', 'u2')).toEqual({ ok: true, shooter: 'a1', target: 'u2', weapon: 'patrol-carbine', distance: 3, accuracy: 70, aim: 10, falloff: 6, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, cover: 0, coverGrade: 'none', snapPenalty: 0, suppressPenalty: 0, raw: 74, chance: 74 });
     expect(query.hitChance(s, 'a1', 'a2')).toMatchObject({ ok: false, reason: 'same side' });
     expect(query.hitChance(s, 'zz', 'u2')).toMatchObject({ ok: false });
     expect(query.damageRange(s, 'a1', 'u2')).toEqual({ min: 25, max: 40 });
@@ -193,7 +193,7 @@ describe('14. Queries (QRY)', () => {
 
   it('QRY-5 outcome reports counters, living per side and over', () => {
     const s = game();
-    expect(query.outcome(s)).toEqual({ tick: 0, seconds: 0, score: { shotsFired: 0, hits: 0, civilianHits: 0, agentsDown: 0, hostilesDown: 0, civiliansDown: 0, taken: 0 }, living: { agency: 6, hostile: 5, civilian: 4 }, over: null });
+    expect(query.outcome(s)).toEqual({ tick: 0, seconds: 0, score: { shotsFired: 0, hits: 0, civilianHits: 0, agentsDown: 0, hostilesDown: 0, civiliansDown: 0, taken: 0, captured: 0, saved: 0 }, living: { agency: 6, hostile: 5, civilian: 4 }, over: null });
     const o = query.outcome(order(s, { type: 'withdraw', side: 'agency' }).state);
     expect(o.over).toEqual({ winner: 'none', reason: 'withdrawn', tick: 0 });
   });

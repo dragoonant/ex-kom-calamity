@@ -5,7 +5,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { HorizonFog, Skyline, SkyDome, eveningSky, towerRing, type Tower } from './backdrop';
+import { HorizonFog, Skyline, SkyDome, eveningSky, skyAt, towerRing, type Tower } from './backdrop';
 import { Inst, unitBox, type Item } from './instanced';
 import { markWindows, patchWindows, windowUniforms } from './windows';
 
@@ -84,12 +84,13 @@ function ring(W: number, D: number, inner: number, depth: number, hMin: number, 
   }
 }
 
-export function Surroundings({ width, depth }: { width: number; depth: number }) {
+export function Surroundings({ width, depth, night = false }: { width: number; depth: number; night?: boolean }) {
+  // NIGHT-1: a night raid stands under the night sky, its windows lit; otherwise the fixed evening (RULING ART-1).
   const tone = useMemo(() => {
-    const t = eveningSky();
-    t.ground.set('#8f8b7d');
+    const t = night ? skyAt(23) : eveningSky();
+    t.ground.set(night ? '#1e222b' : '#8f8b7d');
     return t;
-  }, []);
+  }, [night]);
   const windows = useMemo(() => {
     const u = windowUniforms(1.1, 2.0, 0.45);
     u.uNight.value = 0.75;
@@ -164,7 +165,7 @@ export function Surroundings({ width, depth }: { width: number; depth: number })
     [W, D],
   );
   useFrame(() => {
-    windows.uNight.value = 0.75;
+    windows.uNight.value = night ? 1 : 0.75;
   });
   return (
     <group>
