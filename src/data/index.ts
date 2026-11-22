@@ -40,6 +40,9 @@ export interface Tuning {
   snap: { penalty: number; aimPercent: number };
   /** Section 28 (STRAY, PANIC): the price of standing together. */
   stray: { percent: number };
+  /** Section 31 (BLEND, NIGHT): hiding again, and the dark. */
+  hide: { blendTicks: number };
+  night: { sightPercent: number; lampRange: number };
   /** Section 30 (AMMO). */
   ammo: { suppressRounds: number };
   /** Section 29 (OBJ): capture, evacuation and the wreck's core. */

@@ -4,7 +4,7 @@
 // the battle's roster (ARCH-11, CJOIN-3); its result flows back as a fought result (CJOIN-2).
 import { CITY, RAID_SITE_BATTLES } from '../../data/city';
 import { query, type Roster, type State } from '../../engine';
-import { hasDone, orgOfBuilding, working, type CityState, type RaidResult } from '../../city';
+import { clockOf, hasDone, orgOfBuilding, working, type CityState, type RaidResult } from '../../city';
 
 /** CJOIN-4 */
 export const SPITTER_AT = 30;
@@ -25,6 +25,9 @@ export function rosterOf(state: CityState, agents: string[], hostiles: { hostile
   return {
     // OBJ-1: restraints let the squad take hosts and takers alive (CJOIN-5).
     capture: hasDone(state, 'restraints'),
+    // NIGHT-1, NIGHT-3 (CJOIN-6): the hour of the raid, and whether the lab has the hand scanner.
+    night: clockOf(state.tuning, state.tick).night,
+    scanner: hasDone(state, 'hand-scanner'),
     squad: agents.map((id, i) => ({
       name: state.agents.find((a) => a.id === id)?.name ?? id,
       ...(i < plates ? { template: 'agent-t2' } : {}),

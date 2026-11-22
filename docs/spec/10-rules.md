@@ -314,6 +314,12 @@ Cover (section 25, AI-12), 2026-11-22: **96.5% (193/200)** on `bench-raid` (norm
 
 Posture and pace (section 24, D21 c), 2026-11-20: **unchanged**: 95.0% (190/200) on `bench-raid` with the same per-seat rows; 85%, 80% and 85% on the three sites. Neither the AI nor the bench's random agents give posture or run orders yet (RULING POSE-1), so the new terms never apply there. The AI slice that teaches cover and pace needs its own result.
 
+## 31. Hiding again, and the dark (BLEND, NIGHT) - 2026-11-22, `PLAN.md` D26 (6)
+- **BLEND-1** A revealed host (a `disguised` template) that the agency does not see for `hide.blendTicks = 100` ticks in a row passes for a citizen again: `revealed` returns to false and it emits `blended`. Seeing it again, its fire or a close look reveal it again (HIDE-2, HIDE-3).
+- **NIGHT-1** A battle set up with `roster.night` is fought at night (`state.night`).
+- **NIGHT-2** At night a unit sees a tile beyond `floor(sight * night.sightPercent / 100)` (`night.sightPercent = 50`) only if the tile is **lit**: an indoor `floor` or `stair`, or ground within `night.lampRange = 3` tiles of a street `lamp` prop. Within the shorter range everything is seen as by day (SEE-2).
+- **NIGHT-3** A battle set up with a roster but without `roster.scanner` marks no last hostiles (VIEW-5 with `sight.markLastHostiles` taken as 0): the city's lab must build the hand scanner first. A battle without a roster (the title's raids) marks them as before.
+
 ## 30. Ammunition (AMMO) - 2026-11-22, `PLAN.md` D26 (5): stagger the fire
 - **AMMO-1** A weapon with a `magazine` (rounds) and `reloadTicks` in `weapons.json` runs dry; one without (the bite, the whip) never does. A unit starts with a full load (`ammo`); `ammo` is null for a weapon that never runs dry. A citizen taken (TAKE-1) starts with a full load of its new weapon.
 - **AMMO-2** Each shot (FIRE-4) uses one round; a suppressive burst (SUP-3) uses `ammo.suppressRounds = 2` (what is left, if less).

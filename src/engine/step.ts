@@ -360,6 +360,20 @@ function runTick(state: State): StepResult {
     }
   }
 
+  // BLEND-1: a revealed host out of the agency's sight for hide.blendTicks passes for a citizen again.
+  const blend = st.tuning.hide?.blendTicks ?? 0;
+  if (blend > 0) {
+    for (const h of st.units) {
+      if (h.down || h.side !== 'hostile' || !h.disguised || !h.revealed) continue;
+      if (sideSeesUnit(st, 'agency', h)) h.lastSeenTick = st.tick;
+      else if (st.tick - (h.lastSeenTick ?? st.tick) >= blend) {
+        h.revealed = false;
+        delete h.lastSeenTick;
+        events.push({ type: 'blended', tick: st.tick, unit: h.id });
+      } else if (h.lastSeenTick === undefined) h.lastSeenTick = st.tick;
+    }
+  }
+
   // TIME-3c
   st.tick += 1;
   st.log = appendLog(st.log, { type: 'tick' });

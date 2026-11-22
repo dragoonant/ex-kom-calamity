@@ -73,6 +73,8 @@ export interface Unit {
   /** AMMO-1..3: rounds left (null: the weapon never runs dry) and ticks of reload left (0: not reloading). */
   ammo?: number | null;
   reloadLeft?: number;
+  /** BLEND-1: the last tick the agency saw this revealed host. */
+  lastSeenTick?: number;
   /** OBJ-1: a capture under way. */
   capture?: { target: string; progress: number } | null;
   /** OBJ-1, OBJ-3: taken alive, or evacuated to safety; both leave the field (down) without a body. */
@@ -114,6 +116,10 @@ export interface Roster {
   hostiles?: { host: number; taker: number; fighter: number; spitter?: number };
   /** OBJ-1: the agency may capture (it has researched restraints). */
   capture?: boolean;
+  /** NIGHT-1: the raid is fought at night. */
+  night?: boolean;
+  /** NIGHT-3: the agency has the hand scanner; without it a city battle marks no last hostiles (VIEW-5). */
+  scanner?: boolean;
 }
 
 export interface Setup {
@@ -158,6 +164,8 @@ export interface State {
   log: LogEntry[];
   /** OBJ-1: the roster allows captures (the city's restraints, ARCH-11). */
   canCapture?: boolean;
+  /** NIGHT-1 */
+  night?: boolean;
   /** OBJ-4: the wreck's drive core. */
   core?: { at: Pos; progress: number; secured: boolean; burnt: boolean } | null;
   /** VIEW-5: only on `view(state, 'agency')`, never on the true state: where the last few hostiles are. */
@@ -191,6 +199,7 @@ export type GameEvent =
   | { type: 'suppressFire'; tick: number; unit: string; at: Pos; weapon: string; pinned: string[] }
   | { type: 'strayHit'; tick: number; shooter: string; target: string; victim: string; roll: number }
   | { type: 'captured'; tick: number; unit: string; by: string }
+  | { type: 'blended'; tick: number; unit: string }
   | { type: 'reloading'; tick: number; unit: string; ticks: number }
   | { type: 'reloaded'; tick: number; unit: string }
   | { type: 'evacuating'; tick: number; unit: string; to: Pos }

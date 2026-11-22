@@ -410,6 +410,11 @@ export function Hud() {
               {(outcome.score.captured ?? 0) > 0 && <span>TAKEN ALIVE {outcome.score.captured}</span>}
               {(outcome.score.saved ?? 0) > 0 && <span>EVACUATED {outcome.score.saved}</span>}
             </div>
+            {agency.night && (
+              <div className="marks-line num" data-testid="night-line">
+                NIGHT RAID: on dark streets sight is cut to {agency.tuning.night?.sightPercent ?? 100}%; lamps and lit rooms show everything.
+              </div>
+            )}
             {agency.core && (
               <div className="marks-line num" data-testid="core-line">
                 {agency.core.secured

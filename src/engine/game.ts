@@ -105,9 +105,11 @@ export function createGame(setup: Setup): State {
     tiles,
     units: [],
     rng: seedRng(setup.seed),
-    tuning: mergeTuning(TUNING, setup.tuning),
+    // NIGHT-3: a city battle marks its last hostiles only with the hand scanner.
+    tuning: setup.roster && !setup.roster.scanner ? (() => { const t = mergeTuning(TUNING, setup.tuning); return { ...t, sight: { ...t.sight, markLastHostiles: 0 } }; })() : mergeTuning(TUNING, setup.tuning),
     score: { shotsFired: 0, hits: 0, civilianHits: 0, agentsDown: 0, hostilesDown: 0, civiliansDown: 0, taken: 0, captured: 0, saved: 0 },
     canCapture: setup.roster?.capture === true,
+    night: setup.roster?.night === true,
     core: base0.core ? { at: { ...base0.core }, progress: 0, secured: false, burnt: false } : null,
     over: null,
     log: [],

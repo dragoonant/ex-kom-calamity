@@ -125,4 +125,12 @@ describe('16. The client (CSAV, CJOIN)', () => {
     expect(res.captured).toEqual({ host: 1, taker: 0 });
     expect(res.saved).toBe(2);
   });
+  it('CJOIN-6 a fought battle is at night by the city clock and has the marks only with the hand scanner', () => {
+    useCity.getState().start(12);
+    const g = JSON.parse(JSON.stringify(useCity.getState().game!));
+    expect(rosterOf(g, ['ag1'], { hostiles: 1, takers: 0, fighters: 0 })).toMatchObject({ night: false, scanner: false });
+    g.tick = 12 * 6; // 20:00
+    g.lab.done.push('hand-scanner');
+    expect(rosterOf(g, ['ag1'], { hostiles: 1, takers: 0, fighters: 0 })).toMatchObject({ night: true, scanner: true });
+  });
 });

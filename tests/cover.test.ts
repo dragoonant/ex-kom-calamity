@@ -1,6 +1,6 @@
 // docs/spec/10-rules.md section 25: cover.
 import { describe, expect, it } from 'vitest';
-import { aimTicksFor, coverAgainst, coverTiles, createGame, hitBreakdown, legalActions, query, step, tileIndex, weaponOf, type State, type TileKind } from '../src/engine';
+import { aimTicksFor, coverAgainst, coverTiles, createGame, hitBreakdown, legalActions, query, step, tileIndex, unitSeesTile, weaponOf, type State, type TileKind } from '../src/engine';
 import { COVER_PROPS, MAPS, TUNING, WEAPONS } from '../src/data';
 import { makeAgencyNormal, hostileNormal } from '../src/ai';
 import { coverPosture, type Know } from '../src/ai/know';
@@ -500,5 +500,49 @@ describe('30. Ammunition (AMMO)', () => {
     s.units.find((u) => u.id === 'a1')!.ammo = 2;
     const acts = makeAgencyNormal()(view(s, 'agency'), 'agency');
     expect(acts).toContainEqual({ type: 'reload', side: 'agency', unit: 'a1' });
+  });
+});
+
+describe('31. Hiding again, and the dark (BLEND, NIGHT)', () => {
+  it('BLEND-1 a revealed host out of sight for blendTicks passes for a citizen again', () => {
+    let s = createGame({ battleId: 'automat-raid', seed: 1 });
+    s = clone(s);
+    const h = s.units.find((u) => u.template === 'host')!;
+    h.revealed = true;
+    for (const a of s.units) if (a.side === 'agency') a.sight = 0; // nobody sees anything
+    for (const u of s.units) if (u.side === 'hostile') u.stance = 'hold';
+    let blended = false;
+    for (let i = 0; i < TUNING.hide.blendTicks + 2 && !blended; i++) {
+      const r = step(s, { type: 'tick' }) as { state: State; events: { type: string; unit?: string }[] };
+      s = r.state;
+      if (r.events.some((e) => e.type === 'blended' && e.unit === h.id)) blended = true;
+    }
+    expect(blended).toBe(true);
+    expect(s.units.find((u) => u.id === h.id)!.revealed).toBe(false);
+  });
+  it('NIGHT-1 a roster at night makes a night battle', () => {
+    expect(createGame({ battleId: 'automat-raid', seed: 1, roster: { night: true } }).night).toBe(true);
+    expect(createGame({ battleId: 'automat-raid', seed: 1 }).night).toBe(false);
+  });
+  it('NIGHT-2 at night a dark tile beyond half sight is unseen; a lit one is seen', () => {
+    const day = yard();
+    const night = { ...clone(day), night: true };
+    const a1 = night.units.find((u) => u.id === 'a1')!;
+    a1.x = 2;
+    a1.y = 3;
+    a1.level = 0;
+    a1.sight = 12;
+    const far = { x: 11, y: 3, level: 0 };
+    expect(unitSeesTile({ ...night, night: false }, a1, far)).toBe(true);
+    expect(unitSeesTile(night, a1, far)).toBe(false);
+    expect(unitSeesTile(night, a1, { x: 6, y: 3, level: 0 })).toBe(true); // within half sight
+    const lit = clone(night);
+    lit.tiles[tileIndex(lit, far)]!.kind = 'floor';
+    expect(unitSeesTile(lit, a1, far)).toBe(true);
+  });
+  it('NIGHT-3 a city battle without the scanner marks no last hostiles', () => {
+    expect(createGame({ battleId: 'automat-raid', seed: 1, roster: { scanner: false } }).tuning.sight.markLastHostiles).toBe(0);
+    expect(createGame({ battleId: 'automat-raid', seed: 1, roster: { scanner: true } }).tuning.sight.markLastHostiles).toBe(TUNING.sight.markLastHostiles);
+    expect(createGame({ battleId: 'automat-raid', seed: 1 }).tuning.sight.markLastHostiles).toBe(TUNING.sight.markLastHostiles);
   });
 });

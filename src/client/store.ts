@@ -193,6 +193,11 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
         push(e.tick, `The citizen at ${u ? fmtPos(u) : '?'} is a HOST (${e.by === 'fire' ? 'opened fire' : 'seen up close'}).`, 'alert');
         break;
       }
+      case 'blended': {
+        // BLEND-1: the host the squad lost sight of passes for a citizen again.
+        push(e.tick, 'A host the squad lost sight of has slipped back into the crowd.', 'caution');
+        break;
+      }
       case 'taken': {
         // TAKE-2: the squad learns of a taking only when it watched it happen.
         if (!e.seen) break;
