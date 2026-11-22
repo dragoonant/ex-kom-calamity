@@ -70,7 +70,7 @@ describe('24. Posture and pace (POSE)', () => {
     expect(hitBreakdown(s, a1, { ...u2, posture: 'crouch' }, w, 1.5).crouchPenalty).toBe(0); // inside 2 tiles
     expect(hitBreakdown(s, { ...a1, posture: 'crouch' }, u2, w, 3)).toMatchObject({ crouchBonus: 5, raw: base + 5 });
     const t = s.tick;
-    expect(hitBreakdown(s, { ...a1, lastRunTick: t }, u2, w, 3)).toMatchObject({ runPenalty: 20, cover: 0, coverGrade: 'none', raw: base - 20 });
+    expect(hitBreakdown(s, { ...a1, lastRunTick: t }, u2, w, 3)).toMatchObject({ runPenalty: 20, cover: 0, coverGrade: 'none', snapPenalty: 0, suppressPenalty: 0, raw: base - 20 });
     expect(hitBreakdown(s, { ...a1, lastRunTick: t - TUNING.fire.runSettleTicks }, u2, w, 3).runPenalty).toBe(0);
     const bite = WEAPONS['taker-bite']!;
     expect(bite.kind).toBe('melee');

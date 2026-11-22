@@ -34,6 +34,8 @@ function lampClass(u: Unit): string {
 
 function agentStatus(u: Unit): string {
   if (u.down) return '';
+  if (u.suppressAt) return 'SUPPRESSING';
+  if ((u.suppression ?? 0) >= 60) return 'PINNED';
   if (u.blast) return 'ARMING';
   if (u.fireTarget) return 'FIRING';
   if (u.order) return 'MOVING';
@@ -92,7 +94,7 @@ export function Hud() {
           else s.select(u.id);
         }
       } else if (e.code === 'Escape') {
-        if (s.mode === 'blast') s.setMode('normal');
+        if (s.mode !== 'normal') s.setMode('normal');
         else s.select(null);
         setConfirmWithdraw(false);
       } else if (e.code === 'PageUp' || e.code === 'BracketRight') {
@@ -103,6 +105,9 @@ export function Hud() {
         s.order({ type: 'halt', side: 'agency', unit: s.selected });
       } else if (e.code === 'KeyB' && s.selected) {
         s.setMode(s.mode === 'blast' ? 'normal' : 'blast');
+      } else if (e.code === 'KeyV' && s.selected) {
+        // SUP-3: V arms suppressive fire for the next tap.
+        s.setMode(s.mode === 'suppress' ? 'normal' : 'suppress');
       } else if (e.code === 'KeyF' && s.selected) {
         s.focusUnit(s.selected);
       } else if (e.code === 'KeyC' && s.selected) {
@@ -152,6 +157,11 @@ export function Hud() {
           </button>
         ))}
       </div>
+      {mode === 'suppress' && sel && (
+        <div className="mode-banner" data-testid="mode-banner-suppress">
+          SUPPRESS: tap a tile {sel.name} can see in range. Every hostile on or beside it is pinned. Esc cancels.
+        </div>
+      )}
       {mode === 'blast' && sel && (
         <div className="mode-banner" data-testid="mode-banner">
           CHARGE: tap a tile {sel.name} can see within {agency.tuning.blast.throwRange} tiles. Esc cancels.
@@ -250,6 +260,15 @@ export function Hud() {
                   >
                     CHARGE <span className="num">{sel.charges}</span>
                   </button>
+                  <button
+                    type="button"
+                    className={`toggle ${mode === 'suppress' ? 'toggle-alert' : ''} ${sel.suppressAt ? 'toggle-on' : ''}`}
+                    data-testid="suppress"
+                    aria-pressed={mode === 'suppress'}
+                    onClick={() => setMode(mode === 'suppress' ? 'normal' : 'suppress')}
+                  >
+                    SUPPRESS
+                  </button>
                 </div>
                 <div className="switch-row" role="group" aria-label="Posture and pace">
                   <button
@@ -275,7 +294,7 @@ export function Hud() {
                 </div>
               </>
             ) : (
-              <div className="hint">Select an agent: tap one on the board or press 1 to 6. Tap a tile to move, an enemy to fire.</div>
+              <div className="hint">Select an agent: tap one on the board or press 1 to 6. Tap a tile to move, an enemy to order an aimed shot; left to their stance, agents snap-fire at -{agency.tuning.snap?.penalty ?? 0} to hit.</div>
             )}
             <div className="switch-row">
               {confirmWithdraw ? (
@@ -334,7 +353,7 @@ export function Hud() {
                 {hoverInfo.hit && (
                   <div className="num" data-testid="hit-chance">
                     {hoverInfo.hit.ok
-                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''}${hoverInfo.hit.cover ? ` - ${hoverInfo.hit.cover} ${hoverInfo.hit.coverGrade} cover` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
+                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit with an aimed shot (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''}${hoverInfo.hit.cover ? ` - ${hoverInfo.hit.cover} ${hoverInfo.hit.coverGrade} cover` : ''}${hoverInfo.hit.suppressPenalty ? ` - ${hoverInfo.hit.suppressPenalty} suppressed` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
                       : `${sel!.name} cannot fire: ${hoverInfo.hit.reason}`}
                   </div>
                 )}

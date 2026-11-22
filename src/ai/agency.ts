@@ -2,9 +2,9 @@
 // what its view marks hostile, walks up to every apparent citizen to reveal hosts (HIDE-3) and sweeps unseen
 // tiles. Unlike the hostile AI it keeps a memory (checked citizens, seen tiles), so it is a closure: the player
 // never runs it, the bench does. It still reads only view(state, 'agency').
-import { query, tileIndex, type Action, type Pos, type Side, type State, type Unit } from '../engine';
+import { query, tileIndex, type Action, type Pos, type Side, type State, type Unit, canSuppress, coverAgainst, isPinned } from '../engine';
 import { WEAPONS } from '../data';
-import { coverPosture, fireOrder, firingTile, freeNeighbour, know, moveOrder, stanceOrder, type Know } from './know';
+import { bestTile, coverPosture, fireOrder, firingTile, freeNeighbour, know, moveOrder, stanceOrder, type Know } from './know';
 import { distanceAny } from './nav';
 import type { AiDriver } from './types';
 
@@ -65,8 +65,24 @@ function agent(k: Know, a: Unit, out: Action[], checked: Set<string>, claimed: M
     if (n) push(moveOrder(k, a, n));
   };
   if (e) {
+    // AI-13: pinned in the open, the agent first moves to the nearest firing tile with cover against its target.
+    if (isPinned(k.view, a) && coverAgainst(k.view, a, e).grade === 'none') {
+      const spot = bestTile(k, a, 20, (p, ticks) => (coverAgainst(k.view, p, e).value > 0 && query.los(k.view, p, e) ? 100 - ticks : null));
+      if (spot && spot.ticks > 0) {
+        push(coverPosture(k, a, null, true));
+        push(moveOrder(k, a, spot));
+        return;
+      }
+    }
     if (k.canFire(a, e)) {
-      push(fireOrder(k, a, e));
+      // AI-13: a target in heavy cover is pinned with suppressive fire rather than shot at long odds.
+      const q = query.hitChance(k.view, a.id, e.id);
+      const sup = k.view.tuning.suppress;
+      if (sup && q.ok && q.chance < sup.aiBelow && canSuppress(k.view, a, e).ok) {
+        // Keep pinning while the target stays on or beside the pinned tile (SUP-3 reaches the neighbours).
+        const same = a.suppressAt && a.suppressAt.level === e.level && Math.max(Math.abs(a.suppressAt.x - e.x), Math.abs(a.suppressAt.y - e.y)) <= 1;
+        if (!same) push({ type: 'suppress', side: k.side, unit: a.id, at: { x: e.x, y: e.y, level: e.level } });
+      } else push(fireOrder(k, a, e));
       push(coverPosture(k, a, e, false)); // AI-12
       return;
     }

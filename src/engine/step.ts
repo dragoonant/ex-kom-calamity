@@ -5,7 +5,7 @@ import { POSTURES, SIDES, STANCES } from './types';
 import { inBounds, isPassable, tileIndex } from './map';
 import { pathField, pathTo, stepCost } from './path';
 import { appearsCivilianTo, enemySide, sideSeesTile, sideSeesUnit, unitById } from './sight';
-import { canFire, hitBreakdown, weaponOf } from './fire';
+import { canFire, hitBreakdown, weaponOf, aimTicksFor, canSuppress, isPinned } from './fire';
 import { hasLineOfSight, distance as unitDistance } from './map';
 import { nextInt } from './rng';
 import { appendLog } from './replay';
@@ -88,6 +88,7 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       const st = cloneState(state);
       const u = unitById(st, action.unit)!;
       u.order = { to: { ...action.to }, path, progress: 0, blockedTicks: 0, run: action.run === true };
+      u.suppressAt = null; // SUP-3: a move ends suppressive fire
       // POSE-2: a run stands a crouched unit up.
       if (action.run === true) u.posture = 'stand';
       return accept(st, action);
@@ -103,6 +104,7 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       const u = unitById(st, action.unit)!;
       if (u.fireTarget !== action.target) u.aimProgress = 0;
       u.fireTarget = action.target;
+      u.suppressAt = null;
       return accept(st, action);
     }
     case 'stance': {
@@ -130,6 +132,7 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       u.fireTarget = null;
       u.aimProgress = 0;
       u.blast = null;
+      u.suppressAt = null;
       return accept(st, action);
     }
     case 'blast': {
@@ -139,6 +142,20 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       if (!cb.ok) return reject(state, cb.reason);
       const st = cloneState(state);
       unitById(st, action.unit)!.blast = { at: { x: action.at.x, y: action.at.y, level: action.at.level }, progress: 0 };
+      return accept(st, action);
+    }
+    case 'suppress': {
+      // SUP-3
+      if (!isPos(action.at)) return reject(state, 'missing tile');
+      const cs = canSuppress(state, target, action.at);
+      if (!cs.ok) return reject(state, cs.reason);
+      const st = cloneState(state);
+      const u = unitById(st, action.unit)!;
+      // SUP-3: shifting an existing suppression keeps the aim; starting one aims afresh.
+      if (!u.suppressAt) u.aimProgress = 0;
+      u.suppressAt = { x: action.at.x, y: action.at.y, level: action.at.level };
+      u.fireTarget = null;
+      u.order = null;
       return accept(st, action);
     }
     default:
@@ -175,6 +192,19 @@ function runTick(state: State): StepResult {
         continue;
       }
     }
+    // SUP-3: suppressive fire on a tile, while the tile stays seen and in range.
+    if (u.suppressAt) {
+      if (!canSuppress(st, u, u.suppressAt).ok) u.suppressAt = null;
+      else {
+        u.moving = false;
+        const w = weaponOf(u)!;
+        if (st.tick >= u.readyTick) {
+          u.aimProgress += 1;
+          if (u.aimProgress >= aimTicksFor(st, w, true)) suppressFire(st, u, w.cooldownTicks, events);
+        }
+        continue;
+      }
+    }
     let current: Unit | null = null;
     if (u.fireTarget) {
       const t = unitById(st, u.fireTarget);
@@ -185,15 +215,22 @@ function runTick(state: State): StepResult {
     if (current) {
       u.moving = false;
       const w = weaponOf(u)!;
+      // SNAP-1: a target the unit chose by its stance, not an ordered one, is a snap shot.
+      const snap = u.fireTarget !== current.id;
       if (st.tick >= u.readyTick) {
         u.aimProgress += 1;
-        if (u.aimProgress >= w.aimTicks) resolveShot(st, u, current, events, occ);
+        if (u.aimProgress >= aimTicksFor(st, w, snap)) resolveShot(st, u, current, events, occ, snap);
       }
     } else {
       u.aimProgress = 0;
-      advanceMove(st, u, events, occ);
+      // SUP-4: a pinned unit moves at half pace: it makes no progress on odd ticks.
+      if (isPinned(st, u) && st.tick % 2 === 1) u.moving = false;
+      else advanceMove(st, u, events, occ);
     }
   }
+
+  // SUP-1: suppression fades.
+  for (const u of st.units) if (u.suppression) u.suppression = Math.max(0, u.suppression - st.tuning.suppress.decayPerTick);
 
   // TIME-3b: proximity reveals (HIDE-3).
   const reveal = st.tuning.sight.revealRange;
@@ -227,6 +264,32 @@ function runTick(state: State): StepResult {
   return { ok: true, state: st, events };
 }
 
+function addSuppression(st: State, u: Unit, amount: number): void {
+  if (u.down || u.side === 'civilian') return;
+  u.suppression = Math.min(st.tuning.suppress.cap, (u.suppression ?? 0) + amount);
+}
+
+/** SUP-3: one burst of suppressive fire: no roll, every enemy on or beside the tile is suppressed. */
+function suppressFire(st: State, u: Unit, cooldown: number, events: GameEvent[]): void {
+  const at = u.suppressAt!;
+  u.readyTick = st.tick + cooldown;
+  u.lastFiredTick = st.tick;
+  u.aimProgress = 0;
+  st.score.shotsFired += 1;
+  if (u.disguised && !u.revealed) {
+    u.revealed = true;
+    events.push({ type: 'revealed', tick: st.tick, unit: u.id, by: 'fire' });
+  }
+  const pinned: string[] = [];
+  for (const t of st.units) {
+    if (t.down || t.side === u.side || t.side === 'civilian' || t.level !== at.level) continue;
+    if (Math.max(Math.abs(t.x - at.x), Math.abs(t.y - at.y)) > 1) continue;
+    addSuppression(st, t, st.tuning.suppress.fire);
+    pinned.push(t.id);
+  }
+  events.push({ type: 'suppressFire', tick: st.tick, unit: u.id, at: { ...at }, weapon: u.weapon!, pinned });
+}
+
 /** STANCE-3, STANCE-4 */
 export function stanceTarget(st: State, u: Unit): Unit | null {
   if (u.stance === 'hold') return null;
@@ -249,11 +312,11 @@ export function stanceTarget(st: State, u: Unit): Unit | null {
   return best;
 }
 
-function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<number, Unit>): void {
+function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<number, Unit>, snap = false): void {
   const cf = canFire(st, u, t);
   if (!cf.ok) return;
   const w = cf.weapon;
-  const breakdown = hitBreakdown(st, u, t, w, cf.distance);
+  const breakdown = hitBreakdown(st, u, t, w, cf.distance, snap);
   const roll = nextInt(st.rng, 100);
   const hit = roll < breakdown.chance;
   // FIRE-4
@@ -261,6 +324,8 @@ function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<
   u.lastFiredTick = st.tick;
   u.aimProgress = 0;
   st.score.shotsFired += 1;
+  // SUP-1: being shot at, hit or miss, suppresses the target (ranged fire only).
+  if (w.kind === 'ranged') addSuppression(st, t, st.tuning.suppress.perShot + (hit ? st.tuning.suppress.perHit : 0));
   events.push({
     type: 'shot',
     tick: st.tick,

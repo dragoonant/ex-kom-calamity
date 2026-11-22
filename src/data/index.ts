@@ -36,6 +36,10 @@ export interface Tuning {
   ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number };
   /** Section 25 (COVER): what each grade of cover takes off a ranged hit chance. */
   cover: { full: number; half: number; low: number };
+  /** Section 26 (SNAP): a shot at a stance target is quick and loose. */
+  snap: { penalty: number; aimPercent: number };
+  /** Section 27 (SUP): being shot at, and pinning a tile. */
+  suppress: { perShot: number; perHit: number; decayPerTick: number; aimPercent: number; pinnedAt: number; fire: number; cap: number; aiBelow: number };
   blast: { throwRange: number; armTicks: number; structureDamage: number; edgeStructureDamage: number; unitDamage: number; edgeUnitDamage: number };
 }
 

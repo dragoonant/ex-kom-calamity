@@ -24,7 +24,7 @@ export interface Derived {
   blast: Set<number>;
 }
 
-export function useBoardDerived(agency: State | null, selected: string | null, hover: Pos | null, mode: 'normal' | 'blast'): Derived {
+export function useBoardDerived(agency: State | null, selected: string | null, hover: Pos | null, mode: 'normal' | 'blast' | 'suppress'): Derived {
   const visible = useMemo(() => {
     const s = new Set<number>();
     if (agency) for (const p of query.visibleTiles(agency, 'agency')) s.add(tileIndex(agency, p));

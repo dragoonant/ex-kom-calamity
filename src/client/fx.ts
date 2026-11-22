@@ -64,6 +64,12 @@ export function fxFor(events: GameEvent[], before: State, after: State): Fx[] {
         push({ kind: 'muzzle', tick: e.tick, at, to: to ?? undefined, weapon: e.weapon, side: after.units.find((u) => u.id === e.shooter)?.side, hit: e.hit, unit: e.shooter });
         break;
       }
+      case 'suppressFire': {
+        if (!visible(e.unit)) break;
+        const at = unitPos(after, e.unit) ?? unitPos(before, e.unit);
+        if (at) push({ kind: 'muzzle', tick: e.tick, at, to: e.at, weapon: e.weapon, side: after.units.find((u) => u.id === e.unit)?.side, hit: false, unit: e.unit });
+        break;
+      }
       case 'damaged': {
         if (!visible(e.unit)) break;
         const at = unitPos(after, e.unit);

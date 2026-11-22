@@ -49,6 +49,8 @@ function makeUnit(id: string, name: string, templateId: string, weapon: string |
     blast: null,
     posture: 'stand',
     lastRunTick: null,
+    suppression: 0,
+    suppressAt: null,
   };
 }
 

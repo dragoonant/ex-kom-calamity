@@ -9,7 +9,7 @@ import { fireColour, rng } from '../src/client/board/fxkit';
 import { DEFAULT_VIEW, readViewSettings, writeViewSettings } from '../src/client/viewSettings';
 import { MAPS } from '../src/data';
 
-const shot = (shooter: string, target: string, hit: boolean): GameEvent => ({ type: 'shot', tick: 1, shooter, target, weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, cover: 0, coverGrade: 'none', raw: 0, chance: 50 }, roll: 1, hit });
+const shot = (shooter: string, target: string, hit: boolean): GameEvent => ({ type: 'shot', tick: 1, shooter, target, weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, cover: 0, coverGrade: 'none', snapPenalty: 0, suppressPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit });
 
 describe('D21 effects queue (fx.ts)', () => {
   it('names the unit each effect belongs to, so the right figure recoils, flinches, throws or lunges', () => {

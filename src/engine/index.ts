@@ -16,6 +16,6 @@ export { seedRng, nextInt, nextU32 } from './rng';
 export { parseMap, tileIndex, tileAt, inBounds, isPassable, distance, chebyshev, hasLineOfSight } from './map';
 export { pathField, pathTo, posOfIndex, stepCost, neighbours } from './path';
 export { unitById, livingUnits, sideSeesUnit, sideSeesTile, unitSeesTile, appearsCivilianTo } from './sight';
-export { canFire, hitBreakdown, weaponOf } from './fire';
+export { canFire, hitBreakdown, weaponOf, aimTicksFor, canSuppress, isPinned } from './fire';
 export { coverAgainst, coverTiles, type CoverGrade } from './cover';
 export { canBlast, blastFootprint, blastTargets, isBreakable } from './structure';

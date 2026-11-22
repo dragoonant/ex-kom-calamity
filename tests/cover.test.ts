@@ -1,7 +1,7 @@
 // docs/spec/10-rules.md section 25: cover.
 import { describe, expect, it } from 'vitest';
-import { coverAgainst, coverTiles, createGame, hitBreakdown, query, tileIndex, weaponOf, type State, type TileKind } from '../src/engine';
-import { COVER_PROPS, MAPS, TUNING } from '../src/data';
+import { aimTicksFor, coverAgainst, coverTiles, createGame, hitBreakdown, legalActions, query, step, tileIndex, weaponOf, type State, type TileKind } from '../src/engine';
+import { COVER_PROPS, MAPS, TUNING, WEAPONS } from '../src/data';
 import { makeAgencyNormal, hostileNormal } from '../src/ai';
 import { coverPosture, type Know } from '../src/ai/know';
 import { view } from '../src/engine';
@@ -116,5 +116,133 @@ describe('22. AI and cover (AI-12)', () => {
     const a1 = crouched.units.find((u) => u.id === 'a1')!;
     expect(coverPosture(k, a1, null, true)).toEqual({ type: 'posture', side: 'agency', unit: 'a1', posture: 'stand' });
     expect(coverPosture(k, a1, crouched.units.find((u) => u.id === 'u2')!, false)).toBeNull(); // already crouched
+  });
+});
+
+describe('26. Aimed and snap shots (SNAP)', () => {
+  const SNAPPY = { snap: { penalty: 25, aimPercent: 50 } };
+  function duelAt(): State {
+    let s = only(yard(), ['a1', 'u2']);
+    s = place(s, 'a1', 2, 3);
+    s = place(s, 'u2', 6, 3);
+    s = clone(s);
+    s.tuning = { ...s.tuning, ...SNAPPY };
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    u2.revealed = true;
+    u2.stance = 'hold';
+    return s;
+  }
+  it('SNAP-1 a stance shot aims in half the ticks; an ordered one takes them all', () => {
+    const w = weaponOf(duelAt().units.find((u) => u.id === 'a1')!)!;
+    const snapTicks = Math.max(1, Math.ceil(w.aimTicks / 2));
+    let s = duelAt();
+    for (let i = 0; i < snapTicks; i++) s = (step(s, { type: 'tick' }) as { state: State }).state;
+    expect(s.score.shotsFired).toBe(1);
+    let o = (step(duelAt(), { type: 'fire', side: 'agency', unit: 'a1', target: 'u2' }) as { state: State }).state;
+    for (let i = 0; i < snapTicks; i++) o = (step(o, { type: 'tick' }) as { state: State }).state;
+    expect(o.score.shotsFired).toBe(snapTicks < w.aimTicks ? 0 : 1);
+    expect(aimTicksFor(duelAt(), w, true)).toBe(snapTicks);
+    expect(aimTicksFor(duelAt(), WEAPONS['taker-bite']!, true)).toBe(WEAPONS['taker-bite']!.aimTicks);
+  });
+  it('SNAP-2 a snap shot loses snap.penalty; an aimed one does not', () => {
+    const s = duelAt();
+    const a1 = s.units.find((u) => u.id === 'a1')!;
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    const w = weaponOf(a1)!;
+    const aimed = hitBreakdown(s, a1, u2, w, 4, false);
+    const snap = hitBreakdown(s, a1, u2, w, 4, true);
+    expect(aimed.snapPenalty).toBe(0);
+    expect(snap.snapPenalty).toBe(25);
+    expect(snap.raw).toBe(aimed.raw - 25);
+  });
+  it('SNAP-3 the hit-chance query gives the aimed chance', () => {
+    const s = duelAt();
+    const q = query.hitChance(s, 'a1', 'u2');
+    expect(q.ok && q.snapPenalty).toBe(0);
+  });
+});
+
+describe('27. Suppression (SUP)', () => {
+  function field(): State {
+    let s = only(yard(), ['a1', 'u2']);
+    s = place(s, 'a1', 2, 3);
+    s = place(s, 'u2', 8, 3);
+    s = clone(s);
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    u2.revealed = true;
+    u2.stance = 'hold';
+    return s;
+  }
+  const run = (s: State, n: number) => {
+    for (let i = 0; i < n; i++) s = (step(s, { type: 'tick' }) as { state: State }).state;
+    return s;
+  };
+  it('SUP-1 a shot at a unit suppresses it, a hit more, and suppression fades each tick', () => {
+    const NO = { fire: { ...TUNING.fire, minHitChance: 0, maxHitChance: 0 } };
+    let s = clone(field());
+    s.tuning = { ...s.tuning, ...NO };
+    s = (step(s, { type: 'fire', side: 'agency', unit: 'a1', target: 'u2' }) as { state: State }).state;
+    const w = weaponOf(s.units.find((u) => u.id === 'a1')!)!;
+    s = run(s, w.aimTicks);
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    expect(u2.suppression).toBe(TUNING.suppress.perShot - TUNING.suppress.decayPerTick);
+    const later = run(s, 3);
+    expect(later.units.find((u) => u.id === 'u2')!.suppression).toBe(u2.suppression! - 3 * TUNING.suppress.decayPerTick);
+  });
+  it('SUP-2 a suppressed shooter aims worse', () => {
+    const s = field();
+    const a1 = { ...s.units.find((u) => u.id === 'a1')!, suppression: 50 };
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    const b = hitBreakdown(s, a1, u2, weaponOf(a1)!, 6);
+    expect(b.suppressPenalty).toBe(Math.floor((50 * TUNING.suppress.aimPercent) / 100));
+  });
+  it('SUP-3 suppressive fire pins every enemy on and beside the tile, with no roll, and ends on a new order', () => {
+    let s = field();
+    const r = step(s, { type: 'suppress', side: 'agency', unit: 'a1', at: { x: 8, y: 2, level: 0 } });
+    expect(r.ok).toBe(true);
+    s = (r as { state: State }).state;
+    const w = weaponOf(s.units.find((u) => u.id === 'a1')!)!;
+    const rolls = JSON.stringify(s.rng);
+    const ev: string[] = [];
+    for (let i = 0; i < aimTicksFor(s, w, true); i++) {
+      const t = step(s, { type: 'tick' }) as { state: State; events: { type: string }[] };
+      s = t.state;
+      ev.push(...t.events.map((e) => e.type));
+    }
+    expect(ev).toContain('suppressFire');
+    expect(ev).not.toContain('shot');
+    expect(JSON.stringify(s.rng)).toBe(rolls); // no roll
+    expect(s.units.find((u) => u.id === 'u2')!.suppression).toBe(TUNING.suppress.fire - TUNING.suppress.decayPerTick);
+    expect(s.units.find((u) => u.id === 'u2')!.hp).toBe(createGame({ battleId: 'first-raid', seed: 1 }).units.find((u) => u.id === 'u2')!.hp);
+    s = (step(s, { type: 'halt', side: 'agency', unit: 'a1' }) as { state: State }).state;
+    expect(s.units.find((u) => u.id === 'a1')!.suppressAt).toBeNull();
+    expect(step(field(), { type: 'suppress', side: 'agency', unit: 'a1', at: { x: 30, y: 3, level: 0 } }).ok).toBe(false);
+  });
+  it('SUP-4 a pinned unit moves at half pace', () => {
+    const holding = clone(field());
+    holding.units.find((u) => u.id === 'a1')!.stance = 'hold';
+    const free = (step(holding, { type: 'move', side: 'agency', unit: 'a1', to: { x: 2, y: 9, level: 0 } }) as { state: State }).state;
+    const pinned = clone(free);
+    pinned.units.find((u) => u.id === 'a1')!.suppression = 100;
+    pinned.tuning = { ...pinned.tuning, suppress: { ...pinned.tuning.suppress, decayPerTick: 0 } };
+    const a = run(free, 16).units.find((u) => u.id === 'a1')!;
+    const b = run(pinned, 16).units.find((u) => u.id === 'a1')!;
+    expect(b.y - 3).toBeLessThan(a.y - 3);
+    expect(b.y - 3).toBeGreaterThan(0);
+  });
+  it('SUP-5 legal actions list suppressive fire at seen enemies', () => {
+    const acts = legalActions(field(), 'agency');
+    expect(acts).toContainEqual({ type: 'suppress', side: 'agency', unit: 'a1', at: { x: 8, y: 3, level: 0 } });
+  });
+  it('AI-13 the normal agency suppresses a target it can barely hit', () => {
+    let s = setTile(field(), 7, 3, 'wall');
+    s = place(s, 'u2', 8, 3);
+    // the wall blocks the straight line: move the host diagonally so it is seen around the corner with full cover
+    s = place(s, 'u2', 8, 4);
+    s = setTile(s, 7, 4, 'window');
+    s = clone(s);
+    s.tuning = { ...s.tuning, suppress: { ...s.tuning.suppress, aiBelow: 100 } };
+    const acts = makeAgencyNormal()(view(s, 'agency'), 'agency');
+    expect(acts.some((a) => a.type === 'suppress')).toBe(true);
   });
 });

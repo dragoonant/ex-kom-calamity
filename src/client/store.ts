@@ -32,7 +32,7 @@ export interface SaveStatus {
 
 export interface TapResult {
   tile: Pos;
-  did: 'fire' | 'move' | 'blast' | 'select' | 'clear' | 'rejected';
+  did: 'fire' | 'move' | 'blast' | 'suppress' | 'select' | 'clear' | 'rejected';
   detail: string;
 }
 
@@ -48,7 +48,7 @@ export interface ClientState {
   level: number;
   hover: Pos | null;
   /** 'blast': the next tap on a tile throws the selected agent's charge there (ORD-9). */
-  mode: 'normal' | 'blast';
+  mode: 'normal' | 'blast' | 'suppress';
   /** POSE-3: the RUN switch; move orders run while it is on (Shift on a tap inverts it). Not saved: a habit, not a state. */
   run: boolean;
   slips: Slip[];
@@ -83,7 +83,7 @@ export interface ClientState {
   select(id: string | null): void;
   setLevel(level: number): void;
   setHover(p: Pos | null): void;
-  setMode(mode: 'normal' | 'blast'): void;
+  setMode(mode: 'normal' | 'blast' | 'suppress'): void;
   setRun(run: boolean): void;
   focusUnit(id: string): void;
   tapTile(p: Pos, opts?: { shift?: boolean }): TapResult;
@@ -473,6 +473,12 @@ export const useClient = create<ClientState>((set, get) => {
       if (!agency) return finish('clear', 'no battle');
       const holder = agency.units.find((u) => !u.down && u.x === p.x && u.y === p.y && u.level === p.level);
       const sel = selected ? agency.units.find((u) => u.id === selected && !u.down) : undefined;
+      if (sel && get().mode === 'suppress') {
+        // SUP-3: the next tap lays suppressive fire on a tile.
+        const r = get().order({ type: 'suppress', side: 'agency', unit: sel.id, at: { x: p.x, y: p.y, level: p.level } });
+        if (r.ok) set({ mode: 'normal' });
+        return r.ok ? finish('suppress', `${sel.id} -> ${fmtPos(p)}`) : finish('rejected', r.reason);
+      }
       if (sel && get().mode === 'blast') {
         const r = get().order({ type: 'blast', side: 'agency', unit: sel.id, at: { x: p.x, y: p.y, level: p.level } });
         if (r.ok) set({ mode: 'normal' });

@@ -66,6 +66,10 @@ export interface Unit {
   posture?: Posture;
   /** POSE-4: the last tick the unit advanced a running step, or null (absent in old saves: never). */
   lastRunTick?: number | null;
+  /** SUP-1: 0..suppress.cap (absent in saves from before D26: 0). */
+  suppression?: number;
+  /** SUP-3: the tile the unit is pinning with suppressive fire, or null. */
+  suppressAt?: Pos | null;
 }
 
 export interface Score {
@@ -112,6 +116,7 @@ export type Action =
   | { type: 'posture'; side: Side; unit: string; posture: Posture }
   | { type: 'halt'; side: Side; unit: string }
   | { type: 'blast'; side: Side; unit: string; at: Pos }
+  | { type: 'suppress'; side: Side; unit: string; at: Pos }
   | { type: 'withdraw'; side: Side };
 
 /** ARCH-9: consecutive ticks are stored as one entry. */
@@ -151,12 +156,17 @@ export interface ShotBreakdown {
   /** COVER-4: what the target's cover took off, and its grade. */
   cover: number;
   coverGrade: 'none' | 'low' | 'half' | 'full';
+  /** SNAP-2: a snap shot's penalty (0 for an aimed, ordered shot). */
+  snapPenalty: number;
+  /** SUP-2: the shooter's own suppression spoils its aim. */
+  suppressPenalty: number;
   raw: number;
   chance: number;
 }
 
 export type GameEvent =
   | { type: 'ordered'; tick: number; action: Exclude<Action, { type: 'tick' }> }
+  | { type: 'suppressFire'; tick: number; unit: string; at: Pos; weapon: string; pinned: string[] }
   | { type: 'moved'; tick: number; unit: string; from: Pos; to: Pos }
   | { type: 'arrived'; tick: number; unit: string }
   | { type: 'moveBlocked'; tick: number; unit: string }

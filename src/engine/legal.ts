@@ -5,6 +5,7 @@ import { tileIndex } from './map';
 import { pathField, posOfIndex } from './path';
 import { sideSeesUnit } from './sight';
 import { blastTargets } from './structure';
+import { canSuppress } from './fire';
 
 export function legalActions(state: State, side: Side): Action[] {
   const acts: Action[] = [{ type: 'tick' }];
@@ -29,6 +30,18 @@ export function legalActions(state: State, side: Side): Action[] {
       if (sideSeesUnit(state, side, t)) acts.push({ type: 'fire', side, unit: u.id, target: t.id });
     }
     // ORD-9
+    // SUP-5: one suppress order per unit, at the nearest seen enemy it can suppress.
+    let near: { x: number; y: number; level: number } | null = null;
+    let nd = Infinity;
+    for (const t of state.units) {
+      if (t.down || t.side === side || t.side === 'civilian' || !sideSeesUnit(state, side, t) || !canSuppress(state, u, t).ok) continue;
+      const d = Math.hypot(t.x - u.x, t.y - u.y);
+      if (d < nd) {
+        nd = d;
+        near = { x: t.x, y: t.y, level: t.level };
+      }
+    }
+    if (near) acts.push({ type: 'suppress', side, unit: u.id, at: near });
     for (const at of blastTargets(state, u)) acts.push({ type: 'blast', side, unit: u.id, at });
   }
   if (side === 'agency') acts.push({ type: 'withdraw', side });

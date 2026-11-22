@@ -2,7 +2,7 @@
 // Hosts pass as citizens, close in and ambush, and flee when exposed; takers charge agents, take citizens and
 // otherwise guard the hosts; fighters fight at whip range from cover, breach walls with their charge and take the
 // stairs after agents on other floors. Everything is a pure function of the view, the seed and the tick (AI-1).
-import { query, type Action, type Pos, type State, type Unit, type Side } from '../engine';
+import { query, type Action, type Pos, type State, type Unit, type Side, coverAgainst, isPinned } from '../engine';
 import { WEAPONS } from '../data';
 import { bestTile, blastTile, fireOrder, firingTile, freeNeighbour, hidingTile, know, moveOrder, stanceOrder, type Know, coverPosture } from './know';
 import { boundedField, distanceAny, fieldTiles, lineTiles, samePos } from './nav';
@@ -246,6 +246,15 @@ function fighter(k: Know, u: Unit, out: Action[]): void {
     return;
   }
   const target = shootable(k, u);
+  // AI-13: pinned in the open, break line of sight before anything else.
+  if (isPinned(k.view, u) && (!target || coverAgainst(k.view, u, target).grade === 'none')) {
+    const to = hidingTile(k, u, 20);
+    if (to && to.ticks > 0) {
+      push(out, coverPosture(k, u, null, true));
+      push(out, moveOrder(k, u, to));
+      return;
+    }
+  }
   const outgunned = k.seenBy(u) >= 2 && alliesNear(k, u, 8) < 1;
   if (target && !outgunned) {
     push(out, fireOrder(k, u, target));
