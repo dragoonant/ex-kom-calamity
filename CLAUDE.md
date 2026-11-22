@@ -15,4 +15,5 @@ From 3d-game-generation `templates/CLAUDE.md`. An original 3D video game by **ev
 - **Studios:** they run on the owner's machine. Announce GPU work, one GPU job at a time, never kill node by image name, stop the studios when done (10, 17).
 - **Before every commit:** grep the staged diff for the real name and the home path (it must print nothing); commits end with the attribution lines the session provides.
 - **Update the KB entry** `projects/ex-kom-calamity.md` at the end of every milestone (KB rule 19).
+- **Pages deploys itself:** every push to `main` rebuilds https://dragoonant.github.io/ex-kom-calamity/ through `.github/workflows/pages.yml` (PLAN D12); do not push `gh-pages` by hand. A change reaches players only once it is merged to `main`.
 - Gates today: `npm run typecheck`, `npm test`, `npm run build`, `npm run validate:data`, `npm run sim`, `npm run action-fuzz`, `npm run bench:ai`, `npm run e2e`, `npm run check:look`.
