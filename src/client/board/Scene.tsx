@@ -4,8 +4,10 @@
 // west, a cool sky fill, no shadow maps (an integrated GPU keeps 60 fps), window and lamp glow by emissive
 // instances, the alien cores pulsing through one shared material.
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Suspense, useEffect, useLayoutEffect, useRef } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { MAPS } from '../../data';
+import type { State } from '../../engine';
 import { feed, makeAccumulator } from '../loop';
 import { useClient } from '../store';
 import { CameraRig } from './CameraRig';
@@ -15,7 +17,7 @@ import { CoreMark, Marks } from './Marks';
 import { Props } from './Props';
 import { Signs } from './Signs';
 import { Tiles, useBoardDerived } from './Tiles';
-import { bounds, detectDetail, live, setShadows, shadowsActive, view } from './world';
+import { bounds, detectDetail, LEVEL_H, live, setShadows, shadowsActive, view } from './world';
 import { ConsoleRoom } from './ConsoleRoom';
 import { BOARD_LIGHT } from './light';
 
@@ -60,13 +62,34 @@ export function RendererHandle() {
   return null;
 }
 
-/** NIGHT-1: a raid at night: a dim moonlit fill, a faint cool key; the lamps and windows carry the light. */
+/** NIGHT-1: a raid at night. The rules cut sight on dark streets (NIGHT-2), but the board must still show the
+ * player the building and every figure in it: a bright cool moonlit fill and key keep the whole site readable in a
+ * blue night register, and the street lamps cast warm pools of their own (`NightLamps`). */
 export function NightLights() {
   return (
     <>
-      <hemisphereLight args={['#3a4a66', '#1f1a16', 0.45]} />
-      <directionalLight position={[-20, 24, 10]} intensity={0.35} color="#9fb8e0" />
-      <directionalLight position={[18, 10, -22]} intensity={0.12} color={EVENING.fill} />
+      <hemisphereLight args={['#8fa3c8', '#4a4038', 1.35]} />
+      <directionalLight position={[-20, 24, 10]} intensity={1.05} color="#c2d2f0" />
+      <directionalLight position={[18, 10, -22]} intensity={0.4} color={EVENING.fill} />
+    </>
+  );
+}
+
+/** At most this many lamp lights, so a lamp-lined block does not multiply the cost of every lit material. */
+const MAX_LAMP_LIGHTS = 8;
+
+/** NIGHT-2 drawn: a warm point light under each street lamp's head, reaching about the rules' lamp range. */
+export function NightLamps({ state }: { state: State }) {
+  const active = useClient((s) => s.level);
+  const lamps = useMemo(() => (MAPS[state.mapId]?.props ?? []).filter((p) => p.kind === 'lamp').slice(0, MAX_LAMP_LIGHTS), [state.mapId]);
+  const reach = (state.tuning.night?.lampRange ?? 3) + 2.5;
+  return (
+    <>
+      {lamps
+        .filter((p) => p.level <= active)
+        .map((p, i) => (
+          <pointLight key={i} position={[p.x + 0.5, p.level * LEVEL_H + 2.9, p.y + 0.5]} color="#ffc27a" intensity={9} distance={reach} decay={1.4} />
+        ))}
     </>
   );
 }
@@ -89,8 +112,8 @@ const SUN_DIR = BOARD_LIGHT.sunDir;
  * shadow map fitted to the raid site so buildings, props and figures sit on the street. The map is redrawn every
  * frame (figures move), at 2048 texels over the site; the shadows switch (viewSettings.ts) turns it off.
  */
-/** NIGHT-1 inside the room: the board's moonlit night, dim and cool, so its lamps and windows carry the light. */
-const NIGHT_BOARD = { sky: '#4a5a78', ground: '#1f1a16', hemi: 0.55, sun: '#9fb8e0', sunIntensity: 0.45, fillIntensity: 0.12 };
+/** NIGHT-1 inside the room: the board's moonlit night, bright and cool so the site and every figure read (RULING ART-12, the values of `NightLights`), with the street lamps' warm pools (`NightLamps`). */
+const NIGHT_BOARD = { sky: '#8fa3c8', ground: '#4a4038', hemi: 1.35, sun: '#c2d2f0', sunIntensity: 1.05, fillIntensity: 0.4 };
 
 function BoardLights({ night = false }: { night?: boolean }) {
   const sun = useRef<THREE.DirectionalLight>(null);
@@ -138,6 +161,7 @@ function Board() {
   return (
     <>
       <Tiles state={agency} derived={derived} />
+      {agency.night === true && <NightLamps state={agency} />}
       <Props state={agency} />
       <Signs state={agency} />
       <Figures state={agency} />

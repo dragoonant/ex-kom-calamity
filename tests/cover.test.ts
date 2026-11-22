@@ -536,8 +536,10 @@ describe('31. Hiding again, and the dark (BLEND, NIGHT)', () => {
     expect(unitSeesTile({ ...night, night: false }, a1, far)).toBe(true);
     expect(unitSeesTile(night, a1, far)).toBe(false);
     expect(unitSeesTile(night, a1, { x: 6, y: 3, level: 0 })).toBe(true); // within half sight
+    expect(query.lit(night, far)).toBe(false);
     const lit = clone(night);
     lit.tiles[tileIndex(lit, far)]!.kind = 'floor';
+    expect(query.lit(lit, far)).toBe(true);
     expect(unitSeesTile(lit, a1, far)).toBe(true);
   });
   it('NIGHT-3 a city battle without the scanner marks no last hostiles', () => {
