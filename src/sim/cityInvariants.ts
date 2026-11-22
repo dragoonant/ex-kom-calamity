@@ -27,8 +27,14 @@ export function cityInvariants(s: CityState): string[] {
   if (s.raid && (s.raid.agents.length < 1 || s.raid.agents.length > t.raid.maxAgents)) out.push('raid squad size out of range');
   // CINV-5
   for (const a of s.agents) {
-    if ((a.status === 'watching') !== (a.building !== null)) out.push(`${a.id} watch building mismatch`);
-    if (a.status === 'watching' && !CITY.buildings.some((b) => b.id === a.building)) out.push(`${a.id} watches no building`);
+    const out_ = a.status === 'watching' || a.status === 'travelling';
+    if (out_ !== (a.building !== null)) out.push(`${a.id} watch building mismatch`);
+    if (out_ && !CITY.buildings.some((b) => b.id === a.building)) out.push(`${a.id} watches no building`);
+    // CINV-12: a drive is under way exactly when the agent is driving (a squad until it reaches the door).
+    const driving = a.status === 'travelling' || a.status === 'returning' || (a.status === 'raiding' && !!s.raid && !s.raid.arrived);
+    if (driving !== (a.leg !== null)) out.push(`${a.id} leg mismatch (${a.status})`);
+    if (a.leg && (a.status === 'travelling' || a.status === 'returning') && a.leg.arrive !== a.until) out.push(`${a.id} leg ends off its until`);
+    if (a.leg && (a.leg.arrive <= a.leg.depart || [a.leg.fx, a.leg.fy, a.leg.tx, a.leg.ty].some((v) => v < 0 || v > CITY.size * 10))) out.push(`${a.id} leg out of range`);
   }
   if (new Set(s.agents.map((a) => a.id)).size !== s.agents.length) out.push('agent ids repeat');
   if (s.agents.filter((a) => a.status !== 'dead').length > t.roster.cap) out.push('roster over cap');

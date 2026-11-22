@@ -12,6 +12,8 @@ import { CorePulse, Effects, FrameTimes } from './Effects';
 import { Figures } from './Figures';
 import { CoreMark, Marks } from './Marks';
 import { Props } from './Props';
+import { Surroundings } from './Surroundings';
+import { RendererName, useSceneryLevel } from '../scenery';
 import { Tiles, useBoardDerived } from './Tiles';
 import { live } from './world';
 
@@ -77,9 +79,11 @@ function Board() {
   const hover = useClient((s) => s.hover);
   const mode = useClient((s) => s.mode);
   const derived = useBoardDerived(agency, selected, hover, mode);
+  const scenery = useSceneryLevel();
   if (!agency) return null;
   return (
     <>
+      {scenery === 'full' && <Surroundings width={agency.width} depth={agency.depth} night={agency.night === true} />}
       <Tiles state={agency} derived={derived} />
       <Props state={agency} />
       <Figures state={agency} />
@@ -104,7 +108,7 @@ export function Scene() {
       frameloop="always"
       dpr={[1, 1.5]}
       gl={{ antialias: true, preserveDrawingBuffer: false, powerPreference: 'high-performance' }}
-      camera={{ fov: 42, near: 0.1, far: 400, position: [20, 16, 20] }}
+      camera={{ fov: 42, near: 0.1, far: 520, position: [20, 16, 20] }}
       onCreated={({ gl: renderer }) => {
         gl.current = renderer;
         renderer.setClearColor(useClient.getState().agency?.night ? '#141a26' : EVENING.clear);
@@ -112,6 +116,7 @@ export function Scene() {
     >
       {night ? <NightLights /> : <EveningLights />}
       <RendererHandle />
+      <RendererName />
       <CameraRig />
       <LoopDriver />
       <CorePulse />

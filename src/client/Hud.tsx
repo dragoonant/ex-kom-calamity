@@ -70,7 +70,7 @@ export function Hud() {
   }, [shakeOn]);
   const toggleShake = () => {
     const next = !shakeOn;
-    writeViewSettings(browserStorage(), { shake: next });
+    writeViewSettings(browserStorage(), { ...readViewSettings(browserStorage()), shake: next });
     setShakeOn(next);
   };
   const setMuted = (muted: boolean) => {

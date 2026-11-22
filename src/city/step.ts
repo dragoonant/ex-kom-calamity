@@ -23,6 +23,10 @@ import {
   orgOfBuilding,
   totalInfiltration,
   winChance,
+  hqPoint,
+  legAt,
+  legFrom,
+  placePoint,
 } from './rules';
 import { absoluteTicks, clockOf, ticksPerDay, ticksPerHour } from './time';
 import { BANDS, type CityAction, type CityEvent, type CityState, type CityStepResult, type RaidResult, type Slip, type SlipKind } from './types';
@@ -218,6 +222,18 @@ function tick(state: CityState, action: CityAction): CityStepResult {
       a.status = 'ready';
       a.until = 0;
       events.push({ type: 'healed', agent: a.id });
+    } else if (a.status === 'travelling' && s.tick >= a.until && a.building) {
+      // TRAVEL-2: the watcher arrives and the watch starts.
+      a.status = 'watching';
+      a.leg = null;
+      a.until = s.tick + s.tuning.watch.hours * tph;
+      events.push({ type: 'watchStarted', agent: a.id, building: a.building });
+    } else if (a.status === 'returning' && s.tick >= a.until) {
+      // TRAVEL-2, TRAVEL-4: home, and ready.
+      a.status = 'ready';
+      a.leg = null;
+      a.until = 0;
+      events.push({ type: 'home', agent: a.id });
     } else if (a.status === 'watching' && s.tick >= a.until && a.building) {
       const org = orgOfBuilding(s, a.building);
       const truth = bandOf(org?.infiltration ?? 0);
@@ -242,8 +258,11 @@ function tick(state: CityState, action: CityAction): CityStepResult {
         if (s.slips.length > s.tuning.signs.keep) s.slips.splice(0, s.slips.length - s.tuning.signs.keep);
         events.push({ type: 'slip', slip });
       }
-      a.status = 'ready';
-      a.until = 0;
+      // TRAVEL-2: the report is phoned in; the watcher drives home.
+      const from = placePoint(s, a.building) ?? hqPoint();
+      a.status = 'returning';
+      a.leg = legFrom(s, from, hqPoint());
+      a.until = a.leg.arrive;
       a.building = null;
     }
   }
@@ -252,6 +271,7 @@ function tick(state: CityState, action: CityAction): CityStepResult {
     const org = orgOfBuilding(s, s.raid.building);
     const crash = s.crashes.find((c) => c.id === s.raid!.building);
     s.raid.arrived = true;
+    for (const a of s.agents) if (s.raid.agents.includes(a.id)) a.leg = null;
     // AIR-8: a crash site holds the craft's survivors; a seeder's are takers.
     const final = isFinal(s, s.raid.building);
     s.raid.hostiles = final ? s.tuning.act.finalHostiles : crash ? crash.survivors : org ? hostilesFor(s, org) : 0;
@@ -327,6 +347,7 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
       const deathPercent = hasDone(s, 'antiserum') ? Math.floor((s.tuning.roster.deathPercent * s.tuning.lab.antiserumDeathPercent) / 100) : s.tuning.roster.deathPercent;
       const dead = d < deathPercent;
       a.status = dead ? 'dead' : 'wounded';
+      a.leg = null;
       a.until = dead ? 0 : s.tick + s.tuning.roster.woundDays * ticksPerDay(s.tuning);
       events.push({ type: 'agentDown', agent: a.id, dead, roll: d });
       if (dead) {
@@ -334,8 +355,10 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
         addConfidence(s, -s.tuning.fund.agentLoss, 'agent killed', events);
       }
     } else {
-      a.status = 'ready';
-      a.until = 0;
+      // TRAVEL-4: the squad drives home from the door.
+      a.status = 'returning';
+      a.leg = legFrom(s, placePoint(s, r.building) ?? hqPoint(), hqPoint());
+      a.until = a.leg.arrive;
     }
   }
   // RES-3: the raid cleanses the organisation.
@@ -484,19 +507,24 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
       if (!buildingDef(action.building)) return reject(state, `no building ${String(action.building)}`);
       const s = clone(state);
       const ag = s.agents.find((x) => x.id === action.agent)!;
-      ag.status = 'watching';
+      // TRAVEL-2: the watcher drives out first.
+      ag.status = 'travelling';
       ag.building = action.building;
-      ag.until = s.tick + s.tuning.watch.hours * ticksPerHour(s.tuning);
-      return accept(s, action, [{ type: 'watchSent', agent: ag.id, building: action.building }]);
+      ag.leg = legFrom(s, hqPoint(), placePoint(s, action.building)!);
+      ag.until = ag.leg.arrive;
+      return accept(s, action, [{ type: 'watchSent', agent: ag.id, building: action.building, arriveTick: ag.until }]);
     }
     case 'recall': {
       if (side !== 'agency') return reject(state, 'recall is an agency order');
       const a = state.agents.find((x) => x.id === action.agent);
-      if (!a || a.status !== 'watching') return reject(state, 'only a watching agent can be recalled');
+      if (!a || (a.status !== 'watching' && a.status !== 'travelling')) return reject(state, 'only a watching or travelling agent can be recalled');
       const s = clone(state);
       const ag = s.agents.find((x) => x.id === action.agent)!;
-      ag.status = 'ready';
-      ag.until = 0;
+      // TRAVEL-3: the agent turns for home from where it is, with no report.
+      const from = ag.status === 'travelling' && ag.leg ? legAt(ag.leg, s.tick) : (placePoint(s, ag.building!) ?? hqPoint());
+      ag.status = 'returning';
+      ag.leg = legFrom(s, from, hqPoint());
+      ag.until = ag.leg.arrive;
       ag.building = null;
       return accept(s, action, [{ type: 'recalled', agent: ag.id }]);
     }
@@ -512,8 +540,14 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
         if (!a || a.status !== 'ready') return reject(state, `agent ${String(id)} is not ready`);
       }
       const s = clone(state);
-      for (const a of s.agents) if (action.agents.includes(a.id)) a.status = 'raiding';
-      const arriveTick = s.tick + s.tuning.raid.travelHours * ticksPerHour(s.tuning);
+      // TRAVEL-4: the squad drives out by distance (RAID-2).
+      const leg = legFrom(s, hqPoint(), placePoint(s, action.building)!);
+      for (const a of s.agents)
+        if (action.agents.includes(a.id)) {
+          a.status = 'raiding';
+          a.leg = { ...leg };
+        }
+      const arriveTick = leg.arrive;
       s.raid = { building: action.building, agents: [...action.agents], orderedTick: s.tick, arriveTick, hostiles: 0, takers: 0, fighters: 0, arrived: false };
       return accept(s, action, [{ type: 'raidOrdered', building: action.building, agents: [...action.agents], arriveTick }]);
     }

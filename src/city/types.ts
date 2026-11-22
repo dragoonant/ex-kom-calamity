@@ -70,16 +70,29 @@ export interface Building {
   raidedTick: number | null;
 }
 
-/** ROSTER-1 */
-export type AgentStatus = 'ready' | 'watching' | 'raiding' | 'wounded' | 'dead';
+/** ROSTER-1, TRAVEL-2: an agent drives out (`travelling`), watches, and drives home (`returning`). */
+export type AgentStatus = 'ready' | 'travelling' | 'watching' | 'raiding' | 'returning' | 'wounded' | 'dead';
+
+/** TRAVEL-1: a drive between two points in tenths of a cell, leaving and arriving on these ticks. */
+export interface Leg {
+  fx: number;
+  fy: number;
+  tx: number;
+  ty: number;
+  depart: number;
+  arrive: number;
+}
+
 export interface Agent {
   id: string;
   name: string;
   status: AgentStatus;
-  /** Tick at which a wound heals or a watch ends; 0 otherwise. */
+  /** Tick at which a wound heals, a drive arrives or a watch ends; 0 otherwise. */
   until: number;
-  /** The building being watched. */
+  /** The building being driven to or watched (TRAVEL-2). */
   building: string | null;
+  /** TRAVEL-1: the drive under way, or null (ready, watching, wounded, dead, or a squad at the door). */
+  leg: Leg | null;
   raids: number;
 }
 
@@ -205,7 +218,9 @@ export type CityEvent =
   | { type: 'day'; tick: number; day: number; biomass: number; confidenceLoss: number }
   | { type: 'month'; tick: number; month: number; grant: number; salaries: number }
   | { type: 'slip'; slip: Slip }
-  | { type: 'watchSent'; agent: string; building: string }
+  | { type: 'watchSent'; agent: string; building: string; arriveTick: number }
+  | { type: 'watchStarted'; agent: string; building: string }
+  | { type: 'home'; agent: string }
   | { type: 'watched'; agent: string; building: string; band: Band }
   | { type: 'recalled'; agent: string }
   | { type: 'raidOrdered'; building: string; agents: string[]; arriveTick: number }

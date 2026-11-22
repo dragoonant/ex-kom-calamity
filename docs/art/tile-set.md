@@ -62,7 +62,7 @@ Sizes in tiles; a figure is 1.2 tall. Where a style places them is section 2; `t
 | `crate` | 0.6 | box, three bands, a mustard stencil plate | depot, outside its door |
 
 ## 4. Light and glow (Scene.tsx `EveningLights`, `EVENING`)
-Fixed early evening (RULING ART-1 below): a hemisphere light (sky `#9fb8c9`, ground `#6b5a4a`, 0.95), a warm low sun from the west (`#ffb774`, 1.5, from (-28, 16, 12)), a cool fill from the north-east (`#7fa7b8`, 0.35), the canvas cleared to a dusk grey `#c7bfb2` (light, not black: the concept's "must not look like" list). No shadow maps. Glow is emissive geometry only: window panes (`glass` layer, emissive 0.55 tinted per instance), lamp heads, vending displays, the kiosk sign and the mast beacon (`PROP_GLOW`), and the **amber alien core** (`CORE_MATERIAL`, one material pulsing 0.3 to 1.2 at 3.1 rad/s on every revealed host, taker and fighter). No point lights.
+Fixed early evening (RULING ART-1 below): a hemisphere light (sky `#9fb8c9`, ground `#6b5a4a`, 0.95), a warm low sun from the west (`#ffb774`, 1.5, from (-28, 16, 12)), a cool fill from the north-east (`#7fa7b8`, 0.35), the canvas cleared to a dusk grey `#c7bfb2` (light, not black: the concept's "must not look like" list), and since 2026-11-22 a sky dome, fog and the street around the site drawn over it (`docs/art/dressing.md`). No shadow maps. Glow is emissive geometry only: window panes (`glass` layer, emissive 0.55 tinted per instance), lamp heads, vending displays, the kiosk sign and the mast beacon (`PROP_GLOW`), and the **amber alien core** (`CORE_MATERIAL`, one material pulsing 0.3 to 1.2 at 3.1 rad/s on every revealed host, taker and fighter). No point lights.
 
 ## 5. Effects from engine events (fx.ts, Effects.tsx)
 | Event | Effect | Sound (`audio/synth.ts`) |
@@ -90,6 +90,7 @@ Headless Chromium draws through SwiftShader at a few frames a second, so wall-cl
 - RULING: ART-2 | Window lighting is a stable per-tile draw (62% lit), not a map field | Lit rooms are dressing with no rules meaning; a stable hash keeps saves and screenshots identical, and the map format gains nothing from 323 booleans. provisional
 - RULING: ART-3 | A damaged prop leans and darkens; it never breaks on its own | Props have no health (RULING MAP-9); the tile's health is the only truth, so the prop shows it. provisional
 - RULING: ART-4 | Effects and sounds only for what the agency sees, structure excepted | The fx queue is built from the same `view` the tray uses (VIEW-2, AI-9); tiles are public (VIEW-1), so a far breach is heard and seen. provisional
+- Rulings ART-6..ART-10 (the sky, the city dressing, the raid surroundings, the title poster) are in `docs/art/dressing.md` section 5.
 - RULING: ART-5 | Pass 1 ships no textures and no GPU assets | The owner's GPU host (PLAN.md Q7) is not reachable from this session; the merged-geometry props and style palettes are designed so a GLB per kind can replace a merged geometry by name in `propGeometry` without touching the map or the layers. provisional
 
 ## 8. For the GPU pass (M4b)

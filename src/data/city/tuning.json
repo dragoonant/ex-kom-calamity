@@ -37,8 +37,10 @@
     "accuracyPercent": 80,
     "spotPercent": 40
   },
+  "travel": {
+    "speedTenthsPerHour": 60
+  },
   "raid": {
-    "travelHours": 1,
     "maxAgents": 6,
     "hostilesPer10Points": 1,
     "maxHostiles": 10,
@@ -111,11 +113,11 @@
     "launchEveryHours": 24,
     "scoutCost": 6,
     "seederCost": 18,
-    "scoutSpeed": 30,
-    "seederSpeed": 12,
+    "scoutSpeed": 60,
+    "seederSpeed": 24,
     "scoutHp": 30,
     "seederHp": 90,
-    "carSpeed": 40,
+    "carSpeed": 80,
     "carHp": 60,
     "carHitPercent": 60,
     "carDamage": 15,
@@ -140,9 +142,9 @@
     "act3Days": 90,
     "biomassBonusPercent": 50,
     "launchEveryHours": 12,
-    "hqScoutRange": 15,
+    "hqScoutRange": 30,
     "carrierCost": 40,
-    "carrierSpeed": 8,
+    "carrierSpeed": 16,
     "carrierHp": 160,
     "carrierAmount": 15,
     "carrierSurvivors": 4,

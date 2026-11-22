@@ -12,7 +12,7 @@ export function cityLegalActions(state: CityState, side: CitySide): CityAction[]
     const ready = readyAgents(state);
     // CARCH-3: one watch per ready agent and building.
     for (const a of ready) for (const b of CITY.buildings) acts.push({ type: 'watch', side, agent: a.id, building: b.id });
-    for (const a of state.agents) if (a.status === 'watching') acts.push({ type: 'recall', side, agent: a.id });
+    for (const a of state.agents) if (a.status === 'watching' || a.status === 'travelling') acts.push({ type: 'recall', side, agent: a.id });
     // RULING CARCH-3: one raid per building, with the first ready agents up to raid.maxAgents (every subset is too many to list).
     if (!state.raid && ready.length > 0) {
       const squad = ready.slice(0, state.tuning.raid.maxAgents).map((a) => a.id);

@@ -58,8 +58,12 @@ describe('21. The three acts (ACT)', () => {
     const s = inAct(2);
     s.biomass = 100;
     let l = ok(s, { type: 'launch', side: 'hostile', kind: 'scout', target: 'records-office' }).state;
-    l.craft[0]!.x = CITY.agency.hq.x * 10 + 5 + 30;
+    // Heading west across headquarters: after one hour's move it is inside act.hqScoutRange of it.
+    const hqx = CITY.agency.hq.x * 10 + 5;
+    l.craft[0]!.x = hqx + T.air.scoutSpeed - T.act.hqScoutRange / 2;
     l.craft[0]!.y = CITY.agency.hq.y * 10 + 5;
+    l.craft[0]!.tx = Math.max(0, hqx - 100);
+    l.craft[0]!.ty = CITY.agency.hq.y * 10 + 5;
     const r = advanceCityTicks(l, HOUR * 2);
     expect(r.state.hqFound).toBe(true);
     expect(r.events.some((e) => e.type === 'slip' && e.slip.kind === 'found')).toBe(true);
@@ -97,7 +101,7 @@ describe('21. The three acts (ACT)', () => {
   it('ACT-7 the final raid meets the source tower in act 3 and winning it wins the campaign', () => {
     let s = inAct(3, 200, WIN);
     s = ok(s, { type: 'raid', side: 'agency', building: CITY.agency.final, agents: ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6'] }).state;
-    s = advanceCityTicks(s, HOUR).state;
+    s = advanceCityTicks(s, s.raid!.arriveTick - s.tick).state;
     expect(s.raid).toMatchObject({ hostiles: T.act.finalHostiles, takers: 4, fighters: 4 });
     const r = ok(s, { type: 'resolve', side: 'agency' }).state;
     expect(r.over).toMatchObject({ winner: 'agency', reason: 'source' });

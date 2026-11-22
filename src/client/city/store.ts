@@ -21,7 +21,7 @@ import { battleOf, rosterOf } from './join';
 import { traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
-export const CAMPAIGN_VERSION = 3; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts
+export const CAMPAIGN_VERSION = 4; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts; 4: the 24 x 24 city and travel (TRAVEL)
 export type CitySpeed = 1 | 4 | 12;
 export const CITY_SPEEDS: CitySpeed[] = [1, 4, 12];
 const MAX_TRAY = 60;

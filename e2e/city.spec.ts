@@ -43,17 +43,35 @@ test('a tap on a building opens its card through the one pick mesh, and WATCH se
   await page.mouse.click(pt!.x, pt!.y);
   await expect(page.getByTestId('building-name')).toHaveText(/CITY HALL/);
   await page.getByTestId('watch').click();
-  const watching = await page.evaluate(() => window.__ekcCity!.state()!.agents.filter((a) => a.status === 'watching').map((a) => a.building));
-  expect(watching).toEqual(['city-hall']);
-  await page.evaluate(() => window.__ekcCity!.advanceTicks(6 * 13));
+  // TRAVEL-2: the watcher drives out first, and the board draws its car and route.
+  const out = await page.evaluate(() => window.__ekcCity!.state()!.agents.filter((a) => a.building).map((a) => [a.status, a.building]));
+  expect(out).toEqual([['travelling', 'city-hall']]);
+  await page.waitForTimeout(400);
+  const drawn = await page.evaluate(() => window.__ekcCity!.overlays());
+  expect(drawn.driving).toBe(1);
+  expect(drawn.dashes).toBeGreaterThan(0);
+  await page.evaluate(() => {
+    const c = window.__ekcCity!;
+    const a = c.state()!.agents.find((x) => x.building === 'city-hall')!;
+    c.advanceTicks(a.until - c.state()!.tick + 6 * 12);
+  });
   await expect(page.getByTestId('building-report')).toContainText('Last report');
+  // The report draws a ring on the lot, and the watcher is on the drive home.
+  await page.waitForTimeout(400);
+  const after = await page.evaluate(() => window.__ekcCity!.overlays());
+  expect(after.rings).toBe(1);
+  expect(after.driving).toBe(1);
+  // Hover names a building on the board (the label layer takes no pointer).
+  const p2 = await page.evaluate(() => window.__ekcCity!.screenPointOfBuilding('records-office'));
+  await page.mouse.move(p2!.x, p2!.y);
+  await expect(page.getByTestId('city-tag-hover')).toContainText(/RECORDS OFFICE/i);
 });
 
 test('a raid flies to the door, pauses there, and the squad can handle it', async ({ page }) => {
   await startCampaign(page);
   await page.evaluate(() => window.__ekcCity!.select('ambrel-works'));
   await page.getByTestId('raid').click();
-  await page.evaluate(() => window.__ekcCity!.advanceTicks(12));
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(window.__ekcCity!.state()!.raid!.arriveTick - window.__ekcCity!.state()!.tick));
   await expect(page.getByTestId('door')).toBeVisible();
   expect(await page.evaluate(() => window.__ekcCity!.isPaused())).toBe(true);
   await page.getByTestId('auto-resolve').click();
@@ -79,7 +97,7 @@ test('FIGHT IT opens the real battle on the building site; its result returns to
   await startCampaign(page);
   await page.evaluate(() => window.__ekcCity!.select('automat-row'));
   await page.getByTestId('raid').click();
-  await page.evaluate(() => window.__ekcCity!.advanceTicks(12));
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(window.__ekcCity!.state()!.raid!.arriveTick - window.__ekcCity!.state()!.tick));
   await page.getByTestId('fight').click();
   await expect(page.getByTestId('battle')).toBeVisible({ timeout: 30_000 });
   const battle = await page.evaluate(() => window.__ekc!.getState()!.battleId);
@@ -99,7 +117,7 @@ test('a raid stocks the lab shelf and the LAB tab starts and finishes research (
   await startCampaign(page);
   await page.evaluate(() => window.__ekcCity!.select('ambrel-works'));
   await page.getByTestId('raid').click();
-  await page.evaluate(() => window.__ekcCity!.advanceTicks(12));
+  await page.evaluate(() => window.__ekcCity!.advanceTicks(window.__ekcCity!.state()!.raid!.arriveTick - window.__ekcCity!.state()!.tick));
   await page.getByTestId('auto-resolve').click();
   const shelf = await page.evaluate(() => window.__ekcCity!.state()!.shelf);
   test.skip(shelf.host < 1, 'this seed lost the raid; the shelf stays empty');

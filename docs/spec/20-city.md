@@ -2,7 +2,7 @@
 
 **The spec is the product** (KB rule 2): the engine in `src/city/` implements exactly this, tests under `tests/` are named by these ids (`tests/coverage.test.ts` fails on an id without a test), and every ambiguity is logged in section 15 as `RULING: <id> | <what we did> | <why>`. Where this spec and `docs/strategic-layer.md` or `docs/GAME-DESIGN.md` disagree, this spec wins. Every number written as `section.key = N` is a key in `src/data/city/tuning.json` (`npm run validate:data` checks the two agree); the city itself (districts, organisations, buildings) is `src/data/city/city.json`. Every number is a first guess *(tune)* until a `sim:city` result says otherwise (KB rule 30).
 
-**Scope (KB rule 6):** the whole campaign: act 1 with M5b's lab and workshop (sections 17 to 19), M5c's air war (section 20), and acts 2 and 3 (section 21), over: the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
+**Scope (KB rule 6):** the whole campaign: act 1 with M5b's lab and workshop (sections 17 to 19), M5c's air war (section 20), acts 2 and 3 (section 21) and travel (section 22), over: the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
 
 ---
 
@@ -19,15 +19,15 @@
 ## 1. The clock (CLOCK)
 - **CLOCK-1** One tick is `clock.minutesPerTick = 10` city minutes; an hour is 6 ticks, a day 144. Tick 0 is `clock.startHour = 8` on day 0.
 - **CLOCK-2** A month is `clock.daysPerMonth = 30` days. `clockOf(tuning, tick)` gives day, month, day of month, hour, minute and night.
-- **CLOCK-3** One `tick` resolves in this order: (a) `tick` increases by 1; (b) agents in roster order: a finished watch reports (WATCH-2) and a healed wound returns (ROSTER-4); (c) a travelling raid arrives (RAID-2); (d) on the hour, the lab and the workshop advance one hour and due deliveries arrive (LAB-2, SHOP-1, SHOP-2), then the slips (section 4); (e) at midnight, the day's end (SPREAD-4, FUND-4, CEND-2, CEND-4); (f) at midnight on the first day of a month, the month's end (FUND-1, CEND-1).
+- **CLOCK-3** One `tick` resolves in this order: (a) `tick` increases by 1; (b) agents in roster order: a healed wound returns (ROSTER-4), a watcher arrives (TRAVEL-2), an agent reaches home (TRAVEL-2, TRAVEL-4), a finished watch reports (WATCH-2); (c) a travelling raid arrives (RAID-2); (d) on the hour, the lab and the workshop advance one hour and due deliveries arrive (LAB-2, SHOP-1, SHOP-2), then the slips (section 4); (e) at midnight, the day's end (SPREAD-4, FUND-4, CEND-2, CEND-4); (f) at midnight on the first day of a month, the month's end (FUND-1, CEND-1).
 - **CLOCK-4** Time advances only through `tick`; pause is the absence of ticks. Orders are accepted whether or not ticks flow.
 - **CLOCK-5** Night is from `clock.nightStartHour = 20` to `clock.nightEndHour = 6`.
 - **CLOCK-6** `advanceCity(state, seconds)` applies `round(seconds * clock.ticksPerSecond)` ticks (`clock.ticksPerSecond = 6`: one city hour per real second at speed 1) and concatenates their events; it stops early when a tick changes nothing (RAID-4, CEND-6). The client's loop drives it as the battle's TIME-6 does.
 
 ## 2. The city (CITY)
-- **CITY-1** The city is a 12 x 12 grid of cells in six districts (`city.json`). Each district has an id, a name and a rectangle.
+- **CITY-1** The city is a 24 x 24 grid of cells in six districts that tile it (`city.json`). Each district has an id, a name and a rectangle.
 - **CITY-2** Ten organisations, each with an id, a name and a kind. Exactly one is the **source** (`source: true`): the organisation the organism grew from (`docs/strategic-layer.md` 7).
-- **CITY-3** 24 buildings, each owned by one organisation, in one district, on one cell (no two share a cell), with a floor count and a `kind` the client draws.
+- **CITY-3** 48 buildings, each owned by one organisation, in one district, on one cell (no two share a cell, none on headquarters' cell), with a floor count and a `kind` the client draws.
 - **CITY-4** Each building names the raid site its battle is fought on (`automat`, `depot` or `savings`, the three D20 maps) until M7 gives buildings their own maps.
 - **CITY-5** Every organisation carries `infiltration` (0 to `spread.cap = 100`), `turned` and `standing` (0 to 100, starting at 50); every building carries the agency's last report (`watch`) and the tick of its last raid.
 
@@ -48,14 +48,14 @@
 - **SIGN-5** The state keeps the newest `signs.keep = 40` slips; slip ids only increase.
 
 ## 5. Watching (WATCH)
-- **WATCH-1** `watch { agent, building }`: a ready agent leaves to watch a building for `watch.hours = 12` hours. `recall { agent }` brings a watching agent back with no report.
-- **WATCH-2** When the time is up the agent is ready again and the building's report is set.
+- **WATCH-1** `watch { agent, building }`: a ready agent drives out (TRAVEL-2) and watches the building for `watch.hours = 12` hours. `recall { agent }` turns a travelling or watching agent for home with no report (TRAVEL-3).
+- **WATCH-2** When the time is up the building's report is set and the agent drives home (TRAVEL-2).
 - **WATCH-3** The report is a **band** of the owner organisation's infiltration: `clean` (0), `low` (1 to 19), `some` (20 to 49), `heavy` (50 and up). It is right with `watch.accuracyPercent = 80`; otherwise it is one band off (up or down at even odds; the end bands move inward).
 - **WATCH-4** If the organisation is infiltrated, the watcher also spots a host with `watch.spotPercent = 40`: a genuine `spotted` slip on the building.
 
 ## 6. Raids (RAID)
 - **RAID-1** `raid { building, agents }`: 1 to `raid.maxAgents = 6` distinct ready agents; only one raid at a time.
-- **RAID-2** The squad travels `raid.travelHours = 1` hour, then arrives (an event).
+- **RAID-2** The squad drives from headquarters to the building or crash site (TRAVEL-1, TRAVEL-4), then arrives (an event).
 - **RAID-3** On arrival the hostiles are fixed from the organisation then: 0 if it is clean, else `min(raid.maxHostiles, 1 + floor(infiltration * raid.hostilesPer10Points / 10))` (`raid.maxHostiles = 10`, `raid.hostilesPer10Points = 1`), plus `raid.turnedGuards = 2` if it has turned.
 - **RAID-4** While a squad stands at the door, unresolved, a tick changes nothing: the city waits for the battle.
 - **RAID-5** `resolve { result? }` ends the raid (section 7); the building records the raid's tick.
@@ -71,7 +71,7 @@
 - **RES-6** With a result (a fought battle, M7), the engine checks it: `won` a boolean, `agentsDown` distinct agents of the raid, counts non-negative integers; hostiles down are clamped to the raid's hostiles. Death rolls (RES-2) still apply.
 
 ## 8. The roster (ROSTER)
-- **ROSTER-1** An agent has an id, a name, a status (`ready`, `watching`, `raiding`, `wounded`, `dead`), an `until` tick, the building it watches and its raid count.
+- **ROSTER-1** An agent has an id, a name, a status (`ready`, `travelling`, `watching`, `raiding`, `returning`, `wounded`, `dead`), an `until` tick, the building it drives to or watches, the drive under way (`leg`, TRAVEL-1) and its raid count.
 - **ROSTER-2** The agency starts with `roster.startAgents = 8` agents, named in order from `city.json`.
 - **ROSTER-3** `recruit` costs `roster.recruitCost = 40` and adds one agent while the living are below `roster.cap = 12`.
 - **ROSTER-4** A wound heals at its `until` tick.
@@ -120,7 +120,8 @@
 - **CINV-2** Confidence within 0..100.
 - **CINV-3** Infiltration within 0..cap, standing within 0..100, biomass at least 0, no organisation turned at 0.
 - **CINV-4** The agents marked `raiding` are exactly the raid's squad; a squad is 1 to `raid.maxAgents`.
-- **CINV-5** An agent watches a building exactly when it is `watching`; agent ids are unique; the living never exceed the cap.
+- **CINV-5** An agent names a building exactly when it is `travelling` or `watching`; agent ids are unique; the living never exceed the cap.
+- **CINV-12** An agent has a drive exactly when it is `travelling`, `returning`, or on a squad that has not reached the door; a travelling or returning agent's drive arrives on its `until` tick; a drive ends after it starts and stays on the map.
 - **CINV-6** At most `signs.keep` slips, ids increasing.
 - **CINV-7** The organisations and buildings match `city.json`.
 - **CINV-8** An end is never in the future.
@@ -133,7 +134,16 @@
 - **CSIM-2** Targets, for the whole campaign: the passive agency never wins; the random agency wins at most 10%; the careful agency wins 40% to 85%.
 - **CSIM-3** Seed 1 with the careful driver replays from its log to the same hash.
 
-### Sim baseline, the whole campaign (2026-11-21, 40 campaigns per driver, seeds 1-40, acts 1 to 3)
+### Sim baseline, the whole campaign on the 24 x 24 city with travel (2026-11-22, 40 campaigns per driver, seeds 1-40, acts 1 to 3)
+| Agency driver | Wins | Reached act 2 | Reached act 3 | Mean days | Raids | Agents killed | End confidence | Ends |
+|---|---|---|---|---|---|---|---|---|
+| passive | 0.0% | 0% | 0% | 28.2 | 0 | 0 | 7 | turned 40 |
+| random | 0.0% | 0% | 0% | 30.7 | 9.2 | 2.3 | 9 | confidence 28, turned 12 |
+| careful | 65.0% | 88% | 68% | 120.3 | 225.3 | 18.3 | 80 | source 26, time 7, turned 4, hq 1, spread 1, confidence 1 |
+
+The owner's bigger city (RULING CITY-1, `PLAN.md` D27) and travel (section 22) over acts 1 to 3, measured before any tuning, with the air speeds and the headquarters scout range doubled with the map (RULING AIR-1): the careful agency moved from 67.5% to 65.0%, inside CSIM-2's 40% to 85%. No number was tuned. Seed 1 (careful) replays to `4ecb578c`. Act 1 alone on the bigger city, before acts 2 and 3 were merged in: passive 0%, random 0%, careful 87.5% (it had been 90.0% on the 12 x 12 city).
+
+### Sim baseline, the whole campaign on the 12 x 12 city (2026-11-21, 40 campaigns per driver, seeds 1-40, acts 1 to 3)
 | Agency driver | Wins | Reached act 2 | Reached act 3 | Mean days | Raids | Agents killed | End confidence | Ends |
 |---|---|---|---|---|---|---|---|---|
 | passive | 0.0% | 0% | 0% | 28.2 | 0 | 0 | 7 | turned 40 |
@@ -181,9 +191,9 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - **RAID-7** Of a raid's hostiles, a quarter (floored, at least 1 when there are 2 or more) are takers once the organisation is at `raid.takersAt = 20`, and a quarter (floored) are fighters once it is at `raid.fightersAt = 40`; the rest are hosts. Turned guards count as hosts.
 
 ## 20. The air war (AIR) - M5c (`PLAN.md` D24 b: live intercepts; where the craft falls decides the battle)
-- **AIR-1** Craft and cars have positions in tenths of a city cell (integers, CARCH-6), 0 to 120 on each axis. Everything in the air moves on the hour (CLOCK-3 d), after the lab and before the slips.
-- **AIR-2** From day `air.startDay = 30` the organism may `launch { kind, target }` a **scout** for `air.scoutCost = 6` biomass or a **seeder** for `air.seederCost = 18`, once every `air.launchEveryHours = 24` hours. The craft enters at a point on the city's edge chosen by the engine's dice and flies straight for its target building's cell at `air.scoutSpeed = 30` or `air.seederSpeed = 12` tenths an hour, with `air.scoutHp = 30` or `air.seederHp = 90`. A seeder that arrives **lands**: its target's organisation gains `air.seederAmount = 10` infiltration and a genuine `landing` slip names the building. A scout that arrives turns away. The agency sees every craft but not where it is going (CVIEW-1).
-- **AIR-3** The agency starts with `air.startCars = 2` flying cars (`air.carHp = 60`) at headquarters. `intercept { craft, cars }` sends ready cars after a craft; they fly at `air.carSpeed = 40` tenths an hour toward it. `buyCar` adds one for `air.carCost = 80`, up to `air.carCap = 4` that are not lost.
+- **AIR-1** Craft and cars have positions in tenths of a city cell (integers, CARCH-6), 0 to `size * 10` (240) on each axis. Everything in the air moves on the hour (CLOCK-3 d), after the lab and before the slips.
+- **AIR-2** From day `air.startDay = 30` the organism may `launch { kind, target }` a **scout** for `air.scoutCost = 6` biomass or a **seeder** for `air.seederCost = 18`, once every `air.launchEveryHours = 24` hours. The craft enters at a point on the city's edge chosen by the engine's dice and flies straight for its target building's cell at `air.scoutSpeed = 60` or `air.seederSpeed = 24` tenths an hour, with `air.scoutHp = 30` or `air.seederHp = 90`. A seeder that arrives **lands**: its target's organisation gains `air.seederAmount = 10` infiltration and a genuine `landing` slip names the building. A scout that arrives turns away. The agency sees every craft but not where it is going (CVIEW-1).
+- **AIR-3** The agency starts with `air.startCars = 2` flying cars (`air.carHp = 60`) at headquarters. `intercept { craft, cars }` sends ready cars after a craft; they fly at `air.carSpeed = 80` tenths an hour toward it. `buyCar` adds one for `air.carCost = 80`, up to `air.carCap = 4` that are not lost.
 - **AIR-4** A craft's **posture**, set by `posture { craft, press | shadow }`, starts at `press`. Each hour that cars are within `air.engageRange = 6` tenths of a pressed craft they fight: each car hits with `air.carHitPercent = 60` for `air.carDamage = 15`; a seeder fires back at each engaged car, hitting with `air.craftHitPercent = 35` for `air.craftDamage = 20`. A shadowed craft is followed without a shot, so the player chooses where it falls.
 - **AIR-5** A car at 0 is lost. When its craft is gone, a car returns: damaged ones go to the hangar for `air.repairHours = 24` hours and come back whole.
 - **AIR-6** A craft at 0 **falls where it is**: a crash site with `air.seederSurvivors = 3` or `air.scoutSurvivors = 1` survivors. If it falls on a building's cell, the owner's standing drops `air.crashStanding = 10` and confidence `air.crashConfidence = 3`; over open ground nothing is billed.
@@ -194,10 +204,16 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - **ACT-1** The campaign has three acts: 1 "Whispers", 2 "Open sky", 3 "Perfect day". The state carries the act and the day it began; each change of act is an event.
 - **ACT-2** **Act 2** opens when act 1 ends contained (CEND-4). From then the organism's daily biomass is raised by `act.biomassBonusPercent = 50` percent and it may launch a craft every `act.launchEveryHours = 12` hours.
 - **ACT-3** **Act 3** opens when `source-trace` is finished during act 2 (LAB-7): the agency knows where the source is.
-- **ACT-4** From act 2, a scout that passes within `act.hqScoutRange = 15` tenths of headquarters **finds it**: an event and a genuine `found` slip. It stays found.
-- **ACT-5** In act 3 the organism may launch **carriers** (`act.carrierCost = 40`, `act.carrierSpeed = 8`, `act.carrierHp = 160`), which fire back at `act.carrierDamagePercent = 200` percent of a seeder's damage, land for `act.carrierAmount = 15` infiltration and leave `act.carrierSurvivors = 4` fighters in a wreck. Once headquarters is found it may **assault** it for `act.assaultCost = 50` biomass, at most every `act.assaultEveryDays = 10` days: `act.assaultHostiles = 6` hostiles, a third takers and a third fighters. While an assault waits, a tick changes nothing (as RAID-4). `defend { result? }` meets it with the agents at home (ready), auto-resolved as RES-1 with up to `raid.maxAgents` of them, or with a fought result; with nobody at home it is lost. A won defence shelves the attackers; a lost one loses the campaign.
+- **ACT-4** From act 2, a scout that passes within `act.hqScoutRange = 30` tenths of headquarters **finds it**: an event and a genuine `found` slip. It stays found.
+- **ACT-5** In act 3 the organism may launch **carriers** (`act.carrierCost = 40`, `act.carrierSpeed = 16`, `act.carrierHp = 160`), which fire back at `act.carrierDamagePercent = 200` percent of a seeder's damage, land for `act.carrierAmount = 15` infiltration and leave `act.carrierSurvivors = 4` fighters in a wreck. Once headquarters is found it may **assault** it for `act.assaultCost = 50` biomass, at most every `act.assaultEveryDays = 10` days: `act.assaultHostiles = 6` hostiles, a third takers and a third fighters. While an assault waits, a tick changes nothing (as RAID-4). `defend { result? }` meets it with the agents at home (ready), auto-resolved as RES-1 with up to `raid.maxAgents` of them, or with a fought result; with nobody at home it is lost. A won defence shelves the attackers; a lost one loses the campaign.
 - **ACT-6** Act 2 lasts at most `act.act2Days = 100` days and act 3 at most `act.act3Days = 90`; running out of either loses the campaign to time.
 - **ACT-7** **The final raid:** in act 3, a raid on the source's tower (`city.json` `agency.final`) meets `act.finalHostiles = 12` hostiles, a third takers and a third fighters. Winning it wins the campaign.
+
+## 22. Travel (TRAVEL) - agents drive between headquarters and the city
+- **TRAVEL-1** Headquarters and every building stand at their cell's centre, in tenths of a cell (`x * 10 + 5`); a crash site at its own point. A drive (`leg`) goes in a straight line from one point to another and takes `max(1, ceil(round(distance) * 6 / travel.speedTenthsPerHour))` ticks (`travel.speedTenthsPerHour = 60`: six cells an hour), leaving on the tick it is ordered.
+- **TRAVEL-2** A watcher is `travelling` until its drive arrives, then `watching` for `watch.hours`; when the watch ends it reports (WATCH-2) and is `returning` on a drive home; at home it is `ready` (an event).
+- **TRAVEL-3** A recalled agent turns for home from where it is: from the building if it was watching, or from the point its drive had reached (integer tenths, truncated toward the start) if it was travelling.
+- **TRAVEL-4** A raid's squad shares one drive out (RAID-2); at the door the drive ends. After the raid the agents who are not down are `returning` on a drive home from the building or crash site; the downed are wounded or dead at once (RES-2).
 
 ## 15. Rulings log
 - RULING: CITY-4 | buildings fight on the three D20 raid maps by their floor count until M7 | the battle engine's ARCH-1 names a battle file; per-building maps are M7's join. provisional
@@ -215,3 +231,7 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - RULING: AIR-4 | the live dogfight is resolved on the hour by rolls; the client draws it in real time between hours | the city's tick is ten minutes, and an hour per real second at speed 1 keeps a fight readable while pausable. provisional
 - RULING: CSIM-2 | the targets now measure the whole campaign (40% to 85% for the careful agency) instead of act 1 alone (55% to 90%) | act 1 no longer ends the game; a three-act campaign should be lost more often than one act. provisional
 - RULING: ACT-3 | act 3 opens on the research, not on a raid | D24 makes research evidence-gated; tracing the source is the evidence that the agency knows where to strike. provisional
+- RULING: CITY-1 | "four times as large" is four times the area: the 12 x 12 grid became 24 x 24, the districts doubled in each direction, and the buildings went from 24 to 48 (each old one moved to a cell of its doubled block, 24 new ones placed by a seeded draw with a free cell around each) | the owner asked for a city four times as large (2026-11-22); doubling rather than quadrupling the buildings keeps the slip rate per organisation (SIGN-1 rolls per building) within reach of the old balance, and the 10 organisations are unchanged. provisional
+- RULING: TRAVEL-1 | drives are straight lines at one speed, by car, with no traffic or roads in the rules | the owner asked to see agents travel and to pay travel time (2026-11-22); the client draws the car on the street grid's line of sight, and roads would add a path search to every order for no decision. provisional
+- RULING: TRAVEL-4 | a squad drives home after a raid, and the wounded are off the books at once | an agent tied up on the drive home is the travel cost the owner asked for; carrying the wounded home changes no decision. provisional
+- RULING: AIR-1 | the craft and car speeds doubled with the city (scout 60, seeder 24, car 80, carrier 16 tenths an hour), and with them the range at which a scout finds headquarters (ACT-4, 15 -> 30 tenths, the same share of a scout's hourly step) | a crossing takes as many hours as before, so the air war's timing and balance carry over. provisional

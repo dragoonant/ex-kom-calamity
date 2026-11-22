@@ -66,7 +66,7 @@ function seedPlan(view: CityState): CityAction[] {
   for (const def of CITY.buildings) {
     const b = view.buildings.find((x) => x.id === def.id)!;
     let h = heat.get(def.org) ?? 0;
-    if (view.agents.some((a) => a.status === 'watching' && a.building === def.id)) h += 3;
+    if (view.agents.some((a) => (a.status === 'watching' || a.status === 'travelling') && a.building === def.id)) h += 3;
     if (b.raidedTick !== null && view.tick - b.raidedTick < 3 * day) h += 2;
     if (view.raid && view.raid.building === def.id) h += 5;
     heat.set(def.org, h);
@@ -216,7 +216,7 @@ export const agencyCareful: CityDriver = (view) => {
   for (const [id, sc] of ranked) {
     if (i >= spare.length || sc < 2) break;
     const b = view.buildings.find((x) => x.id === id)!;
-    if (view.agents.some((a) => a.status === 'watching' && a.building === id)) continue;
+    if (view.agents.some((a) => (a.status === 'watching' || a.status === 'travelling') && a.building === id)) continue;
     if (b.watch && view.tick - b.watch.tick < 2 * day) continue;
     out.push({ type: 'watch', side: 'agency', agent: spare[i]!, building: id });
     i += 1;

@@ -21,7 +21,7 @@ export const rig: CameraPose = {
 };
 
 /** The map's footprint, set when a battle opens, so the camera target stays over the block. */
-export const bounds = { width: 16, depth: 12 };
+export const bounds = { width: 16, depth: 12, maxDistance: 110 };
 
 /** Centres the camera on a tile (a new raid, Continue, picking an agent from the squad panel). */
 export function focusOn(p: { x: number; y: number }): void {
@@ -37,7 +37,7 @@ export const DIST_MAX = 110;
 
 export function clampRig(): void {
   rig.pitch = Math.min(PITCH_MAX, Math.max(PITCH_MIN, rig.pitch));
-  rig.distance = Math.min(DIST_MAX, Math.max(DIST_MIN, rig.distance));
+  rig.distance = Math.min(bounds.maxDistance ?? DIST_MAX, Math.max(DIST_MIN, rig.distance));
   rig.target.x = Math.min(bounds.width + 6, Math.max(-6, rig.target.x));
   rig.target.z = Math.min(bounds.depth + 6, Math.max(-6, rig.target.z));
 }

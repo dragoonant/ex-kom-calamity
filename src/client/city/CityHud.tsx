@@ -7,8 +7,9 @@ import { CITY, RESEARCH } from '../../data/city';
 import { buildingUnder, cityQuery, hasDone, itemCost, projectDef, researchBlock, supplierOrg, type Agent, type CityState } from '../../city';
 import { BAND_WORDS, buildingName, districtName, itemName, orgName, OVER_TEXT } from './text';
 import { CITY_SPEEDS, useCity } from './store';
+import { SceneryToggle } from '../scenery';
 
-const STATUS_WORD: Record<Agent['status'], string> = { ready: 'READY', watching: 'WATCHING', raiding: 'ON RAID', wounded: 'WOUNDED', dead: 'KILLED' };
+const STATUS_WORD: Record<Agent['status'], string> = { ready: 'READY', travelling: 'DRIVING OUT', watching: 'WATCHING', raiding: 'ON RAID', returning: 'DRIVING HOME', wounded: 'WOUNDED', dead: 'KILLED' };
 
 function lampFor(a: Agent): string {
   if (a.status === 'dead') return 'lamp lamp-off';
@@ -379,9 +380,12 @@ export function CityHud() {
                 </button>
               </div>
             ) : (
-              <button type="button" className="toggle" data-testid="city-leave" onClick={() => setConfirmLeave(true)}>
-                LEAVE
-              </button>
+              <div className="switch-row">
+                <button type="button" className="toggle" data-testid="city-leave" onClick={() => setConfirmLeave(true)}>
+                  LEAVE
+                </button>
+                <SceneryToggle testId="city-scenery" />
+              </div>
             )}
           </section>
 

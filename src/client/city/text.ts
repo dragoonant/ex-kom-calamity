@@ -129,6 +129,14 @@ function slipTone(sl: Slip): Tone {
   return 'note';
 }
 
+/** A drive's length in words: "40 minutes", "an hour", "2 hours". */
+function hoursText(ticks: number, s: CityState): string {
+  const min = ticks * s.tuning.clock.minutesPerTick;
+  if (min < 60) return `${min} minutes`;
+  const h = Math.round(min / 30) / 2;
+  return h === 1 ? 'an hour' : `${h} hours`;
+}
+
 function agentName(s: CityState, id: string): string {
   return s.agents.find((a) => a.id === id)?.name ?? id;
 }
@@ -146,13 +154,19 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
         add(`${agentName(after, e.agent)} reports from ${buildingName(e.building)}: ${BAND_WORDS[e.band]}.`, e.band === 'heavy' || e.band === 'some' ? 'alert' : e.band === 'low' ? 'caution' : 'ok', e.building, 'watched');
         break;
       case 'watchSent':
-        add(`${agentName(after, e.agent)} is watching ${buildingName(e.building)}.`, 'note', e.building, 'order');
+        add(`${agentName(after, e.agent)} is driving out to watch ${buildingName(e.building)}, about ${hoursText(e.arriveTick - after.tick, after)} away.`, 'note', e.building, 'order');
+        break;
+      case 'watchStarted':
+        add(`${agentName(after, e.agent)} is in place at ${buildingName(e.building)} and watching.`, 'note', e.building, 'watch-started');
+        break;
+      case 'home':
+        add(`${agentName(after, e.agent)} is back at headquarters.`, 'note', null, 'home');
         break;
       case 'recalled':
         add(`${agentName(after, e.agent)} called back.`, 'note', null, 'order');
         break;
       case 'raidOrdered':
-        add(`Squad of ${e.agents.length} lifting off for ${buildingName(e.building)}.`, 'note', e.building, 'launch');
+        add(`Squad of ${e.agents.length} driving out to ${buildingName(e.building)}, about ${hoursText(e.arriveTick - after.tick, after)} away.`, 'note', e.building, 'launch');
         break;
       case 'raidArrived':
         add(`The squad is at the door of ${buildingName(e.building)}.`, 'alert', e.building, 'door');

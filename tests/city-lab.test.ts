@@ -29,7 +29,7 @@ function done(s: CityState, ...ids: string[]): CityState {
 }
 function raidWon(s: CityState, building: string, agents = ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6']) {
   let x = ok(s, { type: 'raid', side: 'agency', building, agents }).state;
-  x = advanceCityTicks(x, HOUR).state;
+  x = advanceCityTicks(x, x.raid!.arriveTick - x.tick).state;
   return ok(x, { type: 'resolve', side: 'agency' });
 }
 
@@ -70,7 +70,7 @@ describe('17. The lab (LAB)', () => {
     for (let seed = 1; seed <= 100; seed++) {
       let s = done(only(city(seed), 'freight', 30), 'host-tells', 'hand-scanner');
       s = ok(s, { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state;
-      s = advanceCityTicks(s, T.watch.hours * HOUR).state;
+      s = advanceCityTicks(s, s.agents[0]!.until - s.tick + T.watch.hours * HOUR).state;
       if (s.buildings.find((b) => b.id === 'depot-7')!.watch!.band === 'some') right += 1;
     }
     expect(right).toBeGreaterThan(88);
@@ -91,7 +91,7 @@ describe('17. The lab (LAB)', () => {
     for (let seed = 1; seed <= 60; seed++) {
       let s = done(only(city(seed, HOPE), 'freight', 30), 'antiserum');
       s = ok(s, { type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag1'] }).state;
-      s = advanceCityTicks(s, HOUR).state;
+      s = advanceCityTicks(s, s.raid!.arriveTick - s.tick).state;
       s = ok(s, { type: 'resolve', side: 'agency' }).state;
       if (s.agents[0]!.status === 'dead') dead += 1;
     }
@@ -159,7 +159,7 @@ describe('19. Raid composition (RAID-7)', () => {
     expect(compositionFor(s, org(25), 3)).toEqual({ takers: 1, fighters: 0 });
     expect(compositionFor(s, org(60), 8)).toEqual({ takers: 2, fighters: 2 });
     let x = ok(only(city(), 'savings', 60), { type: 'raid', side: 'agency', building: 'savings-main', agents: ['ag1'] }).state;
-    x = advanceCityTicks(x, HOUR).state;
+    x = advanceCityTicks(x, x.raid!.arriveTick - x.tick).state;
     expect(x.raid).toMatchObject({ hostiles: 7, takers: 1, fighters: 1 });
   });
 });

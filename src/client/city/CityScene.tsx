@@ -12,6 +12,12 @@ import { feed, makeAccumulator } from '../loop';
 import { CameraRig } from '../board/CameraRig';
 import { RendererHandle } from '../board/Scene';
 import { bounds, clampRig, rig } from '../board/world';
+import { HorizonFog, SkyDome, skyAt, type SkyTone } from '../board/backdrop';
+import { patchWindows, windowUniforms, type WindowUniforms } from '../board/windows';
+import { CityDressing } from './CityDressing';
+import { CityOverlays } from './CityOverlays';
+import { CityLabels, LabelProjector, lotHeights, useHover } from './labels';
+import { RendererName, useSceneryLevel } from '../scenery';
 import { buildingGeometry, cellCentre, CELL, PAL } from './cityMeshes';
 import { useCity } from './store';
 
@@ -30,68 +36,87 @@ function CityLoop() {
   return null;
 }
 
-/** 0 at midnight, 1 at noon: drives the sky, the sun and the windows. */
+/** 0 at midnight, 1 at noon: drives the too-perfect gleam and the window strips. */
 function daylight(hour: number, minute: number): number {
   const h = hour + minute / 60;
   const x = Math.cos(((h - 13) / 24) * Math.PI * 2);
   return Math.min(1, Math.max(0, (x + 0.35) / 1.1));
 }
 
-function SkyAndLights({ view }: { view: CityState }) {
-  const { gl } = useThree();
+const CENTRE = new THREE.Vector3(SIZE / 2, 0, SIZE / 2);
+const MOON_DIR = new THREE.Vector3(0.35, 0.8, 0.5).normalize();
+
+/**
+ * The sky, the sun (or the moon) and the fog from the city clock. `tone` is one shared object the dome, the
+ * water and the lamps read each frame; the clock moves in ten-minute ticks and the shown hour eases after it.
+ */
+function SkyAndLights({ tone, windows, shadows }: { tone: SkyTone; windows: WindowUniforms; shadows: boolean }) {
   const hemi = useRef<THREE.HemisphereLight>(null);
   const sun = useRef<THREE.DirectionalLight>(null);
-  const c = cityQuery.clock(view);
-  const d = daylight(c.hour, c.minute);
-  useEffect(() => {
-    const day = new THREE.Color('#c9d6dc');
-    const night = new THREE.Color('#1f2a3a');
-    gl.setClearColor(night.clone().lerp(day, d));
-    if (hemi.current) hemi.current.intensity = 0.45 + d * 1.1;
-    if (sun.current) {
-      sun.current.intensity = 0.15 + d * 1.6;
-      const a = ((c.hour + c.minute / 60 - 6) / 12) * Math.PI;
-      sun.current.position.set(Math.cos(a) * -60 + SIZE / 2, 10 + Math.max(0, Math.sin(a)) * 40, SIZE / 2 + 20);
-      sun.current.color.set(d < 0.5 ? '#ffb774' : '#fff1d6');
+  const shown = useRef<number | null>(null);
+  const target = useMemo(() => {
+    const o = new THREE.Object3D();
+    o.position.copy(CENTRE);
+    return o;
+  }, []);
+  useFrame((_, dt) => {
+    const view = useCity.getState().view;
+    if (!view) return;
+    const c = cityQuery.clock(view);
+    const want = c.hour + c.minute / 60;
+    let h = shown.current ?? want;
+    let delta = want - h;
+    if (delta < -12) delta += 24;
+    if (delta > 12) delta -= 24;
+    // Ease toward the clock; jump when it moved by more than a few hours (a load, a long advance).
+    h = Math.abs(delta) > 3 ? want : h + delta * Math.min(1, dt * 4);
+    h = (h + 24) % 24;
+    shown.current = h;
+    skyAt(h, tone);
+    windows.uNight.value = THREE.MathUtils.smoothstep(tone.night, 0.15, 0.8);
+    const day = 1 - tone.night;
+    if (hemi.current) {
+      hemi.current.color.copy(tone.zenith).lerp(WHITE, 0.2 + day * 0.35);
+      hemi.current.groundColor.copy(tone.ground);
+      hemi.current.intensity = 0.42 + day * 1.05;
     }
-  }, [gl, d, c.hour, c.minute]);
+    const s = sun.current;
+    if (s) {
+      const up = tone.sunDir.y > 0.02;
+      const dir = up ? tone.sunDir : MOON_DIR;
+      s.position.copy(CENTRE).addScaledVector(dir, 160);
+      s.color.copy(up ? tone.sun : MOON);
+      s.intensity = up ? 0.4 + Math.min(1, tone.sunDir.y * 3) * 1.7 : 0.45;
+    }
+  });
   return (
     <>
       <hemisphereLight ref={hemi} args={['#cfe0ea', '#8a7a66', 0.9]} />
-      <ambientLight intensity={0.18} />
-      <directionalLight ref={sun} position={[0, 40, 20]} intensity={1.2} />
+      <ambientLight intensity={0.06} />
+      <primitive object={target} />
+      <directionalLight
+        ref={sun}
+        target={target}
+        position={[0, 40, 20]}
+        intensity={1.2}
+        castShadow={shadows}
+        shadow-mapSize-width={4096}
+        shadow-mapSize-height={4096}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.03}
+        shadow-camera-left={-118}
+        shadow-camera-right={118}
+        shadow-camera-top={118}
+        shadow-camera-bottom={-118}
+        shadow-camera-near={1}
+        shadow-camera-far={360}
+      />
     </>
   );
 }
 
-function Ground() {
-  const plates = useMemo(
-    () =>
-      CITY.districts.map((dist, i) => ({
-        id: dist.id,
-        x: dist.x * CELL + (dist.w * CELL) / 2,
-        z: dist.y * CELL + (dist.d * CELL) / 2,
-        w: dist.w * CELL - 0.6,
-        d: dist.d * CELL - 0.6,
-        colour: dist.id === 'parkside' ? '#8fb07a' : ['#d6cdb8', '#cfc6ae', '#dcd3bd', '#c9c0a8', '#d2c9b2', '#d9d0b9'][i % 6]!,
-      })),
-    [],
-  );
-  return (
-    <group>
-      <mesh position={[SIZE / 2, -0.05, SIZE / 2]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[SIZE + 24, SIZE + 24]} />
-        <meshStandardMaterial color="#8a867c" />
-      </mesh>
-      {plates.map((p) => (
-        <mesh key={p.id} position={[p.x, 0.0, p.z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[p.w, p.d]} />
-          <meshStandardMaterial color={p.colour} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+const WHITE = new THREE.Color('#ffffff');
+const MOON = new THREE.Color('#9fb2dc');
 
 interface Lot {
   id: string;
@@ -99,20 +124,31 @@ interface Lot {
   geo: ReturnType<typeof buildingGeometry>;
 }
 
-/** Each lot's pick height, for the hook to aim a tap at a building's visible top (window.__ekcCity). */
-export const lotHeights = new Map<string, number>();
+export { lotHeights };
 
 function useLots(): { lots: Lot[]; hq: Lot } {
   return useMemo(() => {
-    const lots = CITY.buildings.map((b, i) => ({ id: b.id, pos: cellCentre(b.x, b.y), geo: buildingGeometry(b.kind, b.floors, i) }));
+    const lots = CITY.buildings.map((b, i) => ({
+      id: b.id,
+      pos: cellCentre(b.x, b.y),
+      geo: buildingGeometry(b.kind, b.floors, i),
+    }));
     for (const l of lots) lotHeights.set(l.id, Math.max(2, l.geo.height));
-    const hq = { id: 'hq', pos: cellCentre(CITY.agency.hq.x, CITY.agency.hq.y), geo: buildingGeometry('hq', 3, 0) };
+    const hq = {
+      id: 'hq',
+      pos: cellCentre(CITY.agency.hq.x, CITY.agency.hq.y),
+      geo: buildingGeometry('hq', 3, 0),
+    };
     return { lots, hq };
   }, []);
 }
 
 /** Which buildings the agency's own slips point at (never the hidden truth). */
-function leads(view: CityState): { hum: Set<string>; perfect: Set<string>; turned: Set<string> } {
+function leads(view: CityState): {
+  hum: Set<string>;
+  perfect: Set<string>;
+  turned: Set<string>;
+} {
   const hum = new Set<string>();
   const perfect = new Set<string>();
   for (const sl of view.slips) {
@@ -125,15 +161,75 @@ function leads(view: CityState): { hum: Set<string>; perfect: Set<string>; turne
   return { hum, perfect, turned };
 }
 
-function Buildings({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }) {
+function Buildings({ view, lots, hq, windows }: { view: CityState; lots: Lot[]; hq: Lot; windows: WindowUniforms }) {
   const c = cityQuery.clock(view);
   const d = daylight(c.hour, c.minute);
   const { hum, perfect, turned } = leads(view);
-  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.05 }), []);
-  const gleamMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.25, emissive: new THREE.Color('#fff6e0'), emissiveIntensity: 0.18 }), []);
-  const winMat = useMemo(() => new THREE.MeshStandardMaterial({ color: PAL.glass, emissive: new THREE.Color('#ffe2a8'), emissiveIntensity: 0, roughness: 0.3 }), []);
-  const humMat = useMemo(() => new THREE.MeshStandardMaterial({ color: PAL.glass, emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0, roughness: 0.3 }), []);
-  const turnedMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3a2a1a', emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0.9, roughness: 0.3 }), []);
+  const bodyMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.75,
+        metalness: 0.05,
+      }),
+    [],
+  );
+  const gleamMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.18,
+        metalness: 0.25,
+        emissive: new THREE.Color('#fff6e0'),
+        emissiveIntensity: 0.18,
+      }),
+    [],
+  );
+  // The strips are cut into panes by the shader; a lead building's panes are all lit and pulse together (the hum).
+  const winMat = useMemo(
+    () =>
+      patchWindows(
+        new THREE.MeshStandardMaterial({
+          color: PAL.glass,
+          emissive: new THREE.Color('#ffe2a8'),
+          emissiveIntensity: 0,
+          roughness: 0.25,
+          metalness: 0.2,
+        }),
+        windows,
+        'bands',
+      ),
+    [windows],
+  );
+  const allLit = useMemo(() => ({ ...windows, uLit: { value: 1 } }), [windows]);
+  const humMat = useMemo(
+    () =>
+      patchWindows(
+        new THREE.MeshStandardMaterial({
+          color: PAL.glass,
+          emissive: new THREE.Color('#e0a030'),
+          emissiveIntensity: 0,
+          roughness: 0.3,
+        }),
+        allLit,
+        'bands',
+      ),
+    [allLit],
+  );
+  const turnedMat = useMemo(
+    () =>
+      patchWindows(
+        new THREE.MeshStandardMaterial({
+          color: '#3a2a1a',
+          emissive: new THREE.Color('#e0a030'),
+          emissiveIntensity: 0.9,
+          roughness: 0.3,
+        }),
+        allLit,
+        'bands',
+      ),
+    [allLit],
+  );
   useFrame(({ clock }) => {
     winMat.emissiveIntensity = (1 - d) * 1.1;
     // The hum: every lead building pulses in unison, at night only.
@@ -148,13 +244,13 @@ function Buildings({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }
         const isTurned = turned.has(l.id);
         return (
           <group key={l.id} position={l.pos}>
-            <mesh geometry={l.geo.body} material={perfect.has(l.id) && d > 0.3 ? gleamMat : bodyMat} raycast={() => null} />
+            <mesh geometry={l.geo.body} material={perfect.has(l.id) && d > 0.3 ? gleamMat : bodyMat} raycast={() => null} castShadow receiveShadow />
             <mesh geometry={l.geo.windows} material={isTurned ? turnedMat : isHum ? humMat : winMat} raycast={() => null} />
           </group>
         );
       })}
       <group position={hq.pos}>
-        <mesh geometry={hq.geo.body} material={bodyMat} raycast={() => null} />
+        <mesh geometry={hq.geo.body} material={bodyMat} raycast={() => null} castShadow receiveShadow />
         <mesh geometry={hq.geo.windows} material={winMat} raycast={() => null} />
       </group>
     </group>
@@ -162,7 +258,7 @@ function Buildings({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }
 }
 
 /** KB rule 25: one pick object for the whole city, an instanced box per lot. */
-function PickLots({ lots }: { lots: Lot[] }) {
+function PickLots({ lots, onHover }: { lots: Lot[]; onHover: (id: string | null) => void }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   const select = useCity((s) => s.select);
   useEffect(() => {
@@ -183,7 +279,16 @@ function PickLots({ lots }: { lots: Lot[] }) {
     select(lots[e.instanceId]!.id);
   };
   return (
-    <instancedMesh ref={ref} args={[undefined, undefined, lots.length]} onPointerDown={onDown} data-pick="lots">
+    <instancedMesh
+      ref={ref}
+      args={[undefined, undefined, lots.length]}
+      onPointerDown={onDown}
+      onPointerMove={(e) => {
+        if (e.instanceId !== undefined) onHover(lots[e.instanceId]!.id);
+      }}
+      onPointerOut={() => onHover(null)}
+      data-pick="lots"
+    >
       <boxGeometry args={[1, 1, 1]} />
       <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
     </instancedMesh>
@@ -192,32 +297,13 @@ function PickLots({ lots }: { lots: Lot[] }) {
 
 function Markers({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }) {
   const selected = useCity((s) => s.selected);
-  const car = useRef<THREE.Group>(null);
   const sel = lots.find((l) => l.id === selected);
   const watched = new Set(view.agents.filter((a) => a.status === 'watching' && a.building).map((a) => a.building!));
-  useFrame(() => {
-    const g = car.current;
-    if (!g) return;
-    const r = view.raid;
-    if (!r) {
-      g.visible = false;
-      return;
-    }
-    const to = lots.find((l) => l.id === r.building);
-    if (!to) return;
-    const span = Math.max(1, r.arriveTick - r.orderedTick);
-    const t = r.arrived ? 1 : Math.min(1, (view.tick - r.orderedTick) / span);
-    g.visible = true;
-    const x = THREE.MathUtils.lerp(hq.pos.x, to.pos.x, t);
-    const z = THREE.MathUtils.lerp(hq.pos.z, to.pos.z, t);
-    g.position.set(x, 4 + Math.sin(t * Math.PI) * 8 + (r.arrived ? -2 : 0), z);
-    g.rotation.y = Math.atan2(to.pos.x - hq.pos.x, to.pos.z - hq.pos.z);
-  });
   return (
     <group>
       {sel && (
-        <mesh position={[sel.pos.x, 0.08, sel.pos.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
-          <ringGeometry args={[CELL * 0.46, CELL * 0.52, 40]} />
+        <mesh position={[sel.pos.x, 0.18, sel.pos.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+          <ringGeometry args={[CELL * 0.5, CELL * 0.58, 40]} />
           <meshBasicMaterial color={PAL.red} />
         </mesh>
       )}
@@ -230,27 +316,11 @@ function Markers({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }) 
           </mesh>
         ))}
       {view.hqFound && (
-        <mesh position={[hq.pos.x, 0.1, hq.pos.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
+        <mesh position={[hq.pos.x, 0.2, hq.pos.z]} rotation={[-Math.PI / 2, 0, 0]} raycast={() => null}>
           <ringGeometry args={[CELL * 0.55, CELL * 0.62, 40]} />
           <meshBasicMaterial color="#e0a030" />
         </mesh>
       )}
-      <group ref={car} visible={false}>
-        <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]}>
-          <capsuleGeometry args={[0.45, 1.3, 6, 12]} />
-          <meshStandardMaterial color={PAL.red} roughness={0.35} metalness={0.2} />
-        </mesh>
-        <mesh raycast={() => null} position={[0, 0.35, -0.1]}>
-          <sphereGeometry args={[0.38, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color={PAL.glass} roughness={0.1} />
-        </mesh>
-        {[-0.75, 0.75].map((x) => (
-          <mesh key={x} raycast={() => null} position={[x, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <torusGeometry args={[0.32, 0.1, 8, 16]} />
-            <meshStandardMaterial color={PAL.chrome} metalness={0.6} roughness={0.3} />
-          </mesh>
-        ))}
-      </group>
     </group>
   );
 }
@@ -261,7 +331,10 @@ const AIR_SCALE = CELL / 10;
 function Sky({ view }: { view: CityState }) {
   const group = useRef<THREE.Group>(null);
   const seq = useCity((s) => s.eventSeq);
-  const flash = useRef<{ until: number; craft: Set<string> }>({ until: 0, craft: new Set() });
+  const flash = useRef<{ until: number; craft: Set<string> }>({
+    until: 0,
+    craft: new Set(),
+  });
   const scoutGeo = useMemo(() => {
     const g = new THREE.CapsuleGeometry(0.45, 2.2, 6, 14);
     g.rotateX(Math.PI / 2);
@@ -269,15 +342,52 @@ function Sky({ view }: { view: CityState }) {
   }, []);
   const seederGeo = useMemo(() => new THREE.SphereGeometry(1.3, 18, 12), []);
   const podGeo = useMemo(() => new THREE.SphereGeometry(0.35, 10, 8), []);
-  const pearl = useMemo(() => new THREE.MeshStandardMaterial({ color: '#d4dadb', roughness: 0.25, metalness: 0.1 }), []);
+  const pearl = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d4dadb',
+        roughness: 0.25,
+        metalness: 0.1,
+      }),
+    [],
+  );
   const chitin = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2a2622', roughness: 0.6 }), []);
-  const amber = useMemo(() => new THREE.MeshStandardMaterial({ color: '#e0a030', emissive: new THREE.Color('#e0a030'), emissiveIntensity: 1.2 }), []);
-  const carMat = useMemo(() => new THREE.MeshStandardMaterial({ color: PAL.red, roughness: 0.35, metalness: 0.2 }), []);
-  const smoke = useMemo(() => new THREE.MeshStandardMaterial({ color: '#5a5650', transparent: true, opacity: 0.55, depthWrite: false }), []);
+  const amber = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#e0a030',
+        emissive: new THREE.Color('#e0a030'),
+        emissiveIntensity: 1.2,
+      }),
+    [],
+  );
+  const carMat = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: PAL.red,
+        roughness: 0.35,
+        metalness: 0.2,
+      }),
+    [],
+  );
+  const smoke = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#5a5650',
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+      }),
+    [],
+  );
   const tracer = useMemo(() => new THREE.LineBasicMaterial({ color: '#ffd27a' }), []);
   useEffect(() => {
     const ev = useCity.getState().lastEvents.filter((e) => e.type === 'dogfight');
-    if (ev.length) flash.current = { until: performance.now() + 600, craft: new Set(ev.map((e) => (e.type === 'dogfight' ? e.craft : ''))) };
+    if (ev.length)
+      flash.current = {
+        until: performance.now() + 600,
+        craft: new Set(ev.map((e) => (e.type === 'dogfight' ? e.craft : ''))),
+      };
   }, [seq]);
   useFrame(({ clock }) => {
     const g = group.current;
@@ -346,7 +456,10 @@ function Sky({ view }: { view: CityState }) {
             view.cars
               .filter((car) => car.craft === c.id)
               .map((car) => {
-                const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE), new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'scout' ? 16 : c.kind === 'carrier' ? 18 : 13, c.y * AIR_SCALE)]);
+                const g = new THREE.BufferGeometry().setFromPoints([
+                  new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE),
+                  new THREE.Vector3(c.x * AIR_SCALE, c.kind === 'scout' ? 16 : c.kind === 'carrier' ? 18 : 13, c.y * AIR_SCALE),
+                ]);
                 return <primitive key={`${c.id}-${car.id}`} object={new THREE.Line(g, tracer)} />;
               }),
           )}
@@ -357,14 +470,22 @@ function Sky({ view }: { view: CityState }) {
 function CityBoard() {
   const view = useCity((s) => s.view);
   const { lots, hq } = useLots();
+  const tone = useMemo(() => skyAt(8), []);
+  const windows = useMemo(() => windowUniforms(0.8, 1.0, 0.4), []);
+  const full = useSceneryLevel() === 'full';
+  const setHovered = useHover((h) => h.setHovered);
   if (!view) return null;
   return (
     <>
-      <SkyAndLights view={view} />
-      <Ground />
-      <Buildings view={view} lots={lots} hq={hq} />
-      <PickLots lots={lots} />
+      <SkyAndLights tone={tone} windows={windows} shadows={full} />
+      <SkyDome tone={tone} radius={1000} />
+      <HorizonFog tone={tone} near={170} far={620} />
+      <CityDressing tone={tone} windows={windows} full={full} />
+      <Buildings view={view} lots={lots} hq={hq} windows={windows} />
+      <PickLots lots={lots} onHover={setHovered} />
       <Markers view={view} lots={lots} hq={hq} />
+      <CityOverlays view={view} heights={lotHeights} />
+      <LabelProjector />
       <Sky view={view} />
     </>
   );
@@ -374,17 +495,29 @@ export function CityScene() {
   useEffect(() => {
     bounds.width = SIZE;
     bounds.depth = SIZE;
-    rig.target = { x: SIZE / 2, z: SIZE / 2 };
-    rig.distance = 62;
-    rig.pitch = 0.9;
+    bounds.maxDistance = 230;
+    rig.target = { x: SIZE / 2, z: SIZE / 2 + 6 };
+    rig.distance = 135;
+    rig.pitch = 0.92;
     clampRig();
   }, []);
   return (
-    <Canvas className="board" frameloop="always" dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 42, near: 0.1, far: 600, position: [SIZE, 50, SIZE] }}>
-      <RendererHandle />
-      <CameraRig />
-      <CityLoop />
-      <CityBoard />
-    </Canvas>
+    <>
+      <Canvas
+        className="board"
+        shadows
+        frameloop="always"
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
+        camera={{ fov: 42, near: 0.5, far: 1100, position: [SIZE, 50, SIZE] }}
+      >
+        <RendererHandle />
+        <RendererName />
+        <CameraRig />
+        <CityLoop />
+        <CityBoard />
+      </Canvas>
+      <CityLabels />
+    </>
   );
 }
