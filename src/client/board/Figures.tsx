@@ -24,7 +24,8 @@ import { FIGURE_H, LEVEL_H, tileToWorld } from './world';
  */
 export function roleOf(u: Unit): FigureRole {
   if (u.side === 'agency') return u.template === 'agent-t2' ? 'agent-t2' : 'agent-t1';
-  if (u.template === 'taker') return 'taker';
+  // The spitter (D26 slice 3) wears the taker's body until it has a model of its own (RULING STRAY-3).
+  if (u.template === 'taker' || u.template === 'spitter') return 'taker';
   if (u.template === 'fighter') return 'fighter';
   if (u.template === 'host') return 'host-revealed'; // the view already turned an unrevealed host into a citizen
   return citizenBody(u.id);

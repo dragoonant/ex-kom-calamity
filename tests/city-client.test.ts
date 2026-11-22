@@ -89,7 +89,7 @@ describe('16. The client (CSAV, CJOIN)', () => {
       { name: g.agents[0].name, template: 'agent-t2' },
       { name: g.agents[4].name },
     ]);
-    expect(roster.hostiles).toEqual({ host: 4, taker: 1, fighter: 2 });
+    expect(roster.hostiles).toEqual({ host: 4, taker: 1, fighter: 2, spitter: 0 });
     g.shop.sabotaged['shell-plate'] = 2;
     expect(rosterOf(g, ['ag1'], { hostiles: 1, takers: 0, fighters: 0 }).squad![0]).toEqual({ name: g.agents[0].name, weapon: 'arc-carbine' }); // the plates are sabotaged, the carbine works
     // the maps: a defence, an open-ground wreck, a wreck on a building
@@ -101,5 +101,13 @@ describe('16. The client (CSAV, CJOIN)', () => {
     const battle = createGame({ battleId: 'hq-defence', seed: 1, roster });
     expect(battle.units.filter((u) => u.side === 'agency').map((u) => u.template)).toEqual(['agent-t2', 'agent-t2', 'agent-t1']);
     expect(battle.units.filter((u) => u.side === 'hostile')).toHaveLength(7);
+  });
+  it('CJOIN-4 a fifth of a fought raid\'s hostiles are spitters once the owner is at 30 infiltration', () => {
+    useCity.getState().start(10);
+    const g = JSON.parse(JSON.stringify(useCity.getState().game!));
+    for (const o of g.orgs) o.infiltration = o.id === 'freight' ? 40 : 0;
+    expect(rosterOf(g, ['ag1'], { hostiles: 10, takers: 2, fighters: 2 }, 'depot-7').hostiles).toEqual({ host: 4, taker: 2, fighter: 2, spitter: 2 });
+    for (const o of g.orgs) o.infiltration = o.id === 'freight' ? 20 : 0;
+    expect(rosterOf(g, ['ag1'], { hostiles: 10, takers: 2, fighters: 2 }, 'depot-7').hostiles!.spitter).toBe(0);
   });
 });

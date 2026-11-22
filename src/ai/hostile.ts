@@ -165,6 +165,15 @@ function revealedHost(k: Know, u: Unit, out: Action[]): void {
     } else roam(k, u, out);
     return;
   }
+  // AI-14: a revealed host with its charge throws it at three or more agents together.
+  if (u.charges > 0 && !u.blast) {
+    const at = blastTile(k, u, 3);
+    if (at) {
+      if (u.order) push(out, { type: 'halt', side: k.side, unit: u.id });
+      push(out, { type: 'blast', side: k.side, unit: u.id, at });
+      return;
+    }
+  }
   const target = shootable(k, u);
   if (target) {
     push(out, fireOrder(k, u, target));
@@ -176,6 +185,36 @@ function revealedHost(k: Know, u: Unit, out: Action[]): void {
     const n = freeNeighbour(k, e, u);
     if (n) push(out, moveOrder(k, u, n));
   }
+}
+
+/** AI-14: the spitter keeps its distance and lobs spore sacs at two or more agents together; spent, it hides. */
+function spitter(k: Know, u: Unit, out: Action[]): void {
+  if (u.blast) return;
+  if (u.charges > 0) {
+    const at = blastTile(k, u, 2);
+    if (at) {
+      if (u.order) push(out, { type: 'halt', side: k.side, unit: u.id });
+      push(out, { type: 'blast', side: k.side, unit: u.id, at });
+      return;
+    }
+    const e = k.nearestEnemy(u, true) ?? k.nearestEnemy(u);
+    if (e) {
+      // Close to throwing range, out of sight where it can.
+      const r = k.view.tuning.blast.throwRange;
+      const to = bestTile(k, u, 30, (p, ticks) => {
+        if (p.level !== e.level) return null;
+        const d = Math.hypot(p.x - e.x, p.y - e.y);
+        if (d > r || d < 3) return null;
+        return 100 - k.seenBy(p) * 20 - Math.abs(d - (r - 1)) * 5 - ticks * 0.5;
+      });
+      if (to && to.ticks > 0) push(out, moveOrder(k, u, to));
+      return;
+    }
+    roam(k, u, out);
+    return;
+  }
+  const to = hidingTile(k, u, 40);
+  if (to && to.ticks > 0 && k.seenBy(u) > 0) push(out, moveOrder(k, u, to));
 }
 
 /** AI-5: the taker. */
@@ -340,6 +379,7 @@ export function hostileNormal(view: State, side: Side): Action[] {
   const out: Action[] = [];
   for (const u of k.own) {
     if (u.template === 'taker') taker(k, u, out);
+    else if (u.template === 'spitter') spitter(k, u, out);
     else if (u.template === 'fighter') fighter(k, u, out);
     else if (u.disguised && !u.revealed) hiddenHost(k, u, out);
     else revealedHost(k, u, out);

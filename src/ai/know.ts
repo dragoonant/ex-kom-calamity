@@ -192,6 +192,8 @@ export function firingTile(k: Know, u: Unit, target: Unit, range: number, maxTic
     if (!query.los(k.view, p, target)) return null;
     const seen = k.seenBy(p);
     // AI-12: a tile with cover against the target scores half its cover's value.
-    return 100 - seen * 25 - Math.abs(d - prefer) * 4 - ticks * 0.6 + coverAgainst(k.view, p, target).value * 0.5;
+    // AI-14: and spreads out: a tile beside a friend scores less, a charge or a spore sac catches both.
+    const crowd = k.own.filter((o) => o.id !== u.id && !o.down && o.level === p.level && Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)) <= 1).length;
+    return 100 - seen * 25 - Math.abs(d - prefer) * 4 - ticks * 0.6 + coverAgainst(k.view, p, target).value * 0.5 - crowd * 6;
   });
 }

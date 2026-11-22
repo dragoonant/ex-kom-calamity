@@ -288,7 +288,7 @@ export const useCity = create<CityClient>((set, get) => {
       }
       if (!g?.raid?.arrived) return null;
       const crash = g.crashes.find((c) => c.id === g.raid!.building);
-      const fight: PendingFight = { kind: 'raid', building: g.raid.building, site: crash ? (crash.building ?? 'wreck') : g.raid.building, battle: battleOf(g, 'raid', g.raid.building), roster: rosterOf(g, g.raid.agents, g.raid), agents: [...g.raid.agents], hostiles: g.raid.hostiles };
+      const fight: PendingFight = { kind: 'raid', building: g.raid.building, site: crash ? (crash.building ?? 'wreck') : g.raid.building, battle: battleOf(g, 'raid', g.raid.building), roster: rosterOf(g, g.raid.agents, g.raid, g.raid.building), agents: [...g.raid.agents], hostiles: g.raid.hostiles };
       set({ fight });
       get().saveNow();
       return fight;

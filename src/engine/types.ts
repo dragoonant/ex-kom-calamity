@@ -98,7 +98,7 @@ export interface Roster {
   squad?: { name: string; template?: string; weapon?: string }[];
   /** Fills the battle's hostile spawn points (fighters, then takers, then hosts); spare ones hold citizens, and
    * citizen spawn points take the overflow as hosts. */
-  hostiles?: { host: number; taker: number; fighter: number };
+  hostiles?: { host: number; taker: number; fighter: number; spitter?: number };
 }
 
 export interface Setup {
@@ -167,6 +167,7 @@ export interface ShotBreakdown {
 export type GameEvent =
   | { type: 'ordered'; tick: number; action: Exclude<Action, { type: 'tick' }> }
   | { type: 'suppressFire'; tick: number; unit: string; at: Pos; weapon: string; pinned: string[] }
+  | { type: 'strayHit'; tick: number; shooter: string; target: string; victim: string; roll: number }
   | { type: 'moved'; tick: number; unit: string; from: Pos; to: Pos }
   | { type: 'arrived'; tick: number; unit: string }
   | { type: 'moveBlocked'; tick: number; unit: string }

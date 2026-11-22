@@ -39,7 +39,7 @@
     "weapon": "pocket-pistol",
     "disguised": true,
     "defaultStance": "engage",
-    "charges": 0,
+    "charges": 1,
     "source": "docs/GAME-DESIGN.md 3: hosts look ordinary until close"
   },
   "taker": {
@@ -55,6 +55,20 @@
     "defaultStance": "engage",
     "charges": 0,
     "source": "docs/GAME-DESIGN.md 3: the organism that takes hosts"
+  },
+  "spitter": {
+    "name": "Spitter",
+    "side": "hostile",
+    "hp": 45,
+    "armour": 2,
+    "aim": 0,
+    "moveTicks": 3,
+    "sight": 11,
+    "weapon": null,
+    "disguised": false,
+    "defaultStance": "hold",
+    "charges": 3,
+    "source": "PLAN.md D26 (3): the area attacker, a pearl sac on dark chitin legs that lobs spore sacs (BLAST) at agents standing together; no gun"
   },
   "citizen": {
     "name": "Citizen",

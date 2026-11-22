@@ -4,7 +4,7 @@ import type { Action, GameEvent, Pos, State, StepResult, Unit } from './types';
 import { POSTURES, SIDES, STANCES } from './types';
 import { inBounds, isPassable, tileIndex } from './map';
 import { pathField, pathTo, stepCost } from './path';
-import { appearsCivilianTo, enemySide, sideSeesTile, sideSeesUnit, unitById } from './sight';
+import { appearsCivilianTo, enemySide, sideSeesTile, sideSeesUnit, unitById, unitSeesTile } from './sight';
 import { canFire, hitBreakdown, weaponOf, aimTicksFor, canSuppress, isPinned } from './fire';
 import { hasLineOfSight, distance as unitDistance } from './map';
 import { nextInt } from './rng';
@@ -343,7 +343,9 @@ function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<
     events.push({ type: 'revealed', tick: st.tick, unit: u.id, by: 'fire' });
   }
   if (!hit) {
-    // FIRE-7, STR-6: a miss never hits a unit, but it may chew the wall behind the target.
+    // STRAY-1: a ranged miss may hit a unit beside the target that the shooter can see, own side included.
+    if (w.kind === 'ranged' && strayHit(st, u, t, w, events, occ)) return;
+    // FIRE-7, STR-6: otherwise it may chew the wall behind the target.
     strayRound(st, u, t, w, events, occ);
     return;
   }
@@ -360,6 +362,22 @@ function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<
   st.score.hits += 1;
   if (appearsCivilian) st.score.civilianHits += 1;
   hurtUnit(st, t, raw, t.armour, events, occ);
+}
+
+/** STRAY-1, STRAY-2 */
+function strayHit(st: State, u: Unit, t: Unit, w: NonNullable<ReturnType<typeof weaponOf>>, events: GameEvent[], occ: Map<number, Unit>): boolean {
+  const pct = st.tuning.stray?.percent ?? 0;
+  if (pct <= 0) return false;
+  const near = st.units.filter((v) => !v.down && v !== u && v !== t && v.level === t.level && Math.max(Math.abs(v.x - t.x), Math.abs(v.y - t.y)) <= 1 && unitSeesTile(st, u, v));
+  if (near.length === 0) return false;
+  const roll = nextInt(st.rng, 100);
+  if (roll >= pct) return false;
+  const victim = near[nextInt(st.rng, near.length)]!;
+  events.push({ type: 'strayHit', tick: st.tick, shooter: u.id, target: t.id, victim: victim.id, roll });
+  const raw = w.damageMin + nextInt(st.rng, w.damageMax - w.damageMin + 1);
+  if (appearsCivilianTo('agency', victim)) st.score.civilianHits += 1;
+  hurtUnit(st, victim, raw, victim.armour, events, occ);
+  return true;
 }
 
 /** TAKE-1..TAKE-3: the citizen becomes the taking weapon's template, on its tile, with its hp. */

@@ -4,7 +4,10 @@
 // the battle's roster (ARCH-11, CJOIN-3); its result flows back as a fought result (CJOIN-2).
 import { CITY, RAID_SITE_BATTLES } from '../../data/city';
 import { query, type Roster, type State } from '../../engine';
-import { working, type CityState, type RaidResult } from '../../city';
+import { orgOfBuilding, working, type CityState, type RaidResult } from '../../city';
+
+/** CJOIN-4 */
+export const SPITTER_AT = 30;
 import type { PendingFight } from './store';
 
 /** CJOIN-1: the battle a raid, a wreck or a defence is fought on. */
@@ -16,7 +19,7 @@ export function battleOf(state: CityState, kind: 'raid' | 'defence', target: str
 }
 
 /** CJOIN-3: the squad with its working kit (plates first, then carbines, as SHOP-4) and the hostiles by kind. */
-export function rosterOf(state: CityState, agents: string[], hostiles: { hostiles: number; takers: number; fighters: number }): Roster {
+export function rosterOf(state: CityState, agents: string[], hostiles: { hostiles: number; takers: number; fighters: number }, building?: string): Roster {
   const plates = working(state, 'shell-plate', agents.length);
   const carbines = working(state, 'arc-carbine', agents.length);
   return {
@@ -25,7 +28,13 @@ export function rosterOf(state: CityState, agents: string[], hostiles: { hostile
       ...(i < plates ? { template: 'agent-t2' } : {}),
       ...(i < carbines ? { weapon: 'arc-carbine' } : {}),
     })),
-    hostiles: { host: Math.max(0, hostiles.hostiles - hostiles.takers - hostiles.fighters), taker: hostiles.takers, fighter: hostiles.fighters },
+    hostiles: (() => {
+      // CJOIN-4: once the owner is at spitterAt infiltration, a fifth of the hostiles are spitters, taken from the hosts.
+      const hosts = Math.max(0, hostiles.hostiles - hostiles.takers - hostiles.fighters);
+      const org = building ? orgOfBuilding(state, building) : undefined;
+      const spitters = org && org.infiltration >= SPITTER_AT ? Math.min(hosts, Math.floor(hostiles.hostiles / 5)) : 0;
+      return { host: hosts - spitters, taker: hostiles.takers, fighter: hostiles.fighters, spitter: spitters };
+    })(),
   };
 }
 

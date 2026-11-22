@@ -70,11 +70,11 @@ export function applyRoster(battle: BattleDef, roster: Roster | undefined): { sq
   let others = battle.others;
   if (roster.hostiles) {
     const h = roster.hostiles;
-    for (const n of [h.host, h.taker, h.fighter]) if (!Number.isInteger(n) || n < 0) throw new Error('roster hostiles must be non-negative integers');
+    for (const n of [h.host, h.taker, h.fighter, h.spitter ?? 0]) if (!Number.isInteger(n) || n < 0) throw new Error('roster hostiles must be non-negative integers');
     // Hostile spawn points first, in file order; then citizen spawn points for the overflow.
     const hostileSpots = battle.others.filter((o) => UNITS[o.template]?.side === 'hostile');
     const citizenSpots = battle.others.filter((o) => UNITS[o.template]?.side !== 'hostile');
-    const wanted = [...Array(h.fighter).fill('fighter'), ...Array(h.taker).fill('taker'), ...Array(h.host).fill('host')] as string[];
+    const wanted = [...Array(h.fighter).fill('fighter'), ...Array(h.spitter ?? 0).fill('spitter'), ...Array(h.taker).fill('taker'), ...Array(h.host).fill('host')] as string[];
     const out: OtherEntry[] = [];
     hostileSpots.forEach((o, i) => out.push({ template: wanted[i] ?? 'citizen', at: o.at }));
     const overflow = wanted.slice(hostileSpots.length);

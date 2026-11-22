@@ -246,3 +246,88 @@ describe('27. Suppression (SUP)', () => {
     expect(acts.some((a) => a.type === 'suppress')).toBe(true);
   });
 });
+
+describe('28. The price of standing together (STRAY, PANIC)', () => {
+  const MISS = { fire: { ...TUNING.fire, minHitChance: 0, maxHitChance: 0 }, stray: { percent: 100 }, snap: { penalty: 0, aimPercent: 100 } };
+  function line(withFriend: boolean): State {
+    let s = only(yard(), ['a1', 'a2', 'u2']);
+    s = place(s, 'a1', 2, 3);
+    s = place(s, 'u2', 7, 3);
+    s = place(s, 'a2', withFriend ? 7 : 2, withFriend ? 4 : 9);
+    s = clone(s);
+    s.tuning = { ...s.tuning, ...MISS };
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    u2.revealed = true;
+    u2.stance = 'hold';
+    s.units.find((u) => u.id === 'a2')!.stance = 'hold';
+    return s;
+  }
+  const fireOnce = (s: State) => {
+    let t = (step(s, { type: 'fire', side: 'agency', unit: 'a1', target: 'u2' }) as { state: State }).state;
+    const evs: { type: string }[] = [];
+    const w = weaponOf(t.units.find((u) => u.id === 'a1')!)!;
+    for (let i = 0; i < w.aimTicks; i++) {
+      const r = step(t, { type: 'tick' }) as { state: State; events: { type: string }[] };
+      t = r.state;
+      evs.push(...r.events);
+    }
+    return { t, evs };
+  };
+  it('STRAY-1 a miss can hit a unit beside the target, own side included', () => {
+    const { t, evs } = fireOnce(line(true));
+    expect(evs.some((e) => e.type === 'strayHit')).toBe(true);
+    const a2 = t.units.find((u) => u.id === 'a2')!;
+    expect(a2.hp).toBeLessThan(a2.maxHp);
+    const alone = fireOnce(line(false));
+    expect(alone.evs.some((e) => e.type === 'strayHit')).toBe(false);
+  });
+  it('STRAY-2 a stray hit is not a hit in the score and does not suppress the victim', () => {
+    const { t } = fireOnce(line(true));
+    expect(t.score.hits).toBe(0);
+    expect(t.units.find((u) => u.id === 'a2')!.suppression ?? 0).toBe(0);
+  });
+  it('STRAY-3 spitters carry three charges and hosts one', () => {
+    const s = createGame({ battleId: 'automat-raid', seed: 1, roster: { hostiles: { host: 1, taker: 0, fighter: 0, spitter: 1 } } });
+    expect(s.units.find((u) => u.template === 'spitter')!.charges).toBe(3);
+    expect(s.units.find((u) => u.template === 'host')!.charges).toBe(1);
+    expect(s.units.find((u) => u.template === 'spitter')!.weapon).toBeNull();
+  });
+  it('PANIC-1 a unit going down shakes allies who see it nearby', () => {
+    let s = only(yard(), ['a1', 'a2', 'u2']);
+    s = place(s, 'a1', 2, 3);
+    s = place(s, 'a2', 4, 3);
+    s = place(s, 'u2', 9, 3);
+    s = clone(s);
+    s.tuning = { ...s.tuning, fire: { ...TUNING.fire, minHitChance: 100, maxHitChance: 100 }, stray: { percent: 0 } };
+    s.units.find((u) => u.id === 'a2')!.hp = 1;
+    s.units.find((u) => u.id === 'a2')!.stance = 'hold';
+    s.units.find((u) => u.id === 'a1')!.stance = 'hold';
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    u2.revealed = true;
+    s = (step(s, { type: 'fire', side: 'hostile', unit: 'u2', target: 'a2' }) as { state: State }).state;
+    for (let i = 0; i < 12 && !s.units.find((u) => u.id === 'a2')!.down; i++) s = (step(s, { type: 'tick' }) as { state: State }).state;
+    expect(s.units.find((u) => u.id === 'a2')!.down).toBe(true);
+    expect(s.units.find((u) => u.id === 'a1')!.suppression).toBeGreaterThan(TUNING.panic.amount - 10);
+  });
+  it('AI-14 a spitter lobs at agents standing together, and squads spread out', () => {
+    let s = createGame({ battleId: 'automat-raid', seed: 1, roster: { hostiles: { host: 0, taker: 0, fighter: 0, spitter: 1 } } });
+    s = clone(s);
+    const sp = s.units.find((u) => u.template === 'spitter')!;
+    const agents = s.units.filter((u) => u.side === 'agency');
+    // two agents together, in sight of the spitter, inside its throw
+    for (const t of s.tiles) if (t.level === 0) {
+      t.kind = 'ground';
+      t.hp = 100;
+    }
+    sp.x = 8;
+    sp.y = 8;
+    sp.level = 0;
+    agents.forEach((a, i) => {
+      a.x = i < 2 ? 12 + i : 1;
+      a.y = i < 2 ? 8 : i;
+      a.level = 0;
+    });
+    const out = hostileNormal(view(s, 'hostile'), 'hostile');
+    expect(out.some((a) => a.type === 'blast' && a.unit === sp.id)).toBe(true);
+  });
+});

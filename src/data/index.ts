@@ -38,6 +38,9 @@ export interface Tuning {
   cover: { full: number; half: number; low: number };
   /** Section 26 (SNAP): a shot at a stance target is quick and loose. */
   snap: { penalty: number; aimPercent: number };
+  /** Section 28 (STRAY, PANIC): the price of standing together. */
+  stray: { percent: number };
+  panic: { range: number; amount: number };
   /** Section 27 (SUP): being shot at, and pinning a tile. */
   suppress: { perShot: number; perHit: number; decayPerTick: number; aimPercent: number; pinnedAt: number; fire: number; cap: number; aiBelow: number };
   blast: { throwRange: number; armTicks: number; structureDamage: number; edgeStructureDamage: number; unitDamage: number; edgeUnitDamage: number };
