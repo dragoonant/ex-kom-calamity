@@ -1,6 +1,7 @@
 // The switchboard for the city (docs/presentation-concept.md): a time dial and PAUSE paddle, the agency's money,
 // confidence and roster, a file card for the chosen building with WATCH and RAID, the message tray, and a hinged
-// cover over the console when a squad stands at a door or the act ends. Every number is an engine field or a
+// cover over the console when a squad stands at a door or the act ends. The organism's slips run on the city wire
+// across the top (CityWire.tsx, CWIRE-1), not in the tray. Every number is an engine field or a
 // cityQuery result (CARCH-4). No title attributes (KB rule 8).
 import { useEffect, useState } from 'react';
 import { CITY, RESEARCH } from '../../data/city';
@@ -8,6 +9,7 @@ import { buildingUnder, cityQuery, hasDone, itemCost, projectDef, researchBlock,
 import { BAND_WORDS, buildingName, districtName, itemName, orgName, OVER_TEXT } from './text';
 import { CITY_SPEEDS, useCity } from './store';
 import { SceneryToggle } from '../scenery';
+import { CityWire } from './CityWire';
 
 const STATUS_WORD: Record<Agent['status'], string> = { ready: 'READY', travelling: 'DRIVING OUT', watching: 'WATCHING', raiding: 'ON RAID', returning: 'DRIVING HOME', wounded: 'WOUNDED', dead: 'KILLED' };
 
@@ -29,7 +31,7 @@ function BuildingCard({ view }: { view: CityState }) {
   const selected = useCity((s) => s.selected);
   const squad = useCity((s) => s.squad);
   const { order, select } = useCity.getState();
-  if (!selected) return <div className="hint">Tap a building on the map for its file card. Watch it to learn more; raid it when a report says it is infested.</div>;
+  if (!selected) return <div className="hint">Tap a building on the map, or a name on the city wire up top, for its file card. Watch it to learn more; raid it when a report says it is infested.</div>;
   const row = cityQuery.board(view).find((b) => b.id === selected);
   if (!row) return null;
   const def = CITY.buildings.find((b) => b.id === selected)!;
@@ -343,6 +345,7 @@ export function CityHud() {
   const grant = cityQuery.grant(view);
   return (
     <>
+      <CityWire />
       <DoorCover view={view} />
       <DefenceCover view={view} />
       <ActCover view={view} />

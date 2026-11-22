@@ -16,6 +16,52 @@ export interface TraySlip {
   /** The building to light when the slip is hovered, if it names one. */
   building: string | null;
   kind: string;
+  /** A wire slip's organisation and district (SIGN-2), so the city wire can link their names (CWIRE-2). */
+  org?: string | null;
+  district?: string | null;
+}
+
+/** CWIRE-1: the slips that tell of the organism's activity (SIGN-2's kinds) run on the city wire, not the tray. */
+export function isWire(kind: string): boolean {
+  return kind.startsWith('slip-');
+}
+
+/** A piece of a wire slip: plain words, or a name the player can pick (CWIRE-2). */
+export type WirePart = { text: string } | { text: string; link: 'building' | 'org' | 'district'; id: string };
+
+/**
+ * CWIRE-2: splits a wire slip's words at the names it carries. A building name selects that building; an
+ * organisation's or a district's name opens the list of its buildings. Older saves carry only the building.
+ */
+export function wireParts(sl: Pick<TraySlip, 'text' | 'building' | 'org' | 'district'>): WirePart[] {
+  const names: { text: string; link: 'building' | 'org' | 'district'; id: string }[] = [];
+  const b = sl.building ? CITY.buildings.find((x) => x.id === sl.building) : undefined;
+  if (b) names.push({ text: b.name, link: 'building', id: b.id });
+  const o = sl.org ? CITY.orgs.find((x) => x.id === sl.org) : undefined;
+  if (o) names.push({ text: o.name, link: 'org', id: o.id });
+  const d = sl.district ? CITY.districts.find((x) => x.id === sl.district) : undefined;
+  if (d) names.push({ text: d.name, link: 'district', id: d.id });
+  // Each name once, at its first place in the text; longer names first so a building named after its owner wins.
+  const found = names
+    .sort((x, y) => y.text.length - x.text.length)
+    .map((n) => ({ ...n, at: sl.text.indexOf(n.text) }))
+    .filter((n) => n.at >= 0)
+    .sort((x, y) => x.at - y.at);
+  const out: WirePart[] = [];
+  let i = 0;
+  for (const n of found) {
+    if (n.at < i) continue; // overlaps an earlier name
+    if (n.at > i) out.push({ text: sl.text.slice(i, n.at) });
+    out.push({ text: n.text, link: n.link, id: n.id });
+    i = n.at + n.text.length;
+  }
+  if (i < sl.text.length) out.push({ text: sl.text.slice(i) });
+  return out;
+}
+
+/** CWIRE-2: the buildings an organisation owns or a district holds, in data order. */
+export function buildingsOf(link: 'org' | 'district', id: string): { id: string; name: string }[] {
+  return CITY.buildings.filter((b) => (link === 'org' ? b.org === id : b.district === id)).map((b) => ({ id: b.id, name: b.name }));
 }
 
 const pick = <T,>(items: T[], n: number): T => items[Math.abs(n) % items.length]!;
@@ -148,7 +194,8 @@ export function traySlipsFor(events: CityEvent[], after: CityState, nextId: () =
   for (const e of events) {
     switch (e.type) {
       case 'slip':
-        add(slipText(e.slip), slipTone(e.slip), e.slip.building ?? CITY.buildings.find((b) => b.org === e.slip.org)?.id ?? null, `slip-${e.slip.kind}`, e.slip.tick);
+        // CWIRE-2: the wire links only the names the slip carries; an organisation's slip no longer stands for its first building.
+        out.push({ id: nextId(), tick: e.slip.tick, stamp: stampOf(after, e.slip.tick), text: slipText(e.slip), tone: slipTone(e.slip), building: e.slip.building, kind: `slip-${e.slip.kind}`, org: e.slip.org, district: e.slip.district });
         break;
       case 'watched':
         add(`${agentName(after, e.agent)} reports from ${buildingName(e.building)}: ${BAND_WORDS[e.band]}.`, e.band === 'heavy' || e.band === 'some' ? 'alert' : e.band === 'low' ? 'caution' : 'ok', e.building, 'watched');

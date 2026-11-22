@@ -22,6 +22,7 @@ From 3d-game-generation `templates/presentation-concept.md`. Status: **the owner
 | Title screen and menu | A city skyline poster in flat colour under the console; menu items are labelled toggle switches |
 | HUD | A console strip along the bottom: agent lamps, stance switches, a large PAUSE paddle; time control reads as a dial |
 | Event feed | Message slips that drop into a tray, newest on top, each stamped with the sim time |
+| City wire (2026-11-22) | In the city, the organism's slips run on a graphite news crawl across the top of the view, a red CITY WIRE tab at its left; building names are underlined buttons that open the file card. Everything else still drops into the tray |
 | Unit cards | Personnel file cards with a clipped photo corner |
 | Prompts and modals | A hinged cover that lifts over the console |
 | Icons | Single-colour pictograms in the style of period public signage |

@@ -20,15 +20,20 @@ async function startCampaign(page: Page, seed = 7): Promise<void> {
   await expect(page.getByTestId('city-console')).toBeVisible();
 }
 
-test('the city opens paused, its clock runs through the hook, and slips reach the tray', async ({ page }) => {
+test('the city opens paused, its clock runs through the hook, and slips reach the city wire', async ({ page }) => {
   const errors = watchErrors(page);
   await startCampaign(page);
   expect(await page.evaluate(() => window.__ekcCity!.isPaused())).toBe(true);
   await expect(page.getByTestId('city-clock')).toContainText('08:00');
   await page.evaluate(() => window.__ekcCity!.advanceTicks(6 * 24 * 3));
   await expect(page.getByTestId('city-clock')).toContainText('DAY 4');
+  // CWIRE-1: the organism's slips run on the wire across the top, not in the tray.
+  const wire = await page.evaluate(() => window.__ekcCity!.wire());
+  expect(wire.some((t) => t.kind.startsWith('slip-'))).toBe(true);
   const tray = await page.evaluate(() => window.__ekcCity!.tray());
-  expect(tray.some((t) => t.kind.startsWith('slip-'))).toBe(true);
+  expect(tray.some((t) => t.kind.startsWith('slip-'))).toBe(false);
+  await expect(page.getByTestId('city-wire')).toBeVisible();
+  await expect(page.getByTestId('wire-item').first()).toBeVisible();
   // CVIEW-1: the page's view never carries the infiltration.
   const leaks = await page.evaluate(() => window.__ekcCity!.view()!.orgs.every((o) => o.infiltration === -1));
   expect(leaks).toBe(true);
@@ -65,6 +70,51 @@ test('a tap on a building opens its card through the one pick mesh, and WATCH se
   const p2 = await page.evaluate(() => window.__ekcCity!.screenPointOfBuilding('records-office'));
   await page.mouse.move(p2!.x, p2!.y);
   await expect(page.getByTestId('city-tag-hover')).toContainText(/RECORDS OFFICE/i);
+});
+
+test('a building name on the city wire opens its file card, and WATCH and RAID work from it (CWIRE-2, CWIRE-3)', async ({ page }) => {
+  const errors = watchErrors(page);
+  await startCampaign(page);
+  // Run until the wire names a building outright.
+  const id = await page.evaluate(() => {
+    const c = window.__ekcCity!;
+    for (let i = 0; i < 40; i++) {
+      const named = c.wire().slice(-12).reverse().find((t) => t.building); // the crawl shows the newest 12
+      if (named) return named.building!;
+      c.advanceTicks(6 * 12);
+    }
+    return null;
+  });
+  expect(id).not.toBeNull();
+  // HOLD stops the crawl, so the name stands still under the pointer (the mouse over it holds it too).
+  await page.getByTestId('wire-hold').click();
+  await expect(page.getByTestId('wire-track')).toHaveClass(/wire-track-held/);
+  // Where the held crawl stopped is chance; under reduced motion it stands at the front and scrolls by hand (CWIRE-3).
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const link = page.getByTestId(`wire-building-${id}`).first();
+  await link.click();
+  expect(await page.evaluate(() => window.__ekcCity!.selected())).toBe(id);
+  await expect(page.getByTestId('building-card')).toBeVisible();
+  await page.getByTestId('watch').click();
+  const out = await page.evaluate((b) => window.__ekcCity!.state()!.agents.filter((a) => a.building === b).length, id);
+  expect(out).toBe(1);
+  await expect(page.getByTestId('raid')).toBeEnabled();
+  // An organisation's or a district's name opens the list of its buildings; a pick there selects one.
+  const listed = await page.evaluate(() => window.__ekcCity!.wire().slice(-12).find((t) => t.org || t.district));
+  if (listed) {
+    const tid = listed.org ? `wire-org-${listed.org}` : `wire-district-${listed.district}`;
+    const btn = page.getByTestId(tid).first();
+    if (await btn.count()) {
+      await btn.click();
+      await expect(page.getByTestId('wire-list')).toBeVisible();
+      const pick = page.locator('[data-testid^="wire-pick-"]').first();
+      const pid = (await pick.getAttribute('data-testid'))!.replace('wire-pick-', '');
+      await pick.click();
+      await expect(page.getByTestId('wire-list')).toBeHidden();
+      expect(await page.evaluate(() => window.__ekcCity!.selected())).toBe(pid);
+    }
+  }
+  expect(errors).toEqual([]);
 });
 
 test('a raid flies to the door, pauses there, and the squad can handle it', async ({ page }) => {

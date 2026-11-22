@@ -18,13 +18,15 @@ import {
 import type { StorageLike } from '../save';
 import type { Roster } from '../../engine';
 import { battleOf, rosterOf } from './join';
-import { traySlipsFor, type TraySlip } from './text';
+import { isWire, traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
 export const CAMPAIGN_VERSION = 4; // 2: M5b's shelf, lab and workshop; 3: the air war and the acts; 4: the 24 x 24 city and travel (TRAVEL)
 export type CitySpeed = 1 | 4 | 12;
 export const CITY_SPEEDS: CitySpeed[] = [1, 4, 12];
 const MAX_TRAY = 60;
+/** CWIRE-1: the wire keeps the newest 40 slips, as the state keeps 40 (SIGN-5). */
+const MAX_WIRE = 40;
 const AUTOSAVE_TICKS = 60;
 
 export interface CampaignEnvelope {
@@ -34,6 +36,8 @@ export interface CampaignEnvelope {
   hash: string;
   state: CityState;
   tray: TraySlip[];
+  /** CWIRE-1: the city wire's slips; a save from before the wire has none and its tray is split on Continue. */
+  wire?: TraySlip[];
 }
 
 export interface CampaignSummary {
@@ -68,6 +72,8 @@ export interface CityClient {
   /** The agents ticked for the next raid. */
   squad: string[];
   tray: TraySlip[];
+  /** CWIRE-1: the organism's slips, newest last, for the banner over the board. */
+  wire: TraySlip[];
   /** The newest events, for the board's effects and the sound (cleared on read by nobody: replaced each advance). */
   lastEvents: CityEvent[];
   eventSeq: number;
@@ -88,6 +94,10 @@ export interface CityClient {
   togglePause(): void;
   setSpeed(s: CitySpeed): void;
   select(id: string | null): void;
+  /** CWIRE-3: a name picked on the wire: selects the building, opens its file card and brings the camera round. */
+  focusBuilding(id: string): void;
+  /** Bumped by focusBuilding; the board glides the camera to `selected` when it changes. */
+  focusSeq: number;
   toggleSquad(agent: string): void;
   beginFight(): PendingFight | null;
   finishFight(result: RaidResult | null): void;
@@ -140,10 +150,13 @@ let sinceSave = 0;
 export const useCity = create<CityClient>((set, get) => {
   const commit = (next: CityState, events: CityEvent[], extra: Partial<CityClient> = {}) => {
     const slips = traySlipsFor(events, cityView(next, 'agency'), nextTrayId);
-    const tray = slips.length ? [...get().tray, ...slips].slice(-MAX_TRAY) : get().tray;
+    const toTray = slips.filter((t) => !isWire(t.kind));
+    const toWire = slips.filter((t) => isWire(t.kind));
+    const tray = toTray.length ? [...get().tray, ...toTray].slice(-MAX_TRAY) : get().tray;
+    const wire = toWire.length ? [...get().wire, ...toWire].slice(-MAX_WIRE) : get().wire;
     // Auto-pause when the squad reaches a door, an organisation turns, or the act ends.
     const stop = events.some((e) => e.type === 'raidArrived' || e.type === 'turned' || e.type === 'cityOver' || e.type === 'actBegan' || e.type === 'assault' || e.type === 'hqFound' || (e.type === 'launched' && e.kind !== 'scout'));
-    set({ game: next, view: cityView(next, 'agency'), tray, lastEvents: events, eventSeq: get().eventSeq + (events.length ? 1 : 0), ...(stop ? { paused: true } : {}), ...extra });
+    set({ game: next, view: cityView(next, 'agency'), tray, wire, lastEvents: events, eventSeq: get().eventSeq + (events.length ? 1 : 0), ...(stop ? { paused: true } : {}), ...extra });
     if (stop) get().saveNow();
   };
 
@@ -156,6 +169,8 @@ export const useCity = create<CityClient>((set, get) => {
     selected: null,
     squad: [],
     tray: [],
+    wire: [],
+    focusSeq: 0,
     lastEvents: [],
     eventSeq: 0,
     saveOk: true,
@@ -173,8 +188,8 @@ export const useCity = create<CityClient>((set, get) => {
     start(seed) {
       const s = createCity({ seed: seed ?? ((Date.now() % 100000) + 1) });
       traySeq = 0;
-      const intro: TraySlip = { id: nextTrayId(), tick: 0, stamp: 'D1 08:00', text: 'The switchboard is live. Watch the slips: the organism hides, but a building that is too perfect by day, or hums amber by night, gives it away.', tone: 'note', building: null, kind: 'intro' };
-      set({ active: true, game: s, view: cityView(s, 'agency'), paused: true, selected: null, squad: [], tray: [intro], lastEvents: [], fight: null });
+      const intro: TraySlip = { id: nextTrayId(), tick: 0, stamp: 'D1 08:00', text: 'The switchboard is live. Watch the city wire along the top: the organism hides, but a building that is too perfect by day, or hums amber by night, gives it away. Pick a name on the wire to open its file.', tone: 'note', building: null, kind: 'intro' };
+      set({ active: true, game: s, view: cityView(s, 'agency'), paused: true, selected: null, squad: [], tray: [intro], wire: [], lastEvents: [], fight: null });
       get().saveNow();
     },
 
@@ -184,8 +199,12 @@ export const useCity = create<CityClient>((set, get) => {
         if (r && !r.ok) set({ loadError: r.reason });
         return false;
       }
-      traySeq = r.env.tray.reduce((m, t) => Math.max(m, t.id), 0);
-      set({ active: true, game: r.env.state, view: cityView(r.env.state, 'agency'), paused: true, selected: null, squad: [], tray: r.env.tray, lastEvents: [], fight: null });
+      const all = [...r.env.tray, ...(r.env.wire ?? [])];
+      traySeq = all.reduce((m, t) => Math.max(m, t.id), 0);
+      // CWIRE-1: a save from before the wire kept the organism's slips in the tray; they move to the wire.
+      const tray = r.env.tray.filter((t) => !isWire(t.kind));
+      const wire = (r.env.wire ?? r.env.tray.filter((t) => isWire(t.kind))).slice(-MAX_WIRE);
+      set({ active: true, game: r.env.state, view: cityView(r.env.state, 'agency'), paused: true, selected: null, squad: [], tray, wire, lastEvents: [], fight: null });
       return true;
     },
 
@@ -269,6 +288,9 @@ export const useCity = create<CityClient>((set, get) => {
     select(id) {
       set({ selected: id });
     },
+    focusBuilding(id) {
+      set({ selected: id, focusSeq: get().focusSeq + 1 });
+    },
     toggleSquad(agent) {
       const sq = get().squad;
       const max = get().game?.tuning.raid.maxAgents ?? 6;
@@ -306,7 +328,7 @@ export const useCity = create<CityClient>((set, get) => {
       const g = get().game;
       const st = storage();
       if (!g || !st) return;
-      const env: CampaignEnvelope = { key: CAMPAIGN_KEY, version: CAMPAIGN_VERSION, savedAt: new Date().toISOString(), hash: hashCity(g), state: g, tray: get().tray };
+      const env: CampaignEnvelope = { key: CAMPAIGN_KEY, version: CAMPAIGN_VERSION, savedAt: new Date().toISOString(), hash: hashCity(g), state: g, tray: get().tray, wire: get().wire };
       try {
         st.setItem(CAMPAIGN_KEY, JSON.stringify(env));
         set({ saveOk: true });

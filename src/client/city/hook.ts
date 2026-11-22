@@ -26,6 +26,8 @@ export interface CityHook {
   setSpeed(s: CitySpeed): void;
   hash(): string | null;
   tray(): { text: string; kind: string }[];
+  /** CWIRE-1: the city wire's slips, newest last. */
+  wire(): { text: string; kind: string; building: string | null; org: string | null; district: string | null }[];
   fight(): unknown;
   /** Test seam: replaces the campaign state (a prepared scene for the e2e); the view and the board follow. */
   load(state: CityState): void;
@@ -61,6 +63,7 @@ export function installCityHook(): void {
     setSpeed: (sp) => s().setSpeed(sp),
     hash: () => s().hash(),
     tray: () => s().tray.map((t) => ({ text: t.text, kind: t.kind })),
+    wire: () => s().wire.map((t) => ({ text: t.text, kind: t.kind, building: t.building, org: t.org ?? null, district: t.district ?? null })),
     fight: () => s().fight,
     load: (state) => useCity.setState({ game: state, view: cityView(state, 'agency') }),
     screenPointOfBuilding: (id) => {

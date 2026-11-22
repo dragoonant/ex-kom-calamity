@@ -2,6 +2,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CAMPAIGN_KEY, readCampaign, useCity } from '../src/client/city/store';
 import { battleFor, battleOf, resultFromBattle, rosterOf } from '../src/client/city/join';
+import { buildingsOf, wireParts } from '../src/client/city/text';
+import { CITY } from '../src/data/city';
 import { createGame, step } from '../src/engine';
 import { hashCity } from '../src/city';
 import type { StorageLike } from '../src/client/save';
@@ -15,7 +17,7 @@ let store: ReturnType<typeof memory>;
 beforeEach(() => {
   store = memory();
   (globalThis as { localStorage?: StorageLike }).localStorage = store;
-  useCity.setState({ active: false, game: null, view: null, paused: true, fight: null, tray: [] });
+  useCity.setState({ active: false, game: null, view: null, paused: true, fight: null, tray: [], wire: [] });
 });
 
 describe('16. The client (CSAV, CJOIN)', () => {
@@ -133,5 +135,48 @@ describe('16. The client (CSAV, CJOIN)', () => {
     g.tick = 12 * 6; // 20:00
     g.lab.done.push('hand-scanner');
     expect(rosterOf(g, ['ag1'], { hostiles: 1, takers: 0, fighters: 0 })).toMatchObject({ night: true, scanner: true });
+  });
+});
+
+describe('16. The city wire (CWIRE)', () => {
+  it("CWIRE-1 the organism's slips run on the wire, not the tray, and the wire saves and survives an old save", () => {
+    useCity.getState().start(7);
+    useCity.getState().advanceTicks(6 * 24 * 3);
+    const { tray, wire } = useCity.getState();
+    expect(wire.length).toBeGreaterThan(0);
+    expect(wire.every((t) => t.kind.startsWith('slip-'))).toBe(true);
+    expect(tray.some((t) => t.kind.startsWith('slip-'))).toBe(false);
+    useCity.getState().saveNow();
+    const env = JSON.parse(store.data.get(CAMPAIGN_KEY)!);
+    expect(env.wire.length).toBe(wire.length);
+    // A save from before the wire kept the slips in the tray: Continue moves them across.
+    env.tray = [...env.tray, ...env.wire];
+    delete env.wire;
+    store.data.set(CAMPAIGN_KEY, JSON.stringify(env));
+    useCity.setState({ active: false, game: null, tray: [], wire: [] });
+    expect(useCity.getState().resume()).toBe(true);
+    expect(useCity.getState().wire.map((t) => t.id).sort()).toEqual(wire.map((t) => t.id).sort());
+    expect(useCity.getState().tray.some((t) => t.kind.startsWith('slip-'))).toBe(false);
+  });
+  it('CWIRE-2 a building name on the wire links the building; an organisation or district name links its list', () => {
+    const b = CITY.buildings[0]!;
+    const o = CITY.orgs.find((x) => x.id === b.org)!;
+    const d = CITY.districts.find((x) => x.id === b.district)!;
+    const power = wireParts({ text: `${b.name}: the power draw spiked after dark.`, building: b.id, org: o.id, district: d.id });
+    expect(power[0]).toEqual({ text: b.name, link: 'building', id: b.id });
+    expect(power.map((p) => p.text).join('')).toBe(`${b.name}: the power draw spiked after dark.`);
+    const purchase = wireParts({ text: `${o.name} placed an odd order.`, building: null, org: o.id, district: null });
+    expect(purchase[0]).toEqual({ text: o.name, link: 'org', id: o.id });
+    const missing = wireParts({ text: `Missing persons: another report from ${d.name}.`, building: null, org: null, district: d.id });
+    expect(missing.find((p) => 'link' in p)).toEqual({ text: d.name, link: 'district', id: d.id });
+    expect(buildingsOf('org', o.id).map((x) => x.id)).toContain(b.id);
+    expect(buildingsOf('district', d.id).every((x) => CITY.buildings.find((y) => y.id === x.id)!.district === d.id)).toBe(true);
+  });
+  it('CWIRE-3 a name picked on the wire selects the building for its file card and asks the board to bring the camera round', () => {
+    useCity.getState().start(8);
+    const seq = useCity.getState().focusSeq;
+    useCity.getState().focusBuilding('depot-7');
+    expect(useCity.getState().selected).toBe('depot-7');
+    expect(useCity.getState().focusSeq).toBe(seq + 1);
   });
 });

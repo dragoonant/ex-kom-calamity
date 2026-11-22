@@ -36,6 +36,36 @@ function CityLoop() {
   return null;
 }
 
+/**
+ * CWIRE-3: a name picked on the city wire glides the camera over that building in about half a second. The glide
+ * moves the rig's target only (the player's zoom and angle stay theirs) and gives way after a second, so a drag
+ * started meanwhile wins.
+ */
+function FocusGlide() {
+  const glide = useRef<{ x: number; z: number; left: number } | null>(null);
+  const seen = useRef(useCity.getState().focusSeq);
+  useFrame((_, dt) => {
+    const s = useCity.getState();
+    if (s.focusSeq !== seen.current) {
+      seen.current = s.focusSeq;
+      const b = CITY.buildings.find((x) => x.id === s.selected);
+      if (b) {
+        const c = cellCentre(b.x, b.y);
+        glide.current = { x: c.x, z: c.z, left: 1 };
+      }
+    }
+    const g = glide.current;
+    if (!g) return;
+    const k = Math.min(1, dt * 7);
+    rig.target.x += (g.x - rig.target.x) * k;
+    rig.target.z += (g.z - rig.target.z) * k;
+    clampRig();
+    g.left -= dt;
+    if (g.left <= 0 || Math.hypot(g.x - rig.target.x, g.z - rig.target.z) < 0.05) glide.current = null;
+  });
+  return null;
+}
+
 /** 0 at midnight, 1 at noon: drives the too-perfect gleam and the window strips. */
 function daylight(hour: number, minute: number): number {
   const h = hour + minute / 60;
@@ -515,6 +545,7 @@ export function CityScene() {
         <RendererName />
         <CameraRig />
         <CityLoop />
+        <FocusGlide />
         <CityBoard />
       </Canvas>
       <CityLabels />
