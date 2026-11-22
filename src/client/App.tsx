@@ -16,7 +16,7 @@ import { useClient } from './store';
 import { CityHud } from './city/CityHud';
 import { CityScene } from './city/CityScene';
 import { useCity } from './city/store';
-import { battleFor, resultFromBattle } from './city/join';
+import { resultFromBattle } from './city/join';
 import { installCityHook } from './city/hook';
 import type { RaidResult } from '../city';
 
@@ -62,7 +62,7 @@ function useJoin(): void {
     const offCity = useCity.subscribe((c, prev) => {
       if (c.fight && !prev.fight) {
         pending = null;
-        useClient.getState().newBattle(battleFor(c.fight.site));
+        useClient.getState().newBattle(c.fight.battle, undefined, c.fight.roster);
       }
     });
     const offBattle = useClient.subscribe((b, prev) => {

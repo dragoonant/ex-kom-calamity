@@ -3,7 +3,7 @@
 // advance(); pause is the absence of them (TIME-2, TIME-6).
 import { create } from 'zustand';
 import { BATTLES, RAID_SITES, WEAPONS } from '../data';
-import { createGame, hashState, query, sideSeesTile, step, view, type Action, type GameEvent, type Pos, type Setup, type State, type Unit } from '../engine';
+import { createGame, hashState, query, sideSeesTile, step, view, type Action, type GameEvent, type Pos, type Roster, type Setup, type State, type Unit } from '../engine';
 import { advanceWithAi, isDifficulty, makeAi, type AiDriver, type Difficulty } from '../ai';
 import { bounds, focusOn } from './board/world';
 import { browserStorage, clearSave, makeEnvelope, readSave, summarise, writeSave, type LoadResult, type SaveEnvelope, type SaveReason, type SaveSummary } from './save';
@@ -32,7 +32,7 @@ export interface SaveStatus {
 
 export interface TapResult {
   tile: Pos;
-  did: 'fire' | 'move' | 'blast' | 'select' | 'clear' | 'rejected';
+  did: 'fire' | 'move' | 'blast' | 'suppress' | 'capture' | 'evacuate' | 'select' | 'clear' | 'rejected';
   detail: string;
 }
 
@@ -48,7 +48,7 @@ export interface ClientState {
   level: number;
   hover: Pos | null;
   /** 'blast': the next tap on a tile throws the selected agent's charge there (ORD-9). */
-  mode: 'normal' | 'blast';
+  mode: 'normal' | 'blast' | 'suppress' | 'capture' | 'evacuate';
   /** POSE-3: the RUN switch; move orders run while it is on (Shift on a tap inverts it). Not saved: a habit, not a state. */
   run: boolean;
   slips: Slip[];
@@ -68,7 +68,7 @@ export interface ClientState {
 
   refreshTitle(): void;
   /** MAP-10: a raid on one of RAID_SITES (the city layer picks the site from the alert in M7). */
-  newBattle(battleId?: string, seed?: number): void;
+  newBattle(battleId?: string, seed?: number, roster?: Roster): void;
   continueBattle(): boolean;
   discardSave(): void;
   leaveBattle(): void;
@@ -83,7 +83,7 @@ export interface ClientState {
   select(id: string | null): void;
   setLevel(level: number): void;
   setHover(p: Pos | null): void;
-  setMode(mode: 'normal' | 'blast'): void;
+  setMode(mode: 'normal' | 'blast' | 'suppress' | 'capture' | 'evacuate'): void;
   setRun(run: boolean): void;
   focusUnit(id: string): void;
   tapTile(p: Pos, opts?: { shift?: boolean }): TapResult;
@@ -191,6 +191,11 @@ export function slipsFor(events: GameEvent[], before: State, after: State): Slip
       case 'revealed': {
         const u = unitIn(after, e.unit);
         push(e.tick, `The citizen at ${u ? fmtPos(u) : '?'} is a HOST (${e.by === 'fire' ? 'opened fire' : 'seen up close'}).`, 'alert');
+        break;
+      }
+      case 'blended': {
+        // BLEND-1: the host the squad lost sight of passes for a citizen again.
+        push(e.tick, 'A host the squad lost sight of has slipped back into the crowd.', 'caution');
         break;
       }
       case 'taken': {
@@ -341,8 +346,9 @@ export const useClient = create<ClientState>((set, get) => {
       set(titleState());
     },
 
-    newBattle(battleId = RAID_SITES[0]!, seed = Math.floor(Math.random() * 1_000_000) + 1) {
-      const setup: Setup = { battleId, seed };
+    newBattle(battleId = RAID_SITES[0]!, seed = Math.floor(Math.random() * 1_000_000) + 1, roster?: Roster) {
+      // ARCH-11: a fight from the city brings its own squad and hostiles.
+      const setup: Setup = roster ? { battleId, seed, roster } : { battleId, seed };
       const game = createGame(setup);
       const first = game.units.find((u) => u.side === 'agency')?.id ?? null;
       enter(setup, game, { selected: first, level: 0 }, 'start');
@@ -472,6 +478,19 @@ export const useClient = create<ClientState>((set, get) => {
       if (!agency) return finish('clear', 'no battle');
       const holder = agency.units.find((u) => !u.down && u.x === p.x && u.y === p.y && u.level === p.level);
       const sel = selected ? agency.units.find((u) => u.id === selected && !u.down) : undefined;
+      const m = get().mode;
+      if (sel && holder && (m === 'capture' || m === 'evacuate')) {
+        // OBJ-1, OBJ-2: the next tap on a unit beside the agent captures or evacuates it.
+        const r = get().order({ type: m, side: 'agency', unit: sel.id, target: holder.id });
+        if (r.ok) set({ mode: 'normal' });
+        return r.ok ? finish(m, holder.id) : finish('rejected', r.reason);
+      }
+      if (sel && get().mode === 'suppress') {
+        // SUP-3: the next tap lays suppressive fire on a tile.
+        const r = get().order({ type: 'suppress', side: 'agency', unit: sel.id, at: { x: p.x, y: p.y, level: p.level } });
+        if (r.ok) set({ mode: 'normal' });
+        return r.ok ? finish('suppress', `${sel.id} -> ${fmtPos(p)}`) : finish('rejected', r.reason);
+      }
       if (sel && get().mode === 'blast') {
         const r = get().order({ type: 'blast', side: 'agency', unit: sel.id, at: { x: p.x, y: p.y, level: p.level } });
         if (r.ok) set({ mode: 'normal' });

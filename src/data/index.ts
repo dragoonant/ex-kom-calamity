@@ -15,6 +15,10 @@ import benchRaid from './battles/bench-raid.json';
 import automatRaid from './battles/automat-raid.json';
 import depotRaid from './battles/depot-raid.json';
 import savingsRaid from './battles/savings-raid.json';
+import hqSite from './maps/agency-hq-site.json';
+import wreckSite from './maps/wreck-site.json';
+import hqDefence from './battles/hq-defence.json';
+import wreckRaid from './battles/wreck-raid.json';
 
 export type Side = 'agency' | 'hostile' | 'civilian';
 export type Stance = 'engage' | 'retaliate' | 'hold';
@@ -29,7 +33,23 @@ export interface Tuning {
   save: { autosaveSeconds: number };
   structure: { fallDamage: number };
   /** Section 22 (AI): the hostile AI's windows and ranges. */
-  ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number };
+  ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number; ambushRange: number };
+  /** Section 25 (COVER): what each grade of cover takes off a ranged hit chance. */
+  cover: { full: number; half: number; low: number };
+  /** Section 26 (SNAP): a shot at a stance target is quick and loose. */
+  snap: { penalty: number; aimPercent: number };
+  /** Section 28 (STRAY, PANIC): the price of standing together. */
+  stray: { percent: number };
+  /** Section 31 (BLEND, NIGHT): hiding again, and the dark. */
+  hide: { blendTicks: number };
+  night: { sightPercent: number; lampRange: number };
+  /** Section 30 (AMMO). */
+  ammo: { suppressRounds: number };
+  /** Section 29 (OBJ): capture, evacuation and the wreck's core. */
+  objective: { captureTicks: number; captureHpPercent: number; coreTicks: number; burnSeconds: number };
+  panic: { range: number; amount: number };
+  /** Section 27 (SUP): being shot at, and pinning a tile. */
+  suppress: { perShot: number; perHit: number; decayPerTick: number; aimPercent: number; pinnedAt: number; fire: number; cap: number; aiBelow: number };
   blast: { throwRange: number; armTicks: number; structureDamage: number; edgeStructureDamage: number; unitDamage: number; edgeUnitDamage: number };
 }
 
@@ -45,6 +65,9 @@ export interface WeaponDef {
   cooldownTicks: number;
   /** STR-6: what a stray round does to the wall behind the target. */
   structureDamage: number;
+  /** AMMO-1: rounds per load and reload time; absent, the weapon never runs dry. */
+  magazine?: number;
+  reloadTicks?: number;
   /** TAKE-1: the template a living citizen becomes when this weapon hits it (melee only). */
   takes?: string;
   source: string;
@@ -114,6 +137,9 @@ export type PropKind =
   | 'crate';
 export const PROP_KINDS: PropKind[] = ['desk', 'counter', 'shelf', 'bed', 'locker', 'machine', 'lamp', 'kiosk-sign', 'bench', 'vehicle', 'planter', 'tank', 'vent', 'mast', 'crate'];
 
+/** COVER-3: the props solid enough to give low cover (the rest are lamps, signs, masts and vents). */
+export const COVER_PROPS: PropKind[] = ['desk', 'counter', 'shelf', 'bed', 'locker', 'machine', 'bench', 'vehicle', 'planter', 'tank', 'crate'];
+
 /** MAP-9: one prop on one passable tile; `yaw` turns it in quarter turns (0 faces south). */
 export interface PropDef {
   kind: PropKind;
@@ -153,6 +179,8 @@ export interface BattleDef {
   map: string;
   squad: SquadEntry[];
   others: OtherEntry[];
+  /** OBJ-4: a craft's drive to secure before the wreck burns (wreck maps only). */
+  core?: Pos;
 }
 
 function records<T>(obj: Record<string, unknown>): Record<string, T> {
@@ -177,6 +205,8 @@ export const MAPS: Record<string, MapDef> = {
   [automatSite.id]: stripComments<MapDef>(automatSite as Record<string, unknown>),
   [depotSite.id]: stripComments<MapDef>(depotSite as Record<string, unknown>),
   [savingsSite.id]: stripComments<MapDef>(savingsSite as Record<string, unknown>),
+  [hqSite.id]: stripComments<MapDef>(hqSite as Record<string, unknown>),
+  [wreckSite.id]: stripComments<MapDef>(wreckSite as Record<string, unknown>),
 };
 export const BATTLES: Record<string, BattleDef> = {
   [firstRaid.id]: stripComments<BattleDef>(firstRaid as Record<string, unknown>),
@@ -185,6 +215,8 @@ export const BATTLES: Record<string, BattleDef> = {
   [automatRaid.id]: stripComments<BattleDef>(automatRaid as Record<string, unknown>),
   [depotRaid.id]: stripComments<BattleDef>(depotRaid as Record<string, unknown>),
   [savingsRaid.id]: stripComments<BattleDef>(savingsRaid as Record<string, unknown>),
+  [hqDefence.id]: stripComments<BattleDef>(hqDefence as Record<string, unknown>),
+  [wreckRaid.id]: stripComments<BattleDef>(wreckRaid as Record<string, unknown>),
 };
 
 /** MAP-10 (PLAN.md D20): the playable raids, one building each, in the order the title offers them. */

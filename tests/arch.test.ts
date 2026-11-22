@@ -131,3 +131,30 @@ describe('0. Engine contract (ARCH)', () => {
     expectReject(s, { type: 'move', side: 'agency', unit: 'a1', to: { x: 4, y: 10, level: 0 } });
   });
 });
+
+describe('0. Engine contract: the roster (ARCH-11)', () => {
+  it('ARCH-11 a roster fills the squad and hostile spawn points, and without one the file is used as written', () => {
+    const plain = createGame({ battleId: 'automat-raid', seed: 2 });
+    const same = createGame({ battleId: 'automat-raid', seed: 2, roster: undefined });
+    expect(hashState(same)).toBe(hashState(plain));
+    const s = createGame({
+      battleId: 'automat-raid',
+      seed: 2,
+      roster: { squad: [{ name: 'Okoro', template: 'agent-t2', weapon: 'arc-carbine' }, { name: 'Hale' }], hostiles: { host: 2, taker: 1, fighter: 2 } },
+    });
+    const agents = s.units.filter((u) => u.side === 'agency');
+    expect(agents.map((u) => [u.id, u.name, u.template, u.weapon])).toEqual([
+      ['a1', 'Okoro', 'agent-t2', 'arc-carbine'],
+      ['a2', 'Hale', 'agent-t1', plain.units.find((u) => u.id === 'a2')!.weapon],
+    ]);
+    expect(agents[0]!.armour).toBeGreaterThan(plain.units[0]!.armour);
+    const count = (t: string) => s.units.filter((u) => u.template === t).length;
+    expect([count('fighter'), count('taker'), count('host')]).toEqual([2, 1, 2]);
+    // more hostiles than hostile points: the overflow stands on citizen points as hosts
+    const many = createGame({ battleId: 'automat-raid', seed: 2, roster: { hostiles: { host: 6, taker: 1, fighter: 1 } } });
+    expect(many.units.filter((u) => u.side === 'hostile')).toHaveLength(8);
+    expect(many.units.filter((u) => u.side === 'civilian').length).toBe(plain.units.filter((u) => u.side !== 'agency').length - 8);
+    expect(() => createGame({ battleId: 'automat-raid', seed: 2, roster: { squad: [{ name: 'X', template: 'host' }] } })).toThrow();
+    expect(() => createGame({ battleId: 'automat-raid', seed: 2, roster: { squad: [{ name: 'X', weapon: 'nothing' }] } })).toThrow();
+  });
+});

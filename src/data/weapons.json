@@ -1,5 +1,5 @@
 {
-  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune). structureDamage is what a stray round does to a wall (STR-6). takes: the template a living citizen becomes when this weapon hits it (TAKE-1).",
+  "_": "Placeholder names (PLAN.md D10). range in tiles; accuracy and falloffPerTile in percent (FIRE-5); ticks per FIRE-3/4; damage per DMG-1. All (tune). magazine and reloadTicks (AMMO-1): rounds per load and the ticks a reload takes; a weapon without them never runs dry (bites, the whip). structureDamage is what a stray round does to a wall (STR-6). takes: the template a living citizen becomes when this weapon hits it (TAKE-1).",
   "service-pistol": {
     "name": "Service pistol",
     "kind": "ranged",
@@ -11,6 +11,8 @@
     "aimTicks": 5,
     "cooldownTicks": 8,
     "structureDamage": 0,
+    "magazine": 8,
+    "reloadTicks": 15,
     "source": "agency sidearm, tier 1 gear"
   },
   "patrol-carbine": {
@@ -24,6 +26,8 @@
     "aimTicks": 8,
     "cooldownTicks": 10,
     "structureDamage": 6,
+    "magazine": 10,
+    "reloadTicks": 20,
     "source": "agency long arm, tier 1 gear"
   },
   "scatter-gun": {
@@ -37,7 +41,24 @@
     "aimTicks": 6,
     "cooldownTicks": 14,
     "structureDamage": 14,
+    "magazine": 6,
+    "reloadTicks": 25,
     "source": "agency close-quarters arm"
+  },
+  "arc-carbine": {
+    "name": "Arc carbine",
+    "kind": "ranged",
+    "range": 12,
+    "accuracy": 75,
+    "falloffPerTile": 2,
+    "damageMin": 35,
+    "damageMax": 50,
+    "aimTicks": 7,
+    "cooldownTicks": 9,
+    "structureDamage": 10,
+    "magazine": 6,
+    "reloadTicks": 20,
+    "source": "an amber core discharged like a capacitor (city LAB arc-carbine, ARCH-11)"
   },
   "pocket-pistol": {
     "name": "Pocket pistol",
@@ -50,6 +71,8 @@
     "aimTicks": 6,
     "cooldownTicks": 10,
     "structureDamage": 0,
+    "magazine": 6,
+    "reloadTicks": 20,
     "source": "what a host carries under a coat"
   },
   "taker-bite": {

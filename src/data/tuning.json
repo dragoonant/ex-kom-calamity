@@ -6,6 +6,15 @@
   "fire": {"minHitChance": 5, "maxHitChance": 95, "movingTargetPenalty": 15, "retaliateMemoryTicks": 50, "crouchTargetPenalty": 15, "crouchAimBonus": 5, "runningShooterPenalty": 20, "runSettleTicks": 10},
   "save": {"autosaveSeconds": 10},
   "structure": {"fallDamage": 15},
-  "ai": {"decideTicks": 5, "hostAmbushRange": 4, "fleeHpPercent": 40, "takerChaseRange": 12, "coverSearchTicks": 30, "breachRange": 8, "breachDetourTicks": 40, "randomOrderPercent": 50, "isolationRange": 5, "huntAfterAgentsDown": 3, "huntAfterSeconds": 120},
+  "ai": {"decideTicks": 5, "hostAmbushRange": 4, "fleeHpPercent": 40, "takerChaseRange": 12, "coverSearchTicks": 30, "breachRange": 8, "breachDetourTicks": 20, "randomOrderPercent": 50, "isolationRange": 5, "huntAfterAgentsDown": 3, "huntAfterSeconds": 120, "ambushRange": 5},
+  "cover": {"full": 40, "half": 25, "low": 20},
+  "snap": {"penalty": 25, "aimPercent": 50},
+  "stray": {"percent": 25},
+  "ammo": {"suppressRounds": 2},
+  "hide": {"blendTicks": 100},
+  "night": {"sightPercent": 50, "lampRange": 3},
+  "objective": {"captureTicks": 10, "captureHpPercent": 50, "coreTicks": 30, "burnSeconds": 90},
+  "panic": {"range": 3, "amount": 40},
+  "suppress": {"perShot": 20, "perHit": 15, "decayPerTick": 3, "aimPercent": 30, "pinnedAt": 60, "fire": 20, "cap": 100, "aiBelow": 30},
   "blast": {"throwRange": 6, "armTicks": 6, "structureDamage": 160, "edgeStructureDamage": 60, "unitDamage": 40, "edgeUnitDamage": 20}
 }

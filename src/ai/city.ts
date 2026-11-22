@@ -33,14 +33,29 @@ export const hostilePlanner: CityDriver = (view) => {
   const targetOrg = seededOrg ?? view.orgs.slice().sort((x, y) => x.infiltration - y.infiltration)[nextInt(rng, 3)]!.id;
   const targets = CITY.buildings.filter((b) => b.org === targetOrg);
   const target = targets[nextInt(rng, targets.length)]?.id;
+  // CAI-10: once headquarters is found in act 3, assault it whenever it can.
+  if (view.act === 3 && view.hqFound && !view.defence && view.tick >= view.assaultReadyTick && view.biomass >= view.tuning.act.assaultCost) {
+    out.push({ type: 'assault', side: 'hostile' });
+    return out;
+  }
   if (target) {
     const after = { ...view, biomass: spare };
-    if (spare >= a.seederCost && !launchBlock(after, 'seeder', target)) out.push({ type: 'launch', side: 'hostile', kind: 'seeder', target });
-    // A scout only as a decoy while a seeder is in the air, to draw the agency's cars away from it.
-    else if (spare >= a.scoutCost && view.craft.some((c) => c.kind === 'seeder') && !launchBlock(after, 'scout', target)) out.push({ type: 'launch', side: 'hostile', kind: 'scout', target });
+    const hunting = view.act >= 2 && !view.hqFound && !view.craft.some((c) => c.kind === 'scout');
+    if (hunting && spare >= a.scoutCost && !launchBlock(after, 'scout', HQ_NEIGHBOUR)) out.push({ type: 'launch', side: 'hostile', kind: 'scout', target: HQ_NEIGHBOUR });
+    else if (spare >= a.seederCost && !launchBlock(after, 'seeder', target)) out.push({ type: 'launch', side: 'hostile', kind: 'seeder', target });
+    // CAI-10: in act 3 a carrier when it can afford one.
+    else if (view.act === 3 && spare >= view.tuning.act.carrierCost && !launchBlock(after, 'carrier', target)) out.push({ type: 'launch', side: 'hostile', kind: 'carrier', target });
+    // A scout as a decoy while a seeder is in the air, or, from act 2, to hunt for headquarters over its neighbour.
+    else if (spare >= a.scoutCost && (view.craft.some((c) => c.kind !== 'scout') || (view.act >= 2 && !view.hqFound))) {
+      const hunt = view.act >= 2 && !view.hqFound ? HQ_NEIGHBOUR : target;
+      if (!launchBlock(after, 'scout', hunt)) out.push({ type: 'launch', side: 'hostile', kind: 'scout', target: hunt });
+    }
   }
   return out;
 };
+
+/** The building nearest headquarters: where the organism's scouts look for it (CAI-10). */
+const HQ_NEIGHBOUR = CITY.buildings.slice().sort((a, b) => Math.hypot(a.x - CITY.agency.hq.x, a.y - CITY.agency.hq.y) - Math.hypot(b.x - CITY.agency.hq.x, b.y - CITY.agency.hq.y))[0]!.id;
 
 function seedPlan(view: CityState): CityAction[] {
   const legal = cityLegalActions(view, 'hostile').filter((a) => a.type === 'seed');
@@ -83,10 +98,11 @@ export const hostileRandom: CityDriver = (view) => {
 };
 
 /** CAI-5: the passive agency never acts (the floor the sim measures against). */
-export const agencyPassive: CityDriver = (view) => (view.raid?.arrived ? [{ type: 'resolve', side: 'agency' }] : []);
+export const agencyPassive: CityDriver = (view) => (view.defence ? [{ type: 'defend', side: 'agency' }] : view.raid?.arrived ? [{ type: 'resolve', side: 'agency' }] : []);
 
 /** CAI-5: the random agency: on the hour, sometimes a random legal order. */
 export const agencyRandom: CityDriver = (view) => {
+  if (view.defence) return [{ type: 'defend', side: 'agency' }];
   if (view.raid?.arrived) return [{ type: 'resolve', side: 'agency' }];
   if (view.tick % ticksPerHour(view.tuning) !== 0) return [];
   const rng = rngFor(view, 'agency-random');
@@ -126,6 +142,7 @@ export function suspicion(view: CityState): Map<string, number> {
 
 /** CAI-6: the careful agency: reads slips, watches the most suspicious buildings, raids what a report confirms. */
 export const agencyCareful: CityDriver = (view) => {
+  if (view.defence) return [{ type: 'defend', side: 'agency' }];
   if (view.raid?.arrived) return [{ type: 'resolve', side: 'agency' }];
   if (view.tick % ticksPerHour(view.tuning) !== 0) return [];
   const t = view.tuning;
@@ -152,7 +169,7 @@ export const agencyCareful: CityDriver = (view) => {
   // CAI-9: the air war: every ready car after a seeder (a scout only when no seeder flies), pressing over open
   // ground and shadowing over buildings; crash sites are raided first; a third car when money allows.
   const readyCars = view.cars.filter((c) => c.status === 'ready').map((c) => c.id);
-  const seeders = view.craft.filter((c) => c.kind === 'seeder');
+  const seeders = view.craft.filter((c) => c.kind === 'carrier').concat(view.craft.filter((c) => c.kind === 'seeder'));
   const quarry = seeders[0] ?? (view.craft.length && readyCars.length > 1 ? view.craft[0] : undefined);
   if (quarry && readyCars.length) out.push({ type: 'intercept', side: 'agency', craft: quarry.id, cars: readyCars });
   for (const c of view.craft) {
@@ -160,6 +177,11 @@ export const agencyCareful: CityDriver = (view) => {
     if (c.posture !== want) out.push({ type: 'posture', side: 'agency', craft: c.id, posture: want });
   }
   if (view.cars.filter((c) => c.status !== 'lost').length < 3 && view.money >= t.air.carCost + t.roster.recruitCost + 40) out.push({ type: 'buyCar', side: 'agency' });
+  // CAI-11: in act 3, the final raid with a full squad, once the plates and carbines it can afford are built.
+  if (!view.raid && view.act === 3 && ready.length >= t.raid.maxAgents) {
+    out.push({ type: 'raid', side: 'agency', building: CITY.agency.final, agents: ready.slice(0, t.raid.maxAgents) });
+    return out;
+  }
   if (!view.raid && view.crashes.length && ready.length >= 3) {
     out.push({ type: 'raid', side: 'agency', building: view.crashes[0]!.id, agents: ready.slice(0, t.raid.maxAgents) });
     return out;

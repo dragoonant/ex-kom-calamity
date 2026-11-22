@@ -22,7 +22,7 @@ export function checkInvariants(state: State, opts: InvariantOptions = {}): stri
   // INV-2
   for (const u of state.units) {
     if (!(u.hp >= 0 && u.hp <= u.maxHp)) broken.push(`INV-2 ${u.id} hp ${u.hp}/${u.maxHp}`);
-    if (u.down !== (u.hp === 0)) broken.push(`INV-2 ${u.id} down=${u.down} hp=${u.hp}`);
+    if (u.down !== (u.hp === 0 || !!u.captured || !!u.saved)) broken.push(`INV-2 ${u.id} down=${u.down} hp=${u.hp}`);
   }
   // INV-3
   const seen = new Map<number, string>();

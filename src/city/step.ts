@@ -108,11 +108,20 @@ function hourSigns(s: CityState, events: CityEvent[]): void {
   }
 }
 
+/** ACT-1 */
+function beginAct(s: CityState, act: 2 | 3, day: number, events: CityEvent[]): void {
+  s.act = act;
+  s.actDay = day;
+  events.push({ type: 'actBegan', act, day });
+}
+
 /** SPREAD-4..6, FUND-4, CEND-2, CEND-4: what the end of a day does. */
 function dayEnd(s: CityState, day: number, events: CityEvent[]): void {
   const sp = s.tuning.spread;
   const total = totalInfiltration(s);
-  const biomass = Math.floor((total * sp.biomassPer100Points) / 100);
+  // ACT-2: from act 2 the organism feeds faster.
+  const bonus = s.act >= 2 ? 100 + s.tuning.act.biomassBonusPercent : 100;
+  const biomass = Math.floor((total * sp.biomassPer100Points * bonus) / 10000);
   s.biomass += biomass;
   for (const o of s.orgs) {
     if (o.infiltration <= 0) continue;
@@ -132,11 +141,15 @@ function dayEnd(s: CityState, day: number, events: CityEvent[]): void {
   const e = s.tuning.end;
   const turned = s.orgs.filter((o) => o.turned).length;
   if (turned * 100 >= e.turnedLosePercent * s.orgs.length) finish(s, 'hostile', 'turned', events);
-  // CEND-4: act 1 ends after end.actDays; the agency wins if the spread is contained and nothing has turned.
-  if (day >= e.actDays) {
+  // CEND-4, ACT-2: act 1 ends after end.actDays; a contained city opens act 2, an uncontained one is lost.
+  if (s.act === 1 && day >= e.actDays && !s.over) {
     const contained = totalInfiltration(s) <= e.containedTotal && !s.orgs.some((o) => o.turned);
-    finish(s, contained ? 'agency' : 'hostile', contained ? 'contained' : 'spread', events);
+    if (contained) beginAct(s, 2, day, events);
+    else finish(s, 'hostile', 'spread', events);
   }
+  // ACT-6: acts 2 and 3 have a time limit.
+  if (!s.over && s.act === 2 && day - s.actDay >= s.tuning.act.act2Days) finish(s, 'hostile', 'time', events);
+  if (!s.over && s.act === 3 && day - s.actDay >= s.tuning.act.act3Days) finish(s, 'hostile', 'time', events);
 }
 
 /** FUND-1..3, ROSTER-5, CEND-1 */
@@ -161,6 +174,8 @@ function labHour(s: CityState, events: CityEvent[]): void {
     if (p && s.lab.progress >= p.hours) {
       s.lab.done.push(p.id);
       events.push({ type: 'researchDone', project: p.id });
+      // ACT-3: tracing the source in act 2 opens act 3.
+      if (p.id === 'source-trace' && s.act === 2) beginAct(s, 3, clockOf(s.tuning, s.tick).day, events);
       s.lab.project = null;
       s.lab.progress = 0;
     }
@@ -185,9 +200,14 @@ function labHour(s: CityState, events: CityEvent[]): void {
   }
 }
 
+/** ACT-7: the final raid is a raid on the source's tower in act 3. */
+function isFinal(s: CityState, building: string): boolean {
+  return s.act === 3 && building === CITY.agency.final;
+}
+
 function tick(state: CityState, action: CityAction): CityStepResult {
   // CEND-6, RAID-4: after the end, or while a squad stands at the door, a tick changes nothing.
-  if (state.over || (state.raid && state.raid.arrived)) return { ok: true, state, events: [] };
+  if (state.over || (state.raid && state.raid.arrived) || state.defence) return { ok: true, state, events: [] };
   const s = clone(state);
   const events: CityEvent[] = [];
   s.tick += 1;
@@ -233,8 +253,10 @@ function tick(state: CityState, action: CityAction): CityStepResult {
     const crash = s.crashes.find((c) => c.id === s.raid!.building);
     s.raid.arrived = true;
     // AIR-8: a crash site holds the craft's survivors; a seeder's are takers.
-    s.raid.hostiles = crash ? crash.survivors : org ? hostilesFor(s, org) : 0;
-    const comp = crash ? { takers: crash.kind === 'seeder' ? crash.survivors : 0, fighters: 0 } : org ? compositionFor(s, org, s.raid.hostiles) : { takers: 0, fighters: 0 };
+    const final = isFinal(s, s.raid.building);
+    s.raid.hostiles = final ? s.tuning.act.finalHostiles : crash ? crash.survivors : org ? hostilesFor(s, org) : 0;
+    const third = Math.floor(s.raid.hostiles / 3);
+    const comp = final ? { takers: third, fighters: third } : crash ? { takers: crash.kind === 'seeder' ? crash.survivors : 0, fighters: crash.kind === 'carrier' ? crash.survivors : 0 } : org ? compositionFor(s, org, s.raid.hostiles) : { takers: 0, fighters: 0 };
     s.raid.takers = comp.takers;
     s.raid.fighters = comp.fighters;
     events.push({ type: 'raidArrived', building: s.raid.building, hostiles: s.raid.hostiles });
@@ -285,6 +307,9 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     if (!Array.isArray(given.agentsDown) || given.agentsDown.some((id) => !raid.agents.includes(id))) return reject(state, 'agentsDown must be agents on the raid');
     if (new Set(given.agentsDown).size !== given.agentsDown.length) return reject(state, 'agentsDown repeats an agent');
     if (!isInt(given.hostilesDown) || given.hostilesDown < 0 || !isInt(given.civiliansDown) || given.civiliansDown < 0) return reject(state, 'counts must be non-negative integers');
+    const cap = given.captured;
+    if (cap !== undefined && (typeof cap !== 'object' || cap === null || !isInt(cap.host) || !isInt(cap.taker) || cap.host < 0 || cap.taker < 0)) return reject(state, 'captured must be counts');
+    if (given.saved !== undefined && (!isInt(given.saved) || given.saved < 0)) return reject(state, 'saved must be a count');
     given = { ...given, agentsDown: [...given.agentsDown], hostilesDown: Math.min(given.hostilesDown, raid.hostiles) };
   }
   const s = clone(state);
@@ -334,16 +359,27 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     left -= takers;
     const fighters = Math.min(left, r.fighters);
     const add = { host: hosts, taker: takers, fighter: fighters, core: takers + fighters, liveHost: 0, liveTaker: 0 };
-    if (result.won && hasDone(s, 'restraints') && add.host > 0) {
-      const n = Math.min(add.host, s.tuning.lab.capturePerRaid);
-      add.host -= n;
-      add.liveHost += n;
-    }
-    if (result.won && hasDone(s, 'taker-cage') && add.taker > 0) {
-      const n = Math.min(add.taker, s.tuning.lab.capturePerRaid);
-      add.taker -= n;
-      add.core -= n;
-      add.liveTaker += n;
+    if (result.captured) {
+      // RES-7: a fought battle's captives replace the auto-resolver's capture (LAB-3).
+      const h = Math.min(add.host, result.captured.host);
+      const t = Math.min(add.taker, result.captured.taker);
+      add.host -= h;
+      add.liveHost += h;
+      add.taker -= t;
+      add.core -= t;
+      add.liveTaker += t;
+    } else {
+      if (result.won && hasDone(s, 'restraints') && add.host > 0) {
+        const n = Math.min(add.host, s.tuning.lab.capturePerRaid);
+        add.host -= n;
+        add.liveHost += n;
+      }
+      if (result.won && hasDone(s, 'taker-cage') && add.taker > 0) {
+        const n = Math.min(add.taker, s.tuning.lab.capturePerRaid);
+        add.taker -= n;
+        add.core -= n;
+        add.liveTaker += n;
+      }
     }
     for (const k of EVIDENCE) s.shelf[k] += add[k];
     events.push({ type: 'shelved', ...add });
@@ -353,7 +389,8 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
   if (crash) {
     // AIR-8: the site is cleared either way; a win recovers the craft's amber drive.
     s.crashes = s.crashes.filter((c) => c.id !== crash.id);
-    if (result.won) s.shelf.core += s.tuning.air.crashCores;
+    // RES-7: a fought wreck yields its drive only if the core was secured; an auto-resolved win always does.
+    if (result.core === true || (result.core === undefined && result.won)) s.shelf.core += s.tuning.air.crashCores;
   }
   const scandal = r.hostiles === 0 && !crash;
   if (scandal) {
@@ -366,6 +403,8 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     if (org) org.standing = Math.min(100, org.standing + s.tuning.fund.winGain);
   }
   addConfidence(s, -result.civiliansDown * s.tuning.fund.civilianLoss, 'citizens killed', events);
+  // RES-7: every citizen evacuated alive earns confidence.
+  if (result.saved) addConfidence(s, result.saved * s.tuning.fund.savedGain, 'citizens evacuated', events);
   s.score.raids += 1;
   s.score.hostilesDown += result.hostilesDown;
   s.score.civiliansDown += result.civiliansDown;
@@ -376,8 +415,58 @@ function resolve(state: CityState, action: Extract<CityAction, { type: 'resolve'
     if (result.won && org) b.watch = { band: bandOf(org.infiltration), tick: s.tick };
   }
   events.push({ type: 'raidResolved', building: r.building, result, auto, roll, winChance: chance, cleansed, scandal });
+  const wasFinal = isFinal(s, r.building);
   s.raid = null;
+  if (wasFinal && result.won) finish(s, 'agency', 'source', events); // ACT-7
   squadCheck(s, events);
+  return accept(s, action, events);
+}
+
+/** ACT-5: headquarters is defended by every agent at home (ready). A loss there ends the campaign. */
+function defend(state: CityState, action: Extract<CityAction, { type: 'defend' }>): CityStepResult {
+  if (!state.defence) return reject(state, 'nobody is at the door of headquarters');
+  const s = clone(state);
+  const events: CityEvent[] = [];
+  const d = s.defence!;
+  const home = s.agents.filter((a) => a.status === 'ready').map((a) => a.id);
+  let result: RaidResult;
+  let roll: number | null = null;
+  let chance: number | null = null;
+  if (action.result !== undefined) {
+    const g = action.result;
+    if (typeof g !== 'object' || g === null || typeof g.won !== 'boolean' || !Array.isArray(g.agentsDown) || g.agentsDown.some((id) => !home.includes(id))) return reject(state, 'a defence result names only agents at home');
+    if (!isInt(g.hostilesDown) || g.hostilesDown < 0 || !isInt(g.civiliansDown) || g.civiliansDown < 0) return reject(state, 'counts must be non-negative integers');
+    result = { ...g, agentsDown: [...new Set(g.agentsDown)], hostilesDown: Math.min(g.hostilesDown, d.hostiles) };
+  } else if (home.length === 0) {
+    result = { won: false, agentsDown: [], hostilesDown: 0, civiliansDown: 0 };
+  } else {
+    const auto = autoResult(s, d.hostiles, home.slice(0, s.tuning.raid.maxAgents));
+    result = auto.result;
+    roll = auto.roll;
+    chance = auto.chance;
+  }
+  for (const a of s.agents) {
+    if (!result.agentsDown.includes(a.id)) continue;
+    const r = nextInt(s.rng, 100);
+    const dead = r < s.tuning.roster.deathPercent;
+    a.status = dead ? 'dead' : 'wounded';
+    a.until = dead ? 0 : s.tick + s.tuning.roster.woundDays * ticksPerDay(s.tuning);
+    events.push({ type: 'agentDown', agent: a.id, dead, roll: r });
+    if (dead) s.score.agentsDead += 1;
+  }
+  s.score.hostilesDown += result.hostilesDown;
+  if (result.won) {
+    // The attackers' bodies go to the lab, hosts first (LAB-1).
+    const hosts = Math.max(0, d.hostiles - d.takers - d.fighters);
+    s.shelf.host += hosts;
+    s.shelf.taker += d.takers;
+    s.shelf.fighter += d.fighters;
+    s.shelf.core += d.takers + d.fighters;
+  }
+  events.push({ type: 'defended', result, auto: action.result === undefined, roll, winChance: chance });
+  s.defence = null;
+  if (!result.won) finish(s, 'hostile', 'hq', events);
+  else squadCheck(s, events);
   return accept(s, action, events);
 }
 
@@ -505,7 +594,7 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
     }
     case 'launch': {
       if (side !== 'hostile') return reject(state, 'launch is a hostile order');
-      if (action.kind !== 'scout' && action.kind !== 'seeder') return reject(state, 'no such craft');
+      if (action.kind !== 'scout' && action.kind !== 'seeder' && action.kind !== 'carrier') return reject(state, 'no such craft');
       const why = launchBlock(state, action.kind, action.target);
       if (why) return reject(state, why);
       const s = clone(state);
@@ -513,6 +602,24 @@ export function cityStep(state: CityState, action: CityAction): CityStepResult {
       launch(s, action.kind, action.target, events);
       return accept(s, action, events);
     }
+    case 'assault': {
+      if (side !== 'hostile') return reject(state, 'assault is a hostile order');
+      const a = state.tuning.act;
+      if (state.act !== 3) return reject(state, 'the organism assaults only in act 3');
+      if (!state.hqFound) return reject(state, 'the organism has not found headquarters');
+      if (state.defence) return reject(state, 'an assault is already under way');
+      if (state.tick < state.assaultReadyTick) return reject(state, 'the organism is not ready to assault');
+      if (state.biomass < a.assaultCost) return reject(state, 'not enough biomass');
+      const s = clone(state);
+      s.biomass -= a.assaultCost;
+      const third = Math.floor(a.assaultHostiles / 3);
+      s.defence = { hostiles: a.assaultHostiles, takers: third, fighters: third };
+      s.assaultReadyTick = s.tick + a.assaultEveryDays * ticksPerDay(s.tuning);
+      return accept(s, action, [{ type: 'assault', hostiles: a.assaultHostiles }]);
+    }
+    case 'defend':
+      if (side !== 'agency') return reject(state, 'defend is an agency order');
+      return defend(state, action);
     case 'intercept': {
       if (side !== 'agency') return reject(state, 'intercept is an agency order');
       const c = state.craft.find((x) => x.id === action.craft);

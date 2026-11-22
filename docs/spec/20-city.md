@@ -2,7 +2,7 @@
 
 **The spec is the product** (KB rule 2): the engine in `src/city/` implements exactly this, tests under `tests/` are named by these ids (`tests/coverage.test.ts` fails on an id without a test), and every ambiguity is logged in section 15 as `RULING: <id> | <what we did> | <why>`. Where this spec and `docs/strategic-layer.md` or `docs/GAME-DESIGN.md` disagree, this spec wins. Every number written as `section.key = N` is a key in `src/data/city/tuning.json` (`npm run validate:data` checks the two agree); the city itself (districts, organisations, buildings) is `src/data/city/city.json`. Every number is a first guess *(tune)* until a `sim:city` result says otherwise (KB rule 30).
 
-**Scope (KB rule 6):** act 1 only, with M5b's lab and workshop (sections 17 to 19) and M5c's air war (section 20): the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
+**Scope (KB rule 6):** the whole campaign: act 1 with M5b's lab and workshop (sections 17 to 19), M5c's air war (section 20), and acts 2 and 3 (section 21), over: the city clock, organisations with a hidden infiltration, the organism's economy and planner, symptom slips, watching, raids resolved by a calibrated model, money, confidence and the roster. Not here yet: research and the workshop (M5b), craft and the air war (M5c), the 3D city (M6), raids fought on the battle engine (M7). Every proper name is a placeholder (`PLAN.md` D10), checked against `docs/GAME-DESIGN.md` section 5. Owner decisions behind this slice: `PLAN.md` D24 (symptoms only, evidence-gated research, live intercepts, three acts) and D25 (the spread is "too perfect + the hum").
 
 ---
 
@@ -67,6 +67,7 @@
 - **RES-3** The raid cleanses the organisation by `hostiles down * res.cleansePerHostile + (won ? res.cleanseOnWin : 0)` (`res.cleansePerHostile = 6`, `res.cleanseOnWin = 10`), not below 0 (or SPREAD-7's floor).
 - **RES-4** A won raid on an infiltrated building raises confidence `fund.winGain = 4` and the owner's standing as much. Any won raid, a scandal included, leaves the agency knowing the building's band: its report is set to the band after cleansing.
 - **RES-5** Every citizen killed costs `fund.civilianLoss = 1` confidence and every agent killed `fund.agentLoss = 1`.
+- **RES-7** A fought result may also carry `captured` (hosts and takers taken alive: they go to the shelf live instead of LAB-3's capture), `saved` (citizens evacuated: `fund.savedGain = 1` confidence each) and `core` (a wreck's drive: the AIR-8 cores come only if it was secured).
 - **RES-6** With a result (a fought battle, M7), the engine checks it: `won` a boolean, `agentsDown` distinct agents of the raid, counts non-negative integers; hostiles down are clamped to the raid's hostiles. Death rolls (RES-2) still apply.
 
 ## 8. The roster (ROSTER)
@@ -86,7 +87,7 @@
 - **CEND-1** At a month's end, confidence below `end.confidenceFloor = 25` loses: the council withdraws the charter.
 - **CEND-2** At a day's end, if `end.turnedLosePercent = 50` percent of the organisations have turned, the city is lost.
 - **CEND-3** With no living agent and less money than a recruit costs, the agency is finished.
-- **CEND-4** Act 1 ends at the end of day `end.actDays = 90`: the agency wins if total infiltration is at most `end.containedTotal = 60` and no organisation has turned; otherwise the spread has won.
+- **CEND-4** Act 1 ends at the end of day `end.actDays = 90`: if total infiltration is at most `end.containedTotal = 60` and no organisation has turned, act 2 opens (ACT-2); otherwise the spread has won. The campaign is won only by the final raid (ACT-7) and also lost by a fallen headquarters (ACT-5) or time (ACT-6).
 - **CEND-5** The end is an event with the winner, the reason and the tick; it is final.
 - **CEND-6** After the end, `tick` is accepted and changes nothing; every other order is rejected.
 
@@ -110,6 +111,8 @@
 - **CAI-6** `agencyCareful` (the sim's competent player and a future autopilot): resolves at the door; recruits back to 8 when it can spare the money; raids turned organisations first, then a building whose fresh report (under 4 days) says `some` or `heavy`, or `low` with a suspicion of 8 or more, with up to 6 ready agents once at least 4 are home; and sends spare agents to watch the most suspicious unwatched buildings, by a suspicion score from the week's slips (weighted by kind) and fresh reports.
 - **CAI-8** From day 30 the planner also launches a seeder at the organisation it seeds (or one of the three least infiltrated) when it can spare the biomass, and a scout only as a decoy while a seeder flies.
 - **CAI-9** The careful agency sends every ready car after the first seeder (a scout only with two cars free), presses over open ground and shadows over buildings, raids a crash site first with three or more agents, and buys a third car with money to spare.
+- **CAI-10** From act 2 the planner sends scouts to look for headquarters over its nearest building until it is found; in act 3 it launches carriers when it can afford one and assaults headquarters whenever it may.
+- **CAI-11** The careful agency meets every assault, sends carriers' interceptors before seeders', and in act 3 makes the final raid as soon as a full squad is home.
 - **CAI-7** The careful agency also researches in a fixed order (restraints, the host's tells, antiserum, questioning, shell plate, arc carbine, hand scanner, evacuation, taker cage, the amber core, tracing the source) whenever the lab is idle and the next project it can start is found, questions captives, and builds kit up to a squad's worth when it has the cost plus a recruit's and 20 to spare. It never buys from the supplier.
 
 ## 13. Invariants (CINV) - checked by `sim:city` every city day
@@ -121,15 +124,25 @@
 - **CINV-6** At most `signs.keep` slips, ids increasing.
 - **CINV-7** The organisations and buildings match `city.json`.
 - **CINV-8** An end is never in the future.
+- **CINV-11** The act is 1, 2 or 3; an assault waits only in act 3; headquarters is found only from act 2.
 - **CINV-10** A car is flying exactly when it chases a craft, and that craft exists; car and craft health stay in range; craft stay on the map; crash ids are unique.
 - **CINV-9** The shelf never goes below 0; no project is done twice or worked on once done; sabotaged stock never exceeds the stock; a raid's takers and fighters never exceed its hostiles.
 
 ## 14. Sim (CSIM)
 - **CSIM-1** `npm run sim:city` plays seeded campaigns (40 per driver by default) of each agency driver against the planner. Drivers decide on the hour and whenever a squad is at the door; the invariants run every city day.
-- **CSIM-2** Targets: the passive agency never wins; the random agency wins at most 10%; the careful agency wins 55% to 90%.
+- **CSIM-2** Targets, for the whole campaign: the passive agency never wins; the random agency wins at most 10%; the careful agency wins 40% to 85%.
 - **CSIM-3** Seed 1 with the careful driver replays from its log to the same hash.
 
-### Sim baseline (2026-11-21, 40 campaigns per driver, seeds 1-40)
+### Sim baseline, the whole campaign (2026-11-21, 40 campaigns per driver, seeds 1-40, acts 1 to 3)
+| Agency driver | Wins | Reached act 2 | Reached act 3 | Mean days | Raids | Agents killed | End confidence | Ends |
+|---|---|---|---|---|---|---|---|---|
+| passive | 0.0% | 0% | 0% | 28.2 | 0 | 0 | 7 | turned 40 |
+| random | 0.0% | 0% | 0% | 30.3 | 7.8 | 1.6 | 5 | confidence 29, turned 11 |
+| careful | 67.5% | 90% | 75% | 124.5 | 255.6 | 19.1 | 81 | source 27, time 6, turned 5, hq 2 |
+
+Seed 1 (careful) replays to `527716b0`. No number was tuned for acts 2 and 3; the planner was changed once (CAI-10: hunting headquarters comes before a seeder while it is unfound).
+
+### Sim baseline, act 1 as it stood before acts 2 and 3 (2026-11-21, 40 campaigns per driver, seeds 1-40)
 | Agency driver | Wins | Mean days | Raids | Raids won | Clean raids | Agents killed | Citizens taken | End confidence | Ends |
 |---|---|---|---|---|---|---|---|---|---|
 | passive | 0.0% | 28.2 | 0 | 0 | 0 | 0 | 254 | 7 | turned 40 |
@@ -142,8 +155,12 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - **CSAV-1** The campaign saves under `ekc-campaign` (KB rule 22; `PLAN.md` Q5's real-time form): on start, on every accepted order, on every pause, whenever the city pauses itself (CSAV-3), and every 600 ticks of play. The envelope holds the key, a version, the time, the state, its `hashCity` and the tray.
 - **CSAV-2** Continue reopens the save paused, and only if its key, version, shape and hash agree; otherwise the title says why and offers to discard it.
 - **CSAV-3** The city pauses itself when a squad reaches a door, an organisation turns, a seeder crosses into the city, or the act ends.
-- **CJOIN-1** At a door the player may **fight it**: the battle opens on the raid site the building names (CITY-4).
-- **CJOIN-2** When the battle's report closes, its result returns as a fought result (RES-6): won if the agency won, the downed battle agents mapped in order onto the raid's agents, the battle's hostiles and citizens down. Leaving the battle without a report resolves the raid automatically.
+- **CJOIN-1** At a door, or with headquarters under assault, the player may **fight it**. The battle is the raid site the building names (CITY-4); for a wreck, the site of the building it fell on, or `wreck-raid` (a broken hull in a plaza) on open ground; for an assault, `hq-defence` (the squad holds headquarters' corridor, the attackers come from the street).
+- **CJOIN-2** When the battle's report closes, its result returns as a fought result (RES-6, or ACT-5's `defend`): won if the agency won, the downed battle agents mapped in order onto the raid's agents, the battle's hostiles and citizens down. Leaving the battle without a report resolves the raid automatically.
+- **CJOIN-6** A fought battle is at night when the city's clock says night (CLOCK-5; battle NIGHT-1), and marks its last hostiles only once the lab has the `hand-scanner` (battle NIGHT-3).
+- **CJOIN-5** A fought battle may capture when the lab has `restraints` (battle OBJ-1), and its result carries the captives by kind, the citizens evacuated and, on a wreck, whether the core was secured (RES-7).
+- **CJOIN-4** In a fought battle, once the building's owner is at 30 infiltration a fifth of the hostiles (floored, taken from the hosts) are spitters (battle STRAY-3); the auto-resolver does not model them (RES-1).
+- **CJOIN-3** The battle is fought with the city's own people (battle ARCH-11): the raid's agents by name in order, the first ones carrying the working shell plates (as `agent-t2`) and then the working arc carbines, as SHOP-4 shares them out; and the raid's hostiles by kind (RAID-3, RAID-7, AIR-8, ACT-5, ACT-7).
 
 ## 17. The lab (LAB) - M5b: evidence-gated research (`PLAN.md` D24 c)
 - **LAB-1** The **shelf** holds evidence: `host`, `taker` and `fighter` bodies, amber `core`s, and live `liveHost` and `liveTaker` captives. A resolved raid shelves its hostiles down, filled hosts first, then takers, then fighters (RAID-7); every taker and fighter body also yields one core.
@@ -173,6 +190,15 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - **AIR-7** A crash site not raided within `air.crashHours = 24` hours scatters: the nearest building's organisation gains `air.scatterPerSurvivor = 2` infiltration per survivor.
 - **AIR-8** A crash site can be raided like a building (RAID-1); its hostiles are its survivors, a seeder's all takers. It is never a scandal; the site is cleared either way, and a won raid adds `air.crashCores = 2` cores from the craft's drive to the shelf.
 
+## 21. The three acts (ACT) - `PLAN.md` D24 d, `docs/strategic-layer.md` 7
+- **ACT-1** The campaign has three acts: 1 "Whispers", 2 "Open sky", 3 "Perfect day". The state carries the act and the day it began; each change of act is an event.
+- **ACT-2** **Act 2** opens when act 1 ends contained (CEND-4). From then the organism's daily biomass is raised by `act.biomassBonusPercent = 50` percent and it may launch a craft every `act.launchEveryHours = 12` hours.
+- **ACT-3** **Act 3** opens when `source-trace` is finished during act 2 (LAB-7): the agency knows where the source is.
+- **ACT-4** From act 2, a scout that passes within `act.hqScoutRange = 15` tenths of headquarters **finds it**: an event and a genuine `found` slip. It stays found.
+- **ACT-5** In act 3 the organism may launch **carriers** (`act.carrierCost = 40`, `act.carrierSpeed = 8`, `act.carrierHp = 160`), which fire back at `act.carrierDamagePercent = 200` percent of a seeder's damage, land for `act.carrierAmount = 15` infiltration and leave `act.carrierSurvivors = 4` fighters in a wreck. Once headquarters is found it may **assault** it for `act.assaultCost = 50` biomass, at most every `act.assaultEveryDays = 10` days: `act.assaultHostiles = 6` hostiles, a third takers and a third fighters. While an assault waits, a tick changes nothing (as RAID-4). `defend { result? }` meets it with the agents at home (ready), auto-resolved as RES-1 with up to `raid.maxAgents` of them, or with a fought result; with nobody at home it is lost. A won defence shelves the attackers; a lost one loses the campaign.
+- **ACT-6** Act 2 lasts at most `act.act2Days = 100` days and act 3 at most `act.act3Days = 90`; running out of either loses the campaign to time.
+- **ACT-7** **The final raid:** in act 3, a raid on the source's tower (`city.json` `agency.final`) meets `act.finalHostiles = 12` hostiles, a third takers and a third fighters. Winning it wins the campaign.
+
 ## 15. Rulings log
 - RULING: CITY-4 | buildings fight on the three D20 raid maps by their floor count until M7 | the battle engine's ARCH-1 names a battle file; per-building maps are M7's join. provisional
 - RULING: RES-1 | raids are auto-resolved by a calibrated formula, not by running the battle engine | a real battle takes about 0.7 s headless, too slow for thousands of sim raids; M7 runs the real battle for raids the player fights and feeds RES-6. provisional
@@ -182,10 +208,10 @@ With M5b's lab and workshop (CAI-7) and M5c's air war (CAI-8, CAI-9). Seed 1 (ca
 - RULING: FUND-1 | money may go negative at a month's end | salaries are owed whatever the grant; the debt blocks recruiting (ROSTER-3). provisional
 - RULING: RES-6 | a fought result's hostiles down are clamped to the city's hostile count | until M7 the raid maps carry their own rosters, which may differ from RAID-3. provisional
 - RULING: SIGN-2 | a slip carries ids, never text | the client words each kind (D25: too perfect by day, the hum by night), so wording changes need no engine change. provisional
-- RULING: CJOIN-2 | the battle fields its site's own six agents and roster; downed battle agents map in order onto the raid's agents, extras ignored | ARCH-1 names a battle file and is frozen; a roster override is the next contract change. provisional
 - RULING: CSAV-1 | the save holds the whole city state (with its log), not a replay log alone | replaying 90 days of ticks takes seconds on a phone; the state is about 30 KB. provisional
-- RULING: SHOP-4 | equipment changes only the auto-resolver; a fought battle uses the site's own weapons | the battle's roster and kit come from its file until the CJOIN-2 roster change. provisional
+- RULING: CJOIN-3 | a fought battle's hostiles fill the site's hostile spawn points, so more hostiles than a map has points stand on its citizen points as hosts (battle RULING ARCH-11) | the maps were drawn for their own rosters; per-building maps would place each one. provisional
 - RULING: LAB-2 | field trials (`docs/strategic-layer.md` 3) wait for a later slice; a built item works at once | the first cut keeps the workshop to cost and time, so the sim can measure research alone. provisional
 - RULING: AIR-2 | craft fly in act 1 from day 30, before act 2 exists | D24's "open sky" is act 2; until it is built, a mid-act escalation lets the air war be played and measured. provisional
 - RULING: AIR-4 | the live dogfight is resolved on the hour by rolls; the client draws it in real time between hours | the city's tick is ten minutes, and an hour per real second at speed 1 keeps a fight readable while pausable. provisional
-- RULING: AIR-8 | a crash site's battle is fought on the raid map of the building it fell on, or the Sunbeam Automat's street when it fell on open ground | there are no open-ground battle maps yet. provisional
+- RULING: CSIM-2 | the targets now measure the whole campaign (40% to 85% for the careful agency) instead of act 1 alone (55% to 90%) | act 1 no longer ends the game; a three-act campaign should be lost more often than one act. provisional
+- RULING: ACT-3 | act 3 opens on the research, not on a raid | D24 makes research evidence-gated; tracing the source is the evidence that the agency knows where to strike. provisional

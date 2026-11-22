@@ -13,7 +13,7 @@ export interface CityRun {
 
 export function runCity(opts: { seed: number; agency: CityDriver; hostile: CityDriver; maxTicks?: number; checkEvery?: number; tuning?: Partial<CityTuning> }): CityRun {
   let s = createCity({ seed: opts.seed, tuning: opts.tuning });
-  const maxTicks = opts.maxTicks ?? (s.tuning.end.actDays + 1) * 144;
+  const maxTicks = opts.maxTicks ?? (s.tuning.end.actDays + s.tuning.act.act2Days + s.tuning.act.act3Days + 1) * 144;
   const checkEvery = opts.checkEvery ?? 144;
   let orders = 0;
   let rejected = 0;
@@ -36,7 +36,7 @@ export function runCity(opts: { seed: number; agency: CityDriver; hostile: CityD
     if (r.ok) s = r.state;
     if (s === before && !s.over) {
       // RAID-4: a squad stands at the door and the driver did not resolve; resolve it so the run moves on.
-      const rr = cityStep(s, { type: 'resolve', side: 'agency' });
+      const rr = cityStep(s, s.defence ? { type: 'defend', side: 'agency' } : { type: 'resolve', side: 'agency' });
       if (rr.ok) s = rr.state;
       else break;
     }

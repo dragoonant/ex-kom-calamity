@@ -1,6 +1,7 @@
 // Section 6 (SEE) and 7 (HIDE): who sees what.
 import type { Pos, Side, State, Unit } from './types';
 import { distance, hasLineOfSight, tileIndex } from './map';
+import { MAPS } from '../data';
 
 export function unitById(s: State, id: string): Unit | undefined {
   return s.units.find((u) => u.id === id);
@@ -17,7 +18,33 @@ export function unitSeesTile(s: State, viewer: Unit, p: Pos): boolean {
   if (viewer.x === p.x && viewer.y === p.y) return true;
   const d = distance(viewer, p);
   if (d === null || d > viewer.sight) return false;
+  // NIGHT-2: at night an unlit tile is seen only within the shorter night sight.
+  if (s.night && d > nightSight(s, viewer) && !isLit(s, p)) return false;
   return hasLineOfSight(s, viewer, p);
+}
+
+/** NIGHT-2 */
+export function nightSight(s: State, viewer: Unit): number {
+  return Math.floor((viewer.sight * (s.tuning.night?.sightPercent ?? 100)) / 100);
+}
+
+const litCache = new Map<string, Set<string>>();
+/** NIGHT-2: indoor floors and stairs are lit, and ground within night.lampRange of a street lamp. */
+export function isLit(s: State, p: Pos): boolean {
+  const t = s.tiles[tileIndex(s, p)];
+  if (t && (t.kind === 'floor' || t.kind === 'stair')) return true;
+  const key = `${s.mapId}|${s.tuning.night?.lampRange ?? 0}`;
+  let set = litCache.get(key);
+  if (!set) {
+    set = new Set();
+    const r = s.tuning.night?.lampRange ?? 0;
+    for (const prop of MAPS[s.mapId]?.props ?? []) {
+      if (prop.kind !== 'lamp') continue;
+      for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (dx * dx + dy * dy <= r * r) set.add(`${prop.x + dx},${prop.y + dy},${prop.level}`);
+    }
+    litCache.set(key, set);
+  }
+  return set.has(`${p.x},${p.y},${p.level}`);
 }
 
 /** SEE-3. Civilians see nothing for rules purposes. */
