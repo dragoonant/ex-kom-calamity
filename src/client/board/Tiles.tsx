@@ -13,7 +13,7 @@ import { MAPS, MATERIALS } from '../../data';
 import { query, tileIndex, type Pos, type State, type Tile } from '../../engine';
 import { useClient } from '../store';
 import { LEVEL_H, live } from './world';
-import { OVERLAY, WALL_H_ACTIVE, baseColour, buildingIndex, fillLayers, layerCapacity, makeLayers, styleAt, type Layer, type LayerKind } from './tileset';
+import { OVERLAY, WALL_H_ACTIVE, baseColour, buildingIndex, fillLayers, layerCapacity, makeLayers, openingYaw, styleAt, type Layer, type LayerKind } from './tileset';
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const NO_RAYCAST = () => undefined;
@@ -50,6 +50,8 @@ export function useBoardDerived(agency: State | null, selected: string | null, h
 }
 
 const Q = new THREE.Quaternion();
+/** A quarter turn about y: the frame of a door in a north-south wall (openingYaw). */
+const Q_TURNED = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
 const V = new THREE.Vector3();
 const S = new THREE.Vector3();
 
@@ -102,7 +104,7 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
         case 'door':
           // The frame: a full-height jamb pair drawn as one thinner box; the leaf is a layer.
           if (t.open) m.compose(V.set(cx, y0 - 0.05, cz), Q, S.set(0.9, 0.1, 0.9));
-          else m.compose(V.set(cx, y0 + wallH * 0.44 - 0.07, cz), Q, S.set(0.92, wallH * 0.88, 0.3));
+          else m.compose(V.set(cx, y0 + wallH * 0.44 - 0.07, cz), openingYaw(tiles, state.width, state.depth, t) ? Q_TURNED : Q, S.set(0.92, wallH * 0.88, 0.3));
           break;
         case 'stair':
           m.compose(V.set(cx, y0 + 0.01, cz), Q, S.set(0.96, 0.16, 0.96));
