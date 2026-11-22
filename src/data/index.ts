@@ -15,6 +15,10 @@ import benchRaid from './battles/bench-raid.json';
 import automatRaid from './battles/automat-raid.json';
 import depotRaid from './battles/depot-raid.json';
 import savingsRaid from './battles/savings-raid.json';
+import hqSite from './maps/agency-hq-site.json';
+import wreckSite from './maps/wreck-site.json';
+import hqDefence from './battles/hq-defence.json';
+import wreckRaid from './battles/wreck-raid.json';
 
 export type Side = 'agency' | 'hostile' | 'civilian';
 export type Stance = 'engage' | 'retaliate' | 'hold';
@@ -177,6 +181,8 @@ export const MAPS: Record<string, MapDef> = {
   [automatSite.id]: stripComments<MapDef>(automatSite as Record<string, unknown>),
   [depotSite.id]: stripComments<MapDef>(depotSite as Record<string, unknown>),
   [savingsSite.id]: stripComments<MapDef>(savingsSite as Record<string, unknown>),
+  [hqSite.id]: stripComments<MapDef>(hqSite as Record<string, unknown>),
+  [wreckSite.id]: stripComments<MapDef>(wreckSite as Record<string, unknown>),
 };
 export const BATTLES: Record<string, BattleDef> = {
   [firstRaid.id]: stripComments<BattleDef>(firstRaid as Record<string, unknown>),
@@ -185,6 +191,8 @@ export const BATTLES: Record<string, BattleDef> = {
   [automatRaid.id]: stripComments<BattleDef>(automatRaid as Record<string, unknown>),
   [depotRaid.id]: stripComments<BattleDef>(depotRaid as Record<string, unknown>),
   [savingsRaid.id]: stripComments<BattleDef>(savingsRaid as Record<string, unknown>),
+  [hqDefence.id]: stripComments<BattleDef>(hqDefence as Record<string, unknown>),
+  [wreckRaid.id]: stripComments<BattleDef>(wreckRaid as Record<string, unknown>),
 };
 
 /** MAP-10 (PLAN.md D20): the playable raids, one building each, in the order the title offers them. */

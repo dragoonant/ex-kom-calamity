@@ -39,6 +39,19 @@
     "structureDamage": 14,
     "source": "agency close-quarters arm"
   },
+  "arc-carbine": {
+    "name": "Arc carbine",
+    "kind": "ranged",
+    "range": 12,
+    "accuracy": 75,
+    "falloffPerTile": 2,
+    "damageMin": 35,
+    "damageMax": 50,
+    "aimTicks": 7,
+    "cooldownTicks": 9,
+    "structureDamage": 10,
+    "source": "an amber core discharged like a capacitor (city LAB arc-carbine, ARCH-11)"
+  },
   "pocket-pistol": {
     "name": "Pocket pistol",
     "kind": "ranged",

@@ -16,6 +16,8 @@ import {
   type RaidResult,
 } from '../../city';
 import type { StorageLike } from '../save';
+import type { Roster } from '../../engine';
+import { battleOf, rosterOf } from './join';
 import { traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
@@ -47,8 +49,11 @@ export interface PendingFight {
   /** A raid at a door, or an assault on headquarters (ACT-5). */
   kind: 'raid' | 'defence';
   building: string;
-  /** The building whose raid map the battle is fought on: the raid's own, or the one a wreck fell on (RULING AIR-8). */
+  /** The building whose raid map the battle is fought on: the raid's own, or the one a wreck fell on. */
   site: string;
+  /** CJOIN-1, CJOIN-3: the battle and the roster it is fought with. */
+  battle: string;
+  roster: Roster;
   agents: string[];
   hostiles: number;
 }
@@ -276,14 +281,14 @@ export const useCity = create<CityClient>((set, get) => {
       if (g?.defence) {
         // ACT-5: headquarters is fought on the Civic Savings map (RULING ACT-5) with the agents at home.
         const home = g.agents.filter((a) => a.status === 'ready').map((a) => a.id).slice(0, g.tuning.raid.maxAgents);
-        const fight: PendingFight = { kind: 'defence', building: 'hq', site: 'city-hall', agents: home, hostiles: g.defence.hostiles };
+        const fight: PendingFight = { kind: 'defence', building: 'hq', site: 'hq', battle: battleOf(g, 'defence', 'hq'), roster: rosterOf(g, home, g.defence), agents: home, hostiles: g.defence.hostiles };
         set({ fight });
         get().saveNow();
         return fight;
       }
       if (!g?.raid?.arrived) return null;
       const crash = g.crashes.find((c) => c.id === g.raid!.building);
-      const fight: PendingFight = { kind: 'raid', building: g.raid.building, site: crash ? (crash.building ?? 'automat-row') : g.raid.building, agents: [...g.raid.agents], hostiles: g.raid.hostiles };
+      const fight: PendingFight = { kind: 'raid', building: g.raid.building, site: crash ? (crash.building ?? 'wreck') : g.raid.building, battle: battleOf(g, 'raid', g.raid.building), roster: rosterOf(g, g.raid.agents, g.raid), agents: [...g.raid.agents], hostiles: g.raid.hostiles };
       set({ fight });
       get().saveNow();
       return fight;

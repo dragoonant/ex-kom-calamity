@@ -9,7 +9,7 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 ---
 
 ## 0. Engine contract (ARCH)
-- **ARCH-1** `createGame(setup) -> State`. `setup = { battleId: string, seed: number, tuning?: Partial<Tuning> }`. The battle file (`src/data/battles/<battleId>.json`) names the map, the squad and every spawn; `tuning` overrides are merged key by key per section and stored in `state.tuning`, so a replay carries its own numbers.
+- **ARCH-1** `createGame(setup) -> State`. `setup = { battleId: string, seed: number, tuning?: Partial<Tuning>, roster?: Roster }` (ARCH-11). The battle file (`src/data/battles/<battleId>.json`) names the map, the squad and every spawn; `tuning` overrides are merged key by key per section and stored in `state.tuning`, so a replay carries its own numbers.
 - **ARCH-2** `step(state, action) -> { ok: true, state, events } | { ok: false, state, reason }`. Pure: never mutates its input, never throws on a bad action (a rejection returns the same state object and a readable reason). Only programmer errors throw.
 - **ARCH-3** `legalActions(state, side) -> Action[]` is **never empty**: `tick` is always in it, for every side, before and after the battle ends (TIME-5).
 - **ARCH-4** `query.*` computes every number a client could show (section 14). The client never does rules maths.
@@ -19,6 +19,7 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - **ARCH-8** Every resolved roll emits an event with its full breakdown (FIRE-9, DMG-4); every other change that a client would draw emits an event (moves, doors, reveals, downs, the end).
 - **ARCH-9** `state.log` keeps the accepted actions in order; consecutive `tick` actions are stored as one entry `{ type: "tick", count }`. `replay(setup, log)` rebuilds the state and `hashState(state)` is a 32-bit FNV-1a of its JSON text.
 - **ARCH-10** No DOM, three.js or React import anywhere under `src/engine/`; the engine depends only on `src/data/`.
+- **ARCH-11** (M7, the join) An optional **roster** fills the battle file's spawn points from the city: `squad` (`{ name, template?, weapon? }[]`) takes the squad spawn points in order, at most as many as the file has, each keeping the file's template or weapon when it names none; spare squad points stay empty. `hostiles` (`{ host, taker, fighter }`) fills the file's hostile spawn points in file order, fighters first, then takers, then hosts; spare hostile points hold citizens, and when there are more hostiles than hostile points the overflow stands on the citizen points as hosts. Without a roster the file is used as written, so every replay, golden and bench is unchanged. An unknown template, a non-agent squad template or an unknown weapon is a programmer error (throws).
 
 ## 1. Time (TIME)
 - **TIME-1** Time is counted in ticks; `time.ticksPerSecond = 10`. `state.tick` starts at 0.
@@ -45,7 +46,7 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - **UNIT-2** A unit is created from a template in `units.json` with `hp`, `armour`, `aim`, `moveTicks` (ticks per orthogonal step), `sight` (tiles), `weapon` (a `weapons.json` id or none), `disguised` (HIDE-1) and `defaultStance` (STANCE-2). Agents may override the weapon per battle file.
 - **UNIT-3** Unit ids: agents `a1..aN` in squad order; every other unit `u1..uM` in order of `(level, y, x)` of its spawn tile, so an id says nothing about what a unit is.
 - **UNIT-4** A unit with `hp = 0` is **down**: it acts no more, takes no more orders, stops blocking movement (MOVE-5) and is never a legal target. Its body stays on its tile in the state.
-- **UNIT-5** Templates: `agent-t1` (plain security gear, `PLAN.md` D7 tier 1), `host` (a taken-over citizen, disguised, pocket pistol), `taker` (the organism, fast, melee, never disguised; its bite takes citizens, TAKE-1), `fighter` (M3: the purpose-grown fighter of `PLAN.md` D14, a headless column on three stilt legs; armoured, lash whip at range 5, one breaching charge), `citizen` (unarmed). Numbers are in `units.json`; the JSON wins.
+- **UNIT-5** Templates: `agent-t1` (plain security gear, `PLAN.md` D7 tier 1), `agent-t2` (the moulded shell-plate suit, D7 tier 2: more health and armour; fielded only through a roster, ARCH-11), `host` (a taken-over citizen, disguised, pocket pistol), `taker` (the organism, fast, melee, never disguised; its bite takes citizens, TAKE-1), `fighter` (M3: the purpose-grown fighter of `PLAN.md` D14, a headless column on three stilt legs; armoured, lash whip at range 5, one breaching charge), `citizen` (unarmed). Numbers are in `units.json`; the JSON wins.
 
 ## 4. Orders (ORD)
 - **ORD-1** Actions: `{ type: "tick" }`; `{ type: "move", side, unit, to: { x, y, level }, run? }` (POSE-3); `{ type: "fire", side, unit, target }`; `{ type: "stance", side, unit, stance }`; `{ type: "posture", side, unit, posture }` (POSE-2); `{ type: "halt", side, unit }`; `{ type: "blast", side, unit, at: { x, y, level } }`; `{ type: "withdraw", side: "agency" }`.
@@ -215,6 +216,8 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 - RULING: POSE-4 | Crouching helps only against ranged fire from 2 or more tiles | A crouched target at arm's length or against a bite is no harder to hit. provisional
 - RULING: POSE-1 | The hostile AI does not crouch or run yet; the random drivers do, because posture orders are in `legalActions` | Teaching the AI cover and pace is its own slice with its own bench result (KB rule 30). provisional
 
+
+- RULING: ARCH-11 | an overflow of hostiles stands on citizen spawn points as hosts, whatever its kind | the maps place fighters and takers where they can reach the street; a citizen point is indoors and a host passes there until revealed. provisional
 
 ## 18. Sim baseline (KB rule 30)
 `npm run sim`, 40 battles per driver pair, seeds 1-40, battle `first-raid`, numbers as committed. The drivers are not an AI (hostiles stand or take random orders), so this is the starting line, not a verdict. Re-run after M3 and change one number at a time.

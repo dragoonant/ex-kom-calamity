@@ -418,6 +418,12 @@ interface Site {
   citizens: Local[];
   /** Citizens in the street, absolute tiles on level 0. */
   streetCitizens: [number, number][];
+  /** A building that is not on the block (the agency's headquarters, ACT-5). */
+  def?: Building;
+  /** The squad's spawn points inside the building instead of the west street (a defence). */
+  squadInside?: Local[];
+  /** Hostiles in the street, absolute tiles on level 0: [x, y, template]. */
+  streetHostiles?: [number, number, 'host' | 'taker' | 'fighter'][];
 }
 const SITES: Site[] = [
   {
@@ -450,11 +456,25 @@ const SITES: Site[] = [
     citizens: [[8, 3, 0], [13, 12, 0], [3, 7, 0], [2, 11, 1], [7, 12, 2]],
     streetCitizens: [[14, 22]],
   },
+  {
+    // The agency's own headquarters (city ACT-5): the squad holds the corridor, the attackers come from the street.
+    building: 'agency-hq',
+    battle: 'hq-defence',
+    battleName: 'The defence of headquarters',
+    def: { id: 'agency-hq', name: 'Agency Headquarters', x: 0, y: 0, w: 18, d: 14, floors: 2, plan: 'corridor', style: 'office', wall: 'b' },
+    squadInside: [[3, 6, 0], [4, 7, 0], [6, 6, 0], [8, 7, 0], [11, 6, 0], [13, 7, 0]],
+    hosts: [],
+    takers: [],
+    fighters: [],
+    citizens: [[2, 2, 0], [12, 11, 0], [7, 2, 1]],
+    streetCitizens: [],
+    streetHostiles: [[24, 6, 'host'], [24, 15, 'host'], [12, 1, 'host'], [12, 20, 'host'], [24, 11, 'taker'], [19, 1, 'taker'], [20, 20, 'fighter'], [6, 1, 'fighter']],
+  },
 ];
 
 const siteSummaries: string[] = [];
 for (const site of SITES) {
-  const home = byId(site.building);
+  const home = site.def ?? byId(site.building);
   const b: Building = { ...home, x: RING, y: RING };
   begin(b.w + 2 * RING, b.d + 2 * RING, b.floors + 1);
   for (let l = 0; l <= b.floors; l++) {
@@ -475,11 +495,13 @@ for (const site of SITES) {
   dressRoof(b);
 
   const at = ([i, j, level]: Local) => local(b, i, j, level);
-  const siteSquad = squad.map((s, n) => ({ ...s, at: n < 5 ? { x: 2, y: cy - 2 + n, level: 0 } : { x: 1, y: cy, level: 0 } }));
+  const inside = site.squadInside;
+  const siteSquad = squad.map((s, n) => ({ ...s, at: inside ? at(inside[n]!) : n < 5 ? { x: 2, y: cy - 2 + n, level: 0 } : { x: 1, y: cy, level: 0 } }));
   const siteOthers = [
     ...site.hosts.map((p) => ({ template: 'host', at: at(p) })),
     ...site.takers.map((p) => ({ template: 'taker', at: at(p) })),
     ...site.fighters.map((p) => ({ template: 'fighter', at: at(p) })),
+    ...(site.streetHostiles ?? []).map(([x, y, template]) => ({ template, at: { x, y, level: 0 } })),
     ...site.citizens.map((p) => ({ template: 'citizen', at: at(p) })),
     ...site.streetCitizens.map(([x, y]) => ({ template: 'citizen', at: { x, y, level: 0 } })),
   ];
@@ -506,5 +528,65 @@ for (const site of SITES) {
   writeJson(`src/data/maps/${siteMap.id}.json`, siteMap);
   writeJson(`src/data/battles/${site.battle}.json`, siteBattle);
   siteSummaries.push(`${siteMap.id}: ${W} x ${D} x ${LEVELS}; windows ${count('=')}, stairs ${count('>')}; ${props.length} props; ${site.battle}: ${siteSquad.length} agents, ${siteOthers.length} others (${site.hosts.length} hosts, ${site.takers.length} takers, ${site.fighters.length} fighters)`);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// A wreck on open ground (city AIR-8): a downed craft's broken hull in a plaza, its survivors in the rubble
+// round it, the squad in the west street. One ground level and an empty one above (the hull has no roof).
+// ---------------------------------------------------------------------------------------------------------
+{
+  begin(30, 24, 2);
+  const cx = 15;
+  const cy = 12;
+  const inside = (x: number, y: number, rx: number, ry: number) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
+  for (let y = 0; y < D; y++) {
+    for (let x = 0; x < W; x++) {
+      if (inside(x, y, 4.2, 2.6) && !inside(x, y, 3.1, 1.6)) put(0, x, y, '#', 's');
+      else if (inside(x, y, 3.1, 1.6)) put(0, x, y, '.');
+      else if (inside(x, y, 5.8, 3.9)) put(0, x, y, '%');
+    }
+  }
+  // Breaches in the hull where it split: west (toward the squad), north-east and south.
+  for (const [x, y] of [[11, 12], [11, 11], [18, 10], [17, 14], [15, 15]] as [number, number][]) put(0, x, y, '%');
+  for (const [x, y] of [[1, 1], [W - 2, 1], [1, D - 2], [W - 2, D - 2], [cx, 1], [cx, D - 2]] as [number, number][]) prop('lamp', 0, x, y);
+  for (const [x, y, yaw] of [[W - 2, 6, 1], [W - 2, 18, 1], [6, 1, 0], [24, D - 2, 0]] as [number, number, 0 | 1 | 2 | 3][]) prop('vehicle', 0, x, y, yaw);
+  for (const [x, y] of [[4, 4], [25, 4], [4, 19], [25, 19]] as [number, number][]) prop('planter', 0, x, y);
+  for (const [x, y] of [[8, 7], [22, 16]] as [number, number][]) prop('crate', 0, x, y);
+  const wreckSquad = squad.map((s, n) => ({ ...s, at: n < 5 ? { x: 2, y: cy - 2 + n, level: 0 } : { x: 1, y: cy, level: 0 } }));
+  const wreckOthers = [
+    { template: 'host', at: { x: 14, y: 12, level: 0 } },
+    { template: 'host', at: { x: 9, y: 9, level: 0 } },
+    { template: 'taker', at: { x: 16, y: 11, level: 0 } },
+    { template: 'taker', at: { x: 20, y: 13, level: 0 } },
+    { template: 'taker', at: { x: 13, y: 16, level: 0 } },
+    { template: 'fighter', at: { x: 17, y: 12, level: 0 } },
+    { template: 'fighter', at: { x: 19, y: 9, level: 0 } },
+    { template: 'citizen', at: { x: 6, y: 20, level: 0 } },
+    { template: 'citizen', at: { x: 24, y: 3, level: 0 } },
+    { template: 'citizen', at: { x: 27, y: 12, level: 0 } },
+  ];
+  checkSpawns([...wreckSquad, ...wreckOthers]);
+  const wreckMap = {
+    id: 'wreck-site',
+    name: 'A wreck in the plaza',
+    _: 'Written by tools/make-block.ts (npm run map:make); edit the tool, not this file. A downed craft on open ground (city AIR-8): a steel hull broken in three places in a ring of rubble, in a plaza with a street round it. Legend and materials as halcyon-block. Placeholder names (PLAN.md D10).',
+    width: W,
+    depth: D,
+    materialKey: { b: 'brick', p: 'plaster', s: 'steel' },
+    buildings: [],
+    levels: kinds.map((rows, level) => ({ level, rows: rows.map((r) => r.join('')), materials: mats[level]!.map((r) => r.join('')) })),
+    props,
+  };
+  const wreckBattle = {
+    id: 'wreck-raid',
+    name: 'Raid on the wreck',
+    _: 'Written by tools/make-block.ts. A downed craft on open ground (city AIR-8): the squad starts in the west street. The city fills the hostile spawns from the wreck\'s survivors (ARCH-11).',
+    map: wreckMap.id,
+    squad: wreckSquad,
+    others: wreckOthers,
+  };
+  writeJson(`src/data/maps/${wreckMap.id}.json`, wreckMap);
+  writeJson(`src/data/battles/${wreckBattle.id}.json`, wreckBattle);
+  siteSummaries.push(`${wreckMap.id}: ${W} x ${D} x ${LEVELS}; walls ${count('#')}, rubble ${count('%')}; ${props.length} props; ${wreckBattle.id}: ${wreckSquad.length} agents, ${wreckOthers.length} others`);
 }
 for (const line of siteSummaries) console.log(line);

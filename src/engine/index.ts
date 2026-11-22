@@ -2,6 +2,7 @@
 // three.js or React anywhere under src/engine/ (ARCH-10). Contract frozen: a change here needs
 // a matching edit to the spec.
 export type * from './types';
+export { applyRoster } from './game';
 export { STANCES, SIDES } from './types';
 export { createGame, mergeTuning } from './game';
 export { step } from './step';

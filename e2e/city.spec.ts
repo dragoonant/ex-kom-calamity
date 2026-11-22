@@ -167,3 +167,32 @@ test('act 3: the act card, an assault on headquarters held, and the final raid w
   await page.getByTestId('auto-resolve').click();
   await expect(page.getByTestId('city-over')).toContainText('THE CITY IS SAVED');
 });
+
+test("FIGHT IT at an assault opens the headquarters map with the city's own agents; a withdrawal loses headquarters (CJOIN-3)", async ({ page }) => {
+  await startCampaign(page);
+  await page.evaluate(() => {
+    const h = window.__ekcCity!;
+    const s = JSON.parse(JSON.stringify(h.state()!));
+    s.act = 3;
+    s.actDay = 150;
+    s.tick = 16 * 6 + 150 * 144;
+    s.hqFound = true;
+    s.biomass = 200;
+    s.lab.done.push('source-trace', 'shell-plate');
+    s.shop.stock['shell-plate'] = 2;
+    h.load(s);
+    h.order({ type: 'assault', side: 'hostile' } as never);
+  });
+  await page.getByTestId('act-continue').click();
+  await page.getByTestId('defence-fight').click();
+  await expect(page.getByTestId('battle')).toBeVisible({ timeout: 30_000 });
+  const units = await page.evaluate(() => window.__ekc!.getState()!.units.map((u) => ({ side: u.side, name: u.name, template: u.template })));
+  const city = await page.evaluate(() => window.__ekcCity!.state()!.agents.filter((a) => a.status === 'ready').slice(0, 6).map((a) => a.name));
+  expect(await page.evaluate(() => window.__ekc!.getState()!.battleId)).toBe('hq-defence');
+  expect(units.filter((u) => u.side === 'agency').map((u) => u.name)).toEqual(city);
+  expect(units.filter((u) => u.template === 'agent-t2')).toHaveLength(2);
+  expect(units.filter((u) => u.side === 'hostile')).toHaveLength(6);
+  await page.evaluate(() => window.__ekc!.order({ type: 'withdraw', side: 'agency' }));
+  await page.getByTestId('close-report').click();
+  await expect(page.getByTestId('city-over')).toContainText('LOST');
+});

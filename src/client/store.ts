@@ -3,7 +3,7 @@
 // advance(); pause is the absence of them (TIME-2, TIME-6).
 import { create } from 'zustand';
 import { BATTLES, RAID_SITES, WEAPONS } from '../data';
-import { createGame, hashState, query, sideSeesTile, step, view, type Action, type GameEvent, type Pos, type Setup, type State, type Unit } from '../engine';
+import { createGame, hashState, query, sideSeesTile, step, view, type Action, type GameEvent, type Pos, type Roster, type Setup, type State, type Unit } from '../engine';
 import { advanceWithAi, isDifficulty, makeAi, type AiDriver, type Difficulty } from '../ai';
 import { bounds, focusOn } from './board/world';
 import { browserStorage, clearSave, makeEnvelope, readSave, summarise, writeSave, type LoadResult, type SaveEnvelope, type SaveReason, type SaveSummary } from './save';
@@ -68,7 +68,7 @@ export interface ClientState {
 
   refreshTitle(): void;
   /** MAP-10: a raid on one of RAID_SITES (the city layer picks the site from the alert in M7). */
-  newBattle(battleId?: string, seed?: number): void;
+  newBattle(battleId?: string, seed?: number, roster?: Roster): void;
   continueBattle(): boolean;
   discardSave(): void;
   leaveBattle(): void;
@@ -341,8 +341,9 @@ export const useClient = create<ClientState>((set, get) => {
       set(titleState());
     },
 
-    newBattle(battleId = RAID_SITES[0]!, seed = Math.floor(Math.random() * 1_000_000) + 1) {
-      const setup: Setup = { battleId, seed };
+    newBattle(battleId = RAID_SITES[0]!, seed = Math.floor(Math.random() * 1_000_000) + 1, roster?: Roster) {
+      // ARCH-11: a fight from the city brings its own squad and hostiles.
+      const setup: Setup = roster ? { battleId, seed, roster } : { battleId, seed };
       const game = createGame(setup);
       const first = game.units.find((u) => u.side === 'agency')?.id ?? null;
       enter(setup, game, { selected: first, level: 0 }, 'start');

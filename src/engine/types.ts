@@ -88,10 +88,20 @@ export interface Over {
   tick: number;
 }
 
+/** ARCH-11: who fights, from the city (M7). Absent: the battle file's own squad and spawns. */
+export interface Roster {
+  /** Fills the battle's squad spawn points in order; spare spawn points stay empty. */
+  squad?: { name: string; template?: string; weapon?: string }[];
+  /** Fills the battle's hostile spawn points (fighters, then takers, then hosts); spare ones hold citizens, and
+   * citizen spawn points take the overflow as hosts. */
+  hostiles?: { host: number; taker: number; fighter: number };
+}
+
 export interface Setup {
   battleId: string;
   seed: number;
   tuning?: Partial<Tuning>;
+  roster?: Roster;
 }
 
 export type Action =

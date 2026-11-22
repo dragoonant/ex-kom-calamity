@@ -1,6 +1,7 @@
 // ARCH-1: createGame(setup) from the battle file, the map and the templates.
 import { BATTLES, MAPS, TUNING, UNITS, WEAPONS, type Tuning } from '../data';
-import type { Setup, State, Unit } from './types';
+import type { BattleDef, OtherEntry, SquadEntry } from '../data';
+import type { Roster, Setup, State, Unit } from './types';
 import { parseMap, tileAt, isPassable } from './map';
 import { seedRng } from './rng';
 
@@ -51,9 +52,40 @@ function makeUnit(id: string, name: string, templateId: string, weapon: string |
   };
 }
 
+/** ARCH-11: the battle's spawn lists with a city roster applied. Pure; throws on an unknown template or weapon. */
+export function applyRoster(battle: BattleDef, roster: Roster | undefined): { squad: SquadEntry[]; others: OtherEntry[] } {
+  if (!roster) return { squad: battle.squad, others: battle.others };
+  let squad = battle.squad;
+  if (roster.squad) {
+    if (roster.squad.length < 1) throw new Error('a roster squad needs at least one agent');
+    squad = roster.squad.slice(0, battle.squad.length).map((r, i) => {
+      const template = r.template ?? battle.squad[i]!.template;
+      if (UNITS[template]?.side !== 'agency') throw new Error(`roster template ${template} is not an agent`);
+      if (r.weapon && !WEAPONS[r.weapon]) throw new Error(`unknown weapon ${r.weapon}`);
+      return { name: r.name, template, weapon: r.weapon ?? battle.squad[i]!.weapon, at: battle.squad[i]!.at };
+    });
+  }
+  let others = battle.others;
+  if (roster.hostiles) {
+    const h = roster.hostiles;
+    for (const n of [h.host, h.taker, h.fighter]) if (!Number.isInteger(n) || n < 0) throw new Error('roster hostiles must be non-negative integers');
+    // Hostile spawn points first, in file order; then citizen spawn points for the overflow.
+    const hostileSpots = battle.others.filter((o) => UNITS[o.template]?.side === 'hostile');
+    const citizenSpots = battle.others.filter((o) => UNITS[o.template]?.side !== 'hostile');
+    const wanted = [...Array(h.fighter).fill('fighter'), ...Array(h.taker).fill('taker'), ...Array(h.host).fill('host')] as string[];
+    const out: OtherEntry[] = [];
+    hostileSpots.forEach((o, i) => out.push({ template: wanted[i] ?? 'citizen', at: o.at }));
+    const overflow = wanted.slice(hostileSpots.length);
+    citizenSpots.forEach((o, i) => out.push({ template: i < overflow.length ? 'host' : o.template, at: o.at }));
+    others = out;
+  }
+  return { squad, others };
+}
+
 export function createGame(setup: Setup): State {
-  const battle = BATTLES[setup.battleId];
-  if (!battle) throw new Error(`unknown battle ${setup.battleId}`);
+  const base0 = BATTLES[setup.battleId];
+  if (!base0) throw new Error(`unknown battle ${setup.battleId}`);
+  const battle = { ...base0, ...applyRoster(base0, setup.roster) };
   const map = MAPS[battle.map];
   if (!map) throw new Error(`unknown map ${battle.map}`);
   const tiles = parseMap(map);

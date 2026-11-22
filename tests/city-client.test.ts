@@ -1,7 +1,7 @@
 // docs/spec/20-city.md section 16: the client's save and the join.
 import { beforeEach, describe, expect, it } from 'vitest';
 import { CAMPAIGN_KEY, readCampaign, useCity } from '../src/client/city/store';
-import { battleFor, resultFromBattle } from '../src/client/city/join';
+import { battleFor, battleOf, resultFromBattle, rosterOf } from '../src/client/city/join';
 import { createGame, step } from '../src/engine';
 import { hashCity } from '../src/city';
 import type { StorageLike } from '../src/client/save';
@@ -67,7 +67,7 @@ describe('16. The client (CSAV, CJOIN)', () => {
     agents[2]!.down = true;
     const r = step(b, { type: 'withdraw', side: 'agency' });
     expect(r.ok).toBe(true);
-    const res = resultFromBattle(r.state, { kind: 'raid', building: 'automat-row', site: 'automat-row', agents: ['ag3', 'ag4'], hostiles: 2 });
+    const res = resultFromBattle(r.state, { kind: 'raid', building: 'automat-row', site: 'automat-row', battle: 'automat-raid', roster: {}, agents: ['ag3', 'ag4'], hostiles: 2 });
     expect(res.won).toBe(false);
     expect(res.agentsDown).toEqual(['ag3']);
     useCity.getState().start(8);
@@ -77,5 +77,29 @@ describe('16. The client (CSAV, CJOIN)', () => {
     useCity.getState().finishFight(res);
     expect(useCity.getState().game!.raid).toBeNull();
     expect(useCity.getState().fight).toBeNull();
+  });
+  it("CJOIN-3 a fought battle fields the raid's agents with their working kit and the raid's own hostiles", () => {
+    useCity.getState().start(9);
+    const g = JSON.parse(JSON.stringify(useCity.getState().game!));
+    g.shop.stock['shell-plate'] = 2;
+    g.shop.stock['arc-carbine'] = 1;
+    const roster = rosterOf(g, ['ag3', 'ag1', 'ag5'], { hostiles: 7, takers: 1, fighters: 2 });
+    expect(roster.squad).toEqual([
+      { name: g.agents[2].name, template: 'agent-t2', weapon: 'arc-carbine' },
+      { name: g.agents[0].name, template: 'agent-t2' },
+      { name: g.agents[4].name },
+    ]);
+    expect(roster.hostiles).toEqual({ host: 4, taker: 1, fighter: 2 });
+    g.shop.sabotaged['shell-plate'] = 2;
+    expect(rosterOf(g, ['ag1'], { hostiles: 1, takers: 0, fighters: 0 }).squad![0]).toEqual({ name: g.agents[0].name, weapon: 'arc-carbine' }); // the plates are sabotaged, the carbine works
+    // the maps: a defence, an open-ground wreck, a wreck on a building
+    expect(battleOf(g, 'defence', 'hq')).toBe('hq-defence');
+    g.crashes.push({ id: 'crash1', kind: 'seeder', x: 5, y: 35, building: null, survivors: 3, until: 999 }, { id: 'crash2', kind: 'seeder', x: 55, y: 55, building: 'city-hall', survivors: 3, until: 999 });
+    expect(battleOf(g, 'raid', 'crash1')).toBe('wreck-raid');
+    expect(battleOf(g, 'raid', 'crash2')).toBe('savings-raid');
+    // and the battle engine takes it
+    const battle = createGame({ battleId: 'hq-defence', seed: 1, roster });
+    expect(battle.units.filter((u) => u.side === 'agency').map((u) => u.template)).toEqual(['agent-t2', 'agent-t2', 'agent-t1']);
+    expect(battle.units.filter((u) => u.side === 'hostile')).toHaveLength(7);
   });
 });
