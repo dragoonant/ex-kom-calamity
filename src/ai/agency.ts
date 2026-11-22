@@ -4,7 +4,7 @@
 // never runs it, the bench does. It still reads only view(state, 'agency').
 import { query, tileIndex, type Action, type Pos, type Side, type State, type Unit } from '../engine';
 import { WEAPONS } from '../data';
-import { fireOrder, firingTile, freeNeighbour, know, moveOrder, stanceOrder, type Know } from './know';
+import { coverPosture, fireOrder, firingTile, freeNeighbour, know, moveOrder, stanceOrder, type Know } from './know';
 import { distanceAny } from './nav';
 import type { AiDriver } from './types';
 
@@ -67,6 +67,7 @@ function agent(k: Know, a: Unit, out: Action[], checked: Set<string>, claimed: M
   if (e) {
     if (k.canFire(a, e)) {
       push(fireOrder(k, a, e));
+      push(coverPosture(k, a, e, false)); // AI-12
       return;
     }
     push(fireOrder(k, a, e));
@@ -77,6 +78,7 @@ function agent(k: Know, a: Unit, out: Action[], checked: Set<string>, claimed: M
     }
     // Fight from the far end of the weapon's range: out of a whip's or a bite's reach where possible.
     const to = firingTile(k, a, e, range, k.view.tuning.ai.coverSearchTicks, Math.max(2, range - 2));
+    push(coverPosture(k, a, e, true));
     if (to && to.ticks > 0) push(moveOrder(k, a, to));
     else {
       const n = freeNeighbour(k, e, a);

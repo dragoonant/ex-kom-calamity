@@ -16,7 +16,8 @@
 | City client (M6, M7) | NEW CAMPAIGN on the title; `src/client/city/`: the 3D city (24 procedural buildings shaped after the round 9 picks, day and night from the clock, too-perfect gleam and amber hum drawn only from the agency's own slips, turned organisations glowing amber, a flying patrol car to the raid, watch lamps, one instanced pick mesh per KB rule 25), the switchboard (clock and speeds, funds, grant, confidence meter, roster lamps that pick the squad, file card with WATCH and RAID, message tray, door and end covers), save and Continue under `ekc-campaign` (CSAV-1..3), FIGHT IT at a door, a wreck or an assault opens the real battle (the building's raid site, the open-ground wreck map or the headquarters map) with the city's own agents, their working kit and the raid's own hostiles (battle ARCH-11; CJOIN-1..3), and its result returns; city music (day, night, crisis) and switchboard sounds from the D23 city set | `e2e/city.spec.ts` (5), `window.__ekcCity` |
 | Spec | `docs/spec/10-rules.md`: 141 rule ids, 57 rulings, every tuning number cited as `section.key = N`. MAP-10 (one-building raid sites, D20), VIEW-5 (the last hostiles marked), MAP-9 (styles and props as set dressing the rules never read); five art rulings (ART-1..5) in `docs/art/tile-set.md` section 7; thirteen figure rulings (GATE-1, GATE-2, HOST-1, CREATURE-1, TAKER-1, FIGHTER-1, BASE-1, LOD-1, RIG-1, RIG-2, and from M4d CITIZEN-1, CITIZEN-2, BUDGET-1) in `docs/art/figure-models.md`, summarized in `docs/figures.md` 4.1; RULING AGENT-1 is closed | `npm run validate:data` checks the props and the styles; `tests/coverage.test.ts` fails on an id without a test |
 | Data | Three raid sites written by `npm run map:make` from the block's own building plans (MAP-10): `sunbeam-automat-site` 22 x 18 x 2 (`automat-raid`: 3 hosts, 1 taker, 1 fighter), `depot-7-site` 32 x 23 x 3 (`depot-raid`: 4, 1, 2), `civic-savings-site` 26 x 24 x 4 (`savings-raid`: 4, 2, 2), each with citizens, props and street dressing; `RAID_SITES` in `src/data/index.ts`. `halcyon-block` and `block-raid` are byte-identical to M4 and no longer offered. `tuning.sight.markLastHostiles = 2` | `npm run validate:data` prints the maps and battles |
-| Engine (2026-11-22) | ARCH-11: an optional `roster` on the battle setup fills the file's squad and hostile spawn points from the city; without one every replay, golden and bench is unchanged (golden still `2416aab6`). `units.json` gains `agent-t2` (shell plate), `weapons.json` the `arc-carbine`. Two new maps by `npm run map:make` (the existing ones byte-identical): `agency-hq-site` (`hq-defence`: the squad inside, the attackers in the street) and `wreck-site` (`wreck-raid`: a broken hull in a plaza) | `tests/arch.test.ts` ARCH-11, `tests/city-client.test.ts` CJOIN-3; `bench:ai --battle hq-defence` 100% and `--battle wreck-raid` 85% (20 battles each), invariants held |
+| Cover (2026-11-22) | Spec section 25: a target's neighbours on the shooter's side give full (wall, closed door: -40), half (window: -25) or low (rubble, a solid prop: -20) cover off a ranged shot, the best grade counting; none at point blank or in melee; stacks with crouching. Solid props are now low cover (RULING MAP-9 revised). Both normal AIs seek cover in their firing tiles and crouch to fire from it (AI-12). The console's hit line shows the cover term and the file card the cover an empty tile gives against the nearest hostile in view (QRY-9). Golden remade (`7d292901`) | `tests/cover.test.ts` (7); bench and sim rows below |
+| Engine (2026-11-22) | ARCH-11: an optional `roster` on the battle setup fills the file's squad and hostile spawn points from the city; without one every replay, golden and bench is unchanged (golden unchanged by the roster; remade for cover). `units.json` gains `agent-t2` (shell plate), `weapons.json` the `arc-carbine`. Two new maps by `npm run map:make` (the existing ones byte-identical): `agency-hq-site` (`hq-defence`: the squad inside, the attackers in the street) and `wreck-site` (`wreck-raid`: a broken hull in a plaza) | `tests/arch.test.ts` ARCH-11, `tests/city-client.test.ts` CJOIN-3; `bench:ai --battle hq-defence` 100% and `--battle wreck-raid` 85% (20 battles each), invariants held |
 | Engine | VIEW-5: `view(state, 'agency')` carries `marks` when 1 or 2 hostiles live; the true state never does. The new tuning key changed every state hash once: golden remade (`2416aab6`, same 53 entries, tick and outcome); old saves still load (they carry their own tuning) and show no marks | `npm test`: 154 tests |
 | AI | Unchanged since M3 | `npm run bench:ai` 95.0% (190/200) on `bench-raid` on 2026-11-20, identical to M3; on the sites 85% / 80% / 85% (20 battles each, a smoke figure, not a gate) |
 | Headless sim | `npm run sim`: the demolition sweep now runs over the block and every site; clean on 2026-11-20 | baselines below; spec section 18 |
@@ -44,17 +45,21 @@ D20 adds maps and a view field, no roll and no AI change. The M3 rows stand (rer
 ### Sim drivers (`npm run sim`, 40 battles per pair, seeds 1-40, `first-raid`)
 | Driver pair | Agency wins | Mean sim seconds | Agents down / battle | Civilian hits / battle | Hit rate |
 |---|---|---|---|---|---|
-| random vs random | 100% | 25.4 | 0.57 | 0.40 | 55.0% |
-| sweep vs stand | 100% | 32.0 | 0.10 | 0.00 | 59.8% |
+| random vs random | 100% | 31.6 | 0.73 | 0.30 | 42.3% |
+| sweep vs stand | 100% | 33.1 | 0.20 | 0.00 | 58.4% |
+
+With cover (spec section 25, 2026-11-22). Before cover: random vs random 25.4 s, 0.57 agents down, 0.40 civilian hits, 55.0% hits; sweep vs stand 32.0 s, 0.10, 0.00, 59.8%.
 
 Block demolition sweep (`block-raid`, 4 battles capped at 500 ticks): 48 charges, 34 tiles destroyed, 88 steps between levels, 12 hostiles down, 0 agents down, 0 invariant failures (unchanged on 2026-11-20). The same sweep on the sites: every `automat-raid` and `depot-raid` battle cleared (15 to 50 sim seconds), `savings-raid` reaches the 50 s cap with 5 or 6 of 8 hostiles down.
 
 ### AI bench (`npm run bench:ai`, 200 battles, 100 per seat, seeds 1-100, `bench-raid`)
 | Seat | Battles | Normal wins | Random wins | Draws | Mean sim seconds | Agents down / battle | Hostiles down / battle | Taken / battle | Civilian hits / battle |
 |---|---|---|---|---|---|---|---|---|---|
-| normal hostiles vs random agents | 100 | 98.0% | 2.0% | 0 | 25.1 | 5.97 | 1.99 | 2.14 | 5.43 |
-| normal agents vs random hostiles | 100 | 92.0% | 8.0% | 0 | 46.2 | 1.90 | 8.18 | 0.37 | 4.91 |
-| **both seats** | **200** | **95.0% (190/200)** | 5.0% | 0 | | | | | |
+| normal hostiles vs random agents | 100 | 98.0% | 2.0% | 0 | 25.0 | 5.97 | 1.97 | 2.19 | 5.50 |
+| normal agents vs random hostiles | 100 | 95.0% | 5.0% | 0 | 47.7 | 1.34 | 8.29 | 0.43 | 5.01 |
+| **both seats** | **200** | **96.5% (193/200)** | 3.5% | 0 | | | | | |
+
+With cover and the AI's cover and crouch (AI-12), 2026-11-22; before: 95.0% (190/200), the normal agents' seat 92.0% with 1.90 agents down. Sites (20 each): automat, depot 85%, savings 95%.
 
 Determinism: seed 1 in the hostile seat replays to the same hash (`59bd6fcd`). Gate (PLAN M3, 95% over at least 200): **PASS, with no margin**, as in M3. Do not tune against these numbers blindly: the balance pass (PLAN Q9) is still next, one number at a time.
 

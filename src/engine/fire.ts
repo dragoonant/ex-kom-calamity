@@ -3,6 +3,7 @@ import { WEAPONS, type WeaponDef } from '../data';
 import type { ShotBreakdown, State, Unit } from './types';
 import { chebyshev, distance } from './map';
 import { unitSeesTile } from './sight';
+import { coverAgainst } from './cover';
 
 export function weaponOf(u: Unit): WeaponDef | null {
   if (!u.weapon) return null;
@@ -40,9 +41,11 @@ export function hitBreakdown(s: State, shooter: Unit, target: Unit, w: WeaponDef
   const crouchBonus = ranged && shooter.posture === 'crouch' ? f.crouchAimBonus : 0;
   const ran = shooter.lastRunTick ?? null;
   const runPenalty = ran !== null && s.tick - ran < f.runSettleTicks ? f.runningShooterPenalty : 0;
-  const raw = w.accuracy + shooter.aim - falloff - movingPenalty - crouchPenalty + crouchBonus - runPenalty;
+  // COVER-4: a ranged shot at a target with cover on the shooter's side.
+  const cover = ranged ? coverAgainst(s, target, shooter) : { grade: 'none' as const, value: 0 };
+  const raw = w.accuracy + shooter.aim - falloff - movingPenalty - crouchPenalty + crouchBonus - runPenalty - cover.value;
   const chance = Math.min(f.maxHitChance, Math.max(f.minHitChance, raw));
-  return { accuracy: w.accuracy, aim: shooter.aim, falloff, movingPenalty, crouchPenalty, crouchBonus, runPenalty, raw, chance };
+  return { accuracy: w.accuracy, aim: shooter.aim, falloff, movingPenalty, crouchPenalty, crouchBonus, runPenalty, cover: cover.value, coverGrade: cover.grade, raw, chance };
 }
 
 /** DMG-1, DMG-2 as a range (QRY-2). */

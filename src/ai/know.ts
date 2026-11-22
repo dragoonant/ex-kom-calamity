@@ -2,7 +2,7 @@
 // For the hostile side the enemies are the agency units it currently sees; for the agency they are the
 // units its view marks hostile (revealed hosts, takers, fighters). An unrevealed host is a citizen to the
 // agency here too, by construction: the view already redacted it (HIDE-1).
-import { query, tileIndex, unitSeesTile, type Action, type Pos, type Side, type State, type Unit } from '../engine';
+import { coverAgainst, query, tileIndex, unitSeesTile, type Action, type Pos, type Side, type State, type Unit } from '../engine';
 import { boundedField, distanceAny, fieldTiles, ring, samePos } from './nav';
 
 export interface Know {
@@ -103,6 +103,14 @@ export function stanceOrder(k: Know, u: Unit, stance: Unit['stance']): Action | 
   return u.stance === stance ? null : { type: 'stance', side: k.side, unit: u.id, stance };
 }
 
+/** AI-12: crouch to fire from cover, stand to move. */
+export function coverPosture(k: Know, u: Unit, target: Unit | null, moving: boolean): Action | null {
+  const posture = u.posture ?? 'stand';
+  if (moving) return posture === 'crouch' ? { type: 'posture', side: k.side, unit: u.id, posture: 'stand' } : null;
+  if (target && posture === 'stand' && coverAgainst(k.view, u, target).grade !== 'none') return { type: 'posture', side: k.side, unit: u.id, posture: 'crouch' };
+  return null;
+}
+
 export function fireOrder(k: Know, u: Unit, t: Unit): Action | null {
   return u.fireTarget === t.id ? null : { type: 'fire', side: k.side, unit: u.id, target: t.id };
 }
@@ -183,6 +191,7 @@ export function firingTile(k: Know, u: Unit, target: Unit, range: number, maxTic
     if (d > range || d < 1.5) return null;
     if (!query.los(k.view, p, target)) return null;
     const seen = k.seenBy(p);
-    return 100 - seen * 25 - Math.abs(d - prefer) * 4 - ticks * 0.6;
+    // AI-12: a tile with cover against the target scores half its cover's value.
+    return 100 - seen * 25 - Math.abs(d - prefer) * 4 - ticks * 0.6 + coverAgainst(k.view, p, target).value * 0.5;
   });
 }

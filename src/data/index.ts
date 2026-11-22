@@ -34,6 +34,8 @@ export interface Tuning {
   structure: { fallDamage: number };
   /** Section 22 (AI): the hostile AI's windows and ranges. */
   ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number };
+  /** Section 25 (COVER): what each grade of cover takes off a ranged hit chance. */
+  cover: { full: number; half: number; low: number };
   blast: { throwRange: number; armTicks: number; structureDamage: number; edgeStructureDamage: number; unitDamage: number; edgeUnitDamage: number };
 }
 
@@ -117,6 +119,9 @@ export type PropKind =
   | 'mast'
   | 'crate';
 export const PROP_KINDS: PropKind[] = ['desk', 'counter', 'shelf', 'bed', 'locker', 'machine', 'lamp', 'kiosk-sign', 'bench', 'vehicle', 'planter', 'tank', 'vent', 'mast', 'crate'];
+
+/** COVER-3: the props solid enough to give low cover (the rest are lamps, signs, masts and vents). */
+export const COVER_PROPS: PropKind[] = ['desk', 'counter', 'shelf', 'bed', 'locker', 'machine', 'bench', 'vehicle', 'planter', 'tank', 'crate'];
 
 /** MAP-9: one prop on one passable tile; `yaw` turns it in quarter turns (0 faces south). */
 export interface PropDef {

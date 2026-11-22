@@ -130,9 +130,11 @@ export function Hud() {
     const blast = sel && mode === 'blast' ? query.blastPreview(agency, sel.id, hover) : null;
     const path = sel && !unit && mode === 'normal' ? query.path(agency, sel.id, hover) : null;
     const hit = sel && unit && unit.side !== 'agency' && mode === 'normal' ? query.hitChance(agency, sel.id, unit.id) : null;
+    // QRY-9: what an empty tile would give the selected agent against the nearest hostile in view.
+    const cover = sel && !unit && mode === 'normal' ? query.coverAt(agency, 'agency', hover) : null;
     const dmg = hit ? query.damageRange(agency, sel!.id, unit!.id) : null;
     const building = buildings.find((b) => hover.x >= b.x && hover.x < b.x + b.w && hover.y >= b.y && hover.y < b.y + b.d && hover.level <= b.floors);
-    return { tile, unit: unit ?? body, path, hit, dmg, blast, building };
+    return { tile, unit: unit ?? body, path, hit, dmg, blast, building, cover };
   }, [agency, hover, sel, mode, buildings]);
 
   if (!agency || !outcome) return null;
@@ -314,6 +316,11 @@ export function Hud() {
                   {hoverInfo.tile.kind === 'door' ? (hoverInfo.tile.open ? ' (open)' : ' (closed)') : ''}
                   {hoverInfo.tile.breakable ? `, ${hoverInfo.tile.materialName.toLowerCase()} ${hoverInfo.tile.hp}/${hoverInfo.tile.maxHp}` : ''}
                 </div>
+                {hoverInfo.cover && (
+                  <div className="num" data-testid="cover-line">
+                    {hoverInfo.cover.grade === 'none' ? 'No cover here from the nearest hostile in view.' : `${hoverInfo.cover.grade[0]!.toUpperCase()}${hoverInfo.cover.grade.slice(1)} cover here from the nearest hostile in view: -${hoverInfo.cover.value} to hit.`}
+                  </div>
+                )}
                 {hoverInfo.unit && (
                   <div className="card-unit">
                     <strong>{unitLabel(hoverInfo.unit)}</strong> {hoverInfo.unit.side === 'agency' ? 'agency' : hoverInfo.unit.side === 'hostile' ? 'HOSTILE' : 'citizen'}
@@ -327,7 +334,7 @@ export function Hud() {
                 {hoverInfo.hit && (
                   <div className="num" data-testid="hit-chance">
                     {hoverInfo.hit.ok
-                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
+                      ? `${sel!.name}: ${hoverInfo.hit.chance}% to hit (${hoverInfo.hit.accuracy} + ${hoverInfo.hit.aim} aim - ${hoverInfo.hit.falloff} range${hoverInfo.hit.movingPenalty ? ` - ${hoverInfo.hit.movingPenalty} moving` : ''}${hoverInfo.hit.crouchPenalty ? ` - ${hoverInfo.hit.crouchPenalty} crouched` : ''}${hoverInfo.hit.crouchBonus ? ` + ${hoverInfo.hit.crouchBonus} steady` : ''}${hoverInfo.hit.runPenalty ? ` - ${hoverInfo.hit.runPenalty} winded` : ''}${hoverInfo.hit.cover ? ` - ${hoverInfo.hit.cover} ${hoverInfo.hit.coverGrade} cover` : ''})${hoverInfo.dmg ? `, ${hoverInfo.dmg.min}-${hoverInfo.dmg.max} damage` : ''}`
                       : `${sel!.name} cannot fire: ${hoverInfo.hit.reason}`}
                   </div>
                 )}

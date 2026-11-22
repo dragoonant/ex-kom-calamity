@@ -4,7 +4,7 @@
 // stairs after agents on other floors. Everything is a pure function of the view, the seed and the tick (AI-1).
 import { query, type Action, type Pos, type State, type Unit, type Side } from '../engine';
 import { WEAPONS } from '../data';
-import { bestTile, blastTile, fireOrder, firingTile, freeNeighbour, hidingTile, know, moveOrder, stanceOrder, type Know } from './know';
+import { bestTile, blastTile, fireOrder, firingTile, freeNeighbour, hidingTile, know, moveOrder, stanceOrder, type Know, coverPosture } from './know';
 import { boundedField, distanceAny, fieldTiles, lineTiles, samePos } from './nav';
 import { unitRng, pickWith } from './rng';
 
@@ -250,10 +250,15 @@ function fighter(k: Know, u: Unit, out: Action[]): void {
   if (target && !outgunned) {
     push(out, fireOrder(k, u, target));
     // Firing: shift to cover only when exposed to several agents and a better tile is close.
+    let moving = false;
     if (k.seenBy(u) >= 2 || lowHp(k, u)) {
       const to = firingTile(k, u, target, range, 15, range - 1);
-      if (to && to.ticks > 0 && k.seenBy(to) < k.seenBy(u)) push(out, moveOrder(k, u, to));
+      if (to && to.ticks > 0 && k.seenBy(to) < k.seenBy(u)) {
+        push(out, moveOrder(k, u, to));
+        moving = true;
+      }
     }
+    push(out, coverPosture(k, u, target, moving)); // AI-12
     return;
   }
   if (outgunned) {
@@ -285,6 +290,7 @@ function fighter(k: Know, u: Unit, out: Action[]): void {
     const to = firingTile(k, u, e, range, t.coverSearchTicks, range - 1);
     if (to && to.ticks > 0) {
       push(out, fireOrder(k, u, e));
+      push(out, coverPosture(k, u, e, true));
       push(out, moveOrder(k, u, to));
       return;
     }

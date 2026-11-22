@@ -148,6 +148,9 @@ export interface ShotBreakdown {
   crouchBonus: number;
   /** POSE-4: the shooter ran within the last fire.runSettleTicks. */
   runPenalty: number;
+  /** COVER-4: what the target's cover took off, and its grade. */
+  cover: number;
+  coverGrade: 'none' | 'low' | 'half' | 'full';
   raw: number;
   chance: number;
 }

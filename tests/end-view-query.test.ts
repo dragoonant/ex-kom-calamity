@@ -151,7 +151,7 @@ describe('14. Queries (QRY)', () => {
     s = place(s, 'a1', 2, 0);
     s = place(s, 'a2', 2, 1);
     s = place(s, 'u2', 5, 0);
-    expect(query.hitChance(s, 'a1', 'u2')).toEqual({ ok: true, shooter: 'a1', target: 'u2', weapon: 'patrol-carbine', distance: 3, accuracy: 70, aim: 10, falloff: 6, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 74, chance: 74 });
+    expect(query.hitChance(s, 'a1', 'u2')).toEqual({ ok: true, shooter: 'a1', target: 'u2', weapon: 'patrol-carbine', distance: 3, accuracy: 70, aim: 10, falloff: 6, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, cover: 0, coverGrade: 'none', raw: 74, chance: 74 });
     expect(query.hitChance(s, 'a1', 'a2')).toMatchObject({ ok: false, reason: 'same side' });
     expect(query.hitChance(s, 'zz', 'u2')).toMatchObject({ ok: false });
     expect(query.damageRange(s, 'a1', 'u2')).toEqual({ min: 25, max: 40 });
