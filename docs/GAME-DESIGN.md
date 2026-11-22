@@ -28,7 +28,7 @@ Inspiration, stated openly (KB rule 3): X-COM Apocalypse. The owner, 2026-11-17:
 - Organisations have a standing with the agency and an infiltration level the player cannot see directly (**proposal**, from D6).
 - The agency's income depends on the city's confidence in it (**proposal**).
 - Ground and air craft respond to alerts; in the open phase alien craft appear over the city (D6).
-- Research turns recovered material into the suit tiers of D7 (**proposal**).
+- Research turns recovered material into the suit tiers of D7 and the rest of the agency's kit: 43 projects in seven branches, 31 items, each agent outfitted on the ARMOURY screen (`PLAN.md` D28, `docs/tech-tree.md`).
 - The full strategic-layer proposal (hidden enemy economy, evidence-gated research, weapons with field trials, the air war, three acts): `docs/strategic-layer.md` (2026-11-21).
 
 ## 5. Keep it our own (KB rules 3, 18, 29)
@@ -47,3 +47,4 @@ The codename "ex-kom-calamity" sounds like the inspiration's title, so it stays 
 - Draft 1, 2026-11-17: kickoff, from the owner's messages and two question batches.
 - 2026-11-17: section 3 maps widened to a city block, 6 floors, destructible from M2 (D16).
 - 2026-11-20: section 3 back to one building per raid, 1 to 3 floors, with the last hostiles marked (D20).
+- 2026-11-22: section 4 points to the tech tree and the armoury (D28).

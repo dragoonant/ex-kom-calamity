@@ -79,7 +79,8 @@ Determinism: seed 1 in the hostile seat replays to the same hash (`59bd6fcd`). G
 ## Open
 | Item | Owner of the decision | Default in use |
 |---|---|---|
-| `PLAN.md` Q1-Q22, D20-D25 | owner | as written there |
+| `PLAN.md` Q1-Q28, D20-D28 | owner | as written there |
+| The tech tree and the armoury (D28): 43 projects, 31 items, slots by suit, every number a first guess | owner, by reading `docs/tech-tree.md` before M10a lands | as written there |
 | City act 1 difficulty: the careful bot wins 87.5% on the bigger city with travel (90% before, 77.5% without research) | owner, by playing it | CSIM-2's 55-90% band, met |
 | The bigger city's reading of "4 times as large" (four times the area, 48 buildings, RULING CITY-1) and straight-line drives at six cells an hour (RULING TRAVEL-1) | owner | as written in PLAN D27 |
 | 57 provisional rulings in `docs/spec/10-rules.md`, 5 art rulings in `docs/art/tile-set.md` section 7, 13 figure rulings in `docs/art/figure-models.md` (HOST-1 and CITIZEN-1 gate the host and the citizens against their own references; CITIZEN-2 deals the citizen bodies by unit id; BUDGET-1 raises the committed-GLB budget to 100 MB; TAKER-1 and FIGHTER-1 keep models whose leg count and leg length miss the reference) | owner may confirm or reverse any | as written there |
@@ -105,7 +106,7 @@ Determinism: seed 1 in the hostile seat replays to the same hash (`59bd6fcd`). G
 None.
 
 ## Next
-1. M5b's remainder: field trials for prototypes (RULING LAB-2), and research that changes fought battles (needs the CJOIN-2 roster).
+1. **M10, the armoury and the tech tree (PLAN D28, `docs/tech-tree.md`)**, slice M10a first: per-agent kit, the ARMOURY screen, the save migration. Field trials (RULING LAB-2) are M10h.
 2. A battle map per building (24 buildings share three raid sites, CITY-4); acts 2 and 3 tuned by playing.
 4. The GPU pass when the owner's machine is attached: craft and building models from the round 9 picks, the alien repaint (D25), tile textures, the figures' redo list.
 5. The balance pass on the battle (PLAN Q9).

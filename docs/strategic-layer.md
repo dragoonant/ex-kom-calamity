@@ -38,6 +38,8 @@ No coral anywhere (it reads as undersea). The spread has two faces, both of pill
 **Investigation as a verb, not a menu:** an agent sent to *watch* a building for a day *(tune)* narrows its infiltration to a band (low / some / heavy) and may spot a host (a slip with a face). Research unlocks better tools (section 2). Captured hosts can be questioned (section 2) to reveal which organisation a cell reports to.
 
 ## 2. Research: the specimen drives the tree
+**The full tree is in `docs/tech-tree.md` (`PLAN.md` D28, 2026-11-22):** 43 projects in seven branches, with an agency engineering branch paid in money, plus the armoury and per-agent kit. This section stays as the intent it grew from.
+
 Research is gated by **what the squad brings home**, not by time alone. A project needs its evidence on the shelf: a corpse, a live capture, a weapon, a core, a piece of a wreck. So the battle decides what the lab can study, and a live capture is worth far more than a kill.
 
 Three branches, one per body, and a spine through the amber core that ends the game:
