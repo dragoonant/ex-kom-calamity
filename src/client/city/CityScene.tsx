@@ -12,6 +12,10 @@ import { feed, makeAccumulator } from '../loop';
 import { CameraRig } from '../board/CameraRig';
 import { RendererHandle } from '../board/Scene';
 import { bounds, clampRig, rig } from '../board/world';
+import { HorizonFog, SkyDome, skyAt, type SkyTone } from '../board/backdrop';
+import { patchWindows, windowUniforms, type WindowUniforms } from '../board/windows';
+import { CityDressing } from './CityDressing';
+import { RendererName, useSceneryLevel } from '../scenery';
 import { buildingGeometry, cellCentre, CELL, PAL } from './cityMeshes';
 import { useCity } from './store';
 
@@ -30,68 +34,87 @@ function CityLoop() {
   return null;
 }
 
-/** 0 at midnight, 1 at noon: drives the sky, the sun and the windows. */
+/** 0 at midnight, 1 at noon: drives the too-perfect gleam and the window strips. */
 function daylight(hour: number, minute: number): number {
   const h = hour + minute / 60;
   const x = Math.cos(((h - 13) / 24) * Math.PI * 2);
   return Math.min(1, Math.max(0, (x + 0.35) / 1.1));
 }
 
-function SkyAndLights({ view }: { view: CityState }) {
-  const { gl } = useThree();
+const CENTRE = new THREE.Vector3(SIZE / 2, 0, SIZE / 2);
+const MOON_DIR = new THREE.Vector3(0.35, 0.8, 0.5).normalize();
+
+/**
+ * The sky, the sun (or the moon) and the fog from the city clock. `tone` is one shared object the dome, the
+ * water and the lamps read each frame; the clock moves in ten-minute ticks and the shown hour eases after it.
+ */
+function SkyAndLights({ tone, windows, shadows }: { tone: SkyTone; windows: WindowUniforms; shadows: boolean }) {
   const hemi = useRef<THREE.HemisphereLight>(null);
   const sun = useRef<THREE.DirectionalLight>(null);
-  const c = cityQuery.clock(view);
-  const d = daylight(c.hour, c.minute);
-  useEffect(() => {
-    const day = new THREE.Color('#c9d6dc');
-    const night = new THREE.Color('#1f2a3a');
-    gl.setClearColor(night.clone().lerp(day, d));
-    if (hemi.current) hemi.current.intensity = 0.45 + d * 1.1;
-    if (sun.current) {
-      sun.current.intensity = 0.15 + d * 1.6;
-      const a = ((c.hour + c.minute / 60 - 6) / 12) * Math.PI;
-      sun.current.position.set(Math.cos(a) * -60 + SIZE / 2, 10 + Math.max(0, Math.sin(a)) * 40, SIZE / 2 + 20);
-      sun.current.color.set(d < 0.5 ? '#ffb774' : '#fff1d6');
+  const shown = useRef<number | null>(null);
+  const target = useMemo(() => {
+    const o = new THREE.Object3D();
+    o.position.copy(CENTRE);
+    return o;
+  }, []);
+  useFrame((_, dt) => {
+    const view = useCity.getState().view;
+    if (!view) return;
+    const c = cityQuery.clock(view);
+    const want = c.hour + c.minute / 60;
+    let h = shown.current ?? want;
+    let delta = want - h;
+    if (delta < -12) delta += 24;
+    if (delta > 12) delta -= 24;
+    // Ease toward the clock; jump when it moved by more than a few hours (a load, a long advance).
+    h = Math.abs(delta) > 3 ? want : h + delta * Math.min(1, dt * 4);
+    h = (h + 24) % 24;
+    shown.current = h;
+    skyAt(h, tone);
+    windows.uNight.value = THREE.MathUtils.smoothstep(tone.night, 0.15, 0.8);
+    const day = 1 - tone.night;
+    if (hemi.current) {
+      hemi.current.color.copy(tone.zenith).lerp(WHITE, 0.2 + day * 0.35);
+      hemi.current.groundColor.copy(tone.ground);
+      hemi.current.intensity = 0.42 + day * 1.05;
     }
-  }, [gl, d, c.hour, c.minute]);
+    const s = sun.current;
+    if (s) {
+      const up = tone.sunDir.y > 0.02;
+      const dir = up ? tone.sunDir : MOON_DIR;
+      s.position.copy(CENTRE).addScaledVector(dir, 90);
+      s.color.copy(up ? tone.sun : MOON);
+      s.intensity = up ? 0.4 + Math.min(1, tone.sunDir.y * 3) * 1.7 : 0.45;
+    }
+  });
   return (
     <>
       <hemisphereLight ref={hemi} args={['#cfe0ea', '#8a7a66', 0.9]} />
-      <ambientLight intensity={0.18} />
-      <directionalLight ref={sun} position={[0, 40, 20]} intensity={1.2} />
+      <ambientLight intensity={0.06} />
+      <primitive object={target} />
+      <directionalLight
+        ref={sun}
+        target={target}
+        position={[0, 40, 20]}
+        intensity={1.2}
+        castShadow={shadows}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0004}
+        shadow-normalBias={0.03}
+        shadow-camera-left={-62}
+        shadow-camera-right={62}
+        shadow-camera-top={62}
+        shadow-camera-bottom={-62}
+        shadow-camera-near={1}
+        shadow-camera-far={220}
+      />
     </>
   );
 }
 
-function Ground() {
-  const plates = useMemo(
-    () =>
-      CITY.districts.map((dist, i) => ({
-        id: dist.id,
-        x: dist.x * CELL + (dist.w * CELL) / 2,
-        z: dist.y * CELL + (dist.d * CELL) / 2,
-        w: dist.w * CELL - 0.6,
-        d: dist.d * CELL - 0.6,
-        colour: dist.id === 'parkside' ? '#8fb07a' : ['#d6cdb8', '#cfc6ae', '#dcd3bd', '#c9c0a8', '#d2c9b2', '#d9d0b9'][i % 6]!,
-      })),
-    [],
-  );
-  return (
-    <group>
-      <mesh position={[SIZE / 2, -0.05, SIZE / 2]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[SIZE + 24, SIZE + 24]} />
-        <meshStandardMaterial color="#8a867c" />
-      </mesh>
-      {plates.map((p) => (
-        <mesh key={p.id} position={[p.x, 0.0, p.z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[p.w, p.d]} />
-          <meshStandardMaterial color={p.colour} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+const WHITE = new THREE.Color('#ffffff');
+const MOON = new THREE.Color('#9fb2dc');
 
 interface Lot {
   id: string;
@@ -125,15 +148,17 @@ function leads(view: CityState): { hum: Set<string>; perfect: Set<string>; turne
   return { hum, perfect, turned };
 }
 
-function Buildings({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }) {
+function Buildings({ view, lots, hq, windows }: { view: CityState; lots: Lot[]; hq: Lot; windows: WindowUniforms }) {
   const c = cityQuery.clock(view);
   const d = daylight(c.hour, c.minute);
   const { hum, perfect, turned } = leads(view);
   const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, metalness: 0.05 }), []);
   const gleamMat = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.18, metalness: 0.25, emissive: new THREE.Color('#fff6e0'), emissiveIntensity: 0.18 }), []);
-  const winMat = useMemo(() => new THREE.MeshStandardMaterial({ color: PAL.glass, emissive: new THREE.Color('#ffe2a8'), emissiveIntensity: 0, roughness: 0.3 }), []);
-  const humMat = useMemo(() => new THREE.MeshStandardMaterial({ color: PAL.glass, emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0, roughness: 0.3 }), []);
-  const turnedMat = useMemo(() => new THREE.MeshStandardMaterial({ color: '#3a2a1a', emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0.9, roughness: 0.3 }), []);
+  // The strips are cut into panes by the shader; a lead building's panes are all lit and pulse together (the hum).
+  const winMat = useMemo(() => patchWindows(new THREE.MeshStandardMaterial({ color: PAL.glass, emissive: new THREE.Color('#ffe2a8'), emissiveIntensity: 0, roughness: 0.25, metalness: 0.2 }), windows, 'bands'), [windows]);
+  const allLit = useMemo(() => ({ ...windows, uLit: { value: 1 } }), [windows]);
+  const humMat = useMemo(() => patchWindows(new THREE.MeshStandardMaterial({ color: PAL.glass, emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0, roughness: 0.3 }), allLit, 'bands'), [allLit]);
+  const turnedMat = useMemo(() => patchWindows(new THREE.MeshStandardMaterial({ color: '#3a2a1a', emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0.9, roughness: 0.3 }), allLit, 'bands'), [allLit]);
   useFrame(({ clock }) => {
     winMat.emissiveIntensity = (1 - d) * 1.1;
     // The hum: every lead building pulses in unison, at night only.
@@ -148,13 +173,13 @@ function Buildings({ view, lots, hq }: { view: CityState; lots: Lot[]; hq: Lot }
         const isTurned = turned.has(l.id);
         return (
           <group key={l.id} position={l.pos}>
-            <mesh geometry={l.geo.body} material={perfect.has(l.id) && d > 0.3 ? gleamMat : bodyMat} raycast={() => null} />
+            <mesh geometry={l.geo.body} material={perfect.has(l.id) && d > 0.3 ? gleamMat : bodyMat} raycast={() => null} castShadow receiveShadow />
             <mesh geometry={l.geo.windows} material={isTurned ? turnedMat : isHum ? humMat : winMat} raycast={() => null} />
           </group>
         );
       })}
       <group position={hq.pos}>
-        <mesh geometry={hq.geo.body} material={bodyMat} raycast={() => null} />
+        <mesh geometry={hq.geo.body} material={bodyMat} raycast={() => null} castShadow receiveShadow />
         <mesh geometry={hq.geo.windows} material={winMat} raycast={() => null} />
       </group>
     </group>
@@ -350,12 +375,17 @@ function Sky({ view }: { view: CityState }) {
 function CityBoard() {
   const view = useCity((s) => s.view);
   const { lots, hq } = useLots();
+  const tone = useMemo(() => skyAt(8), []);
+  const windows = useMemo(() => windowUniforms(0.8, 1.0, 0.4), []);
+  const full = useSceneryLevel() === 'full';
   if (!view) return null;
   return (
     <>
-      <SkyAndLights view={view} />
-      <Ground />
-      <Buildings view={view} lots={lots} hq={hq} />
+      <SkyAndLights tone={tone} windows={windows} shadows={full} />
+      <SkyDome tone={tone} />
+      <HorizonFog tone={tone} near={80} far={320} />
+      <CityDressing tone={tone} windows={windows} full={full} />
+      <Buildings view={view} lots={lots} hq={hq} windows={windows} />
       <PickLots lots={lots} />
       <Markers view={view} lots={lots} hq={hq} />
       <Sky view={view} />
@@ -373,8 +403,9 @@ export function CityScene() {
     clampRig();
   }, []);
   return (
-    <Canvas className="board" frameloop="always" dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 42, near: 0.1, far: 600, position: [SIZE, 50, SIZE] }}>
+    <Canvas className="board" shadows frameloop="always" dpr={[1, 1.5]} gl={{ antialias: true, powerPreference: 'high-performance' }} camera={{ fov: 42, near: 0.3, far: 600, position: [SIZE, 50, SIZE] }}>
       <RendererHandle />
+      <RendererName />
       <CameraRig />
       <CityLoop />
       <CityBoard />

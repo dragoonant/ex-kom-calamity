@@ -108,7 +108,7 @@ export function buildingGeometry(kind: BuildingKind | 'hq', floors: number, vari
   let height = H;
   const accent = variant % 2 === 0 ? PAL.teal : PAL.mustard;
   // a plinth for every lot
-  body.push(box(CELL * 0.86, 0.12, CELL * 0.86, 0, 0, 0, PAL.roof));
+  body.push(box(CELL * 0.76, 0.14, CELL * 0.76, 0, 0, 0, PAL.roof));
   switch (kind) {
     case 'office': {
       const tiers = Math.max(2, floors + 1);

@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import { CITY } from '../../data/city';
 import { cityView, type CityAction, type CityEvent, type CityState } from '../../city';
-import { worldToScreen } from '../board/world';
+import { clampRig, rig, worldToScreen } from '../board/world';
+import type { CameraPose } from '../hook';
 import { cellCentre } from './cityMeshes';
 import { lotHeights } from './CityScene';
 import { useCity, type CitySpeed } from './store';
@@ -29,6 +30,8 @@ export interface CityHook {
   load(state: CityState): void;
   /** Screen point just under the top of a building's lot (its visible face), for a real tap through the pick mesh. */
   screenPointOfBuilding(id: string): { x: number; y: number } | null;
+  /** Moves the city camera (shots and checks of the dressing); unspecified fields keep their value. */
+  setCamera(pose: Partial<CameraPose>): void;
 }
 
 declare global {
@@ -62,6 +65,10 @@ export function installCityHook(): void {
       if (!b) return null;
       const c = cellCentre(b.x, b.y);
       return worldToScreen(new THREE.Vector3(c.x, (lotHeights.get(id) ?? 2) * 0.92, c.z));
+    },
+    setCamera: (pose) => {
+      Object.assign(rig, { ...pose, target: pose.target ? { ...pose.target } : rig.target });
+      clampRig();
     },
   };
 }

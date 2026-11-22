@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { BATTLES, MAPS, RAID_SITES } from '../data';
 import { useClient } from './store';
 import { useCity } from './city/store';
+import { Poster } from './Poster';
+import { SceneryToggle } from './scenery';
 
 /** MAP-10: the title offers each raid site with its building and floor count (M7 will pick from the alert). */
 const SITES = RAID_SITES.map((id) => {
@@ -16,6 +18,18 @@ const SITES = RAID_SITES.map((id) => {
 function fmtWhen(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
+}
+
+/** The lamp-test sweep on load (presentation-concept.md section 3): each lamp lights in turn, then settles. */
+const LAMPS = ['green', 'mustard', 'red', 'teal', 'green', 'mustard', 'teal', 'red', 'green', 'mustard', 'teal', 'green'] as const;
+function LampTest() {
+  return (
+    <div className="lamp-row" aria-hidden="true">
+      {LAMPS.map((c, i) => (
+        <span key={i} className={`lamp-test lamp-${c}`} style={{ animationDelay: `${0.25 + i * 0.09}s` }} />
+      ))}
+    </div>
+  );
 }
 
 export function Title() {
@@ -38,15 +52,11 @@ export function Title() {
   return (
     <div className="title" data-testid="title">
       <div className="poster" aria-hidden="true">
-        <div className="sky" />
-        <div className="skyline">
-          {[7, 11, 5, 14, 9, 17, 6, 12, 8, 15, 10, 4, 13].map((h, i) => (
-            <span key={i} className="tower" style={{ height: `${h * 5 + 10}%`, width: `${5 + (i % 3)}%` }} />
-          ))}
-        </div>
+        <Poster />
       </div>
       <div className="console console-title">
         <div className="console-bead" />
+        <LampTest />
         <div className="title-block">
           <h1 className="title-name">CITY OF TOMORROW</h1>
           <div className="title-sub">(working title) · Civil Defence switchboard</div>
@@ -121,6 +131,10 @@ export function Title() {
               </button>
             </div>
           )}
+        </div>
+        <div className="title-settings">
+          <SceneryToggle testId="title-scenery" />
+          <span className="title-settings-note">Scenery draws the city and the streets past the board; plain is for machines without a graphics card.</span>
         </div>
         <div className="title-foot">
           Real time with pause. Space pauses, 1 to 6 pick an agent and again centre on them, B arms a charge, C crouches, R or Shift-click runs, PgUp and PgDn change floor; wheel zooms, right-drag turns, middle-drag or WASD pans. Hostiles fight back: hosts ambush, takers hunt, fighters breach. Each raid is one building; when two hostiles are left, the switchboard marks where they are. The campaign runs the city: read the switchboard's slips, send agents to watch, raid what they confirm, and fight the raid yourself or let the squad handle it. Early build M6: the city's first act; single raids below.

@@ -6,7 +6,7 @@ import { createGame, step, tileIndex, type GameEvent } from '../src/engine';
 import { fxFor } from '../src/client/fx';
 import { CRACK_SEGMENTS_MAX, fillLayers, layerCapacity, makeLayers, pushCracks } from '../src/client/board/tileset';
 import { fireColour, rng } from '../src/client/board/fxkit';
-import { DEFAULT_VIEW, readViewSettings, writeViewSettings } from '../src/client/viewSettings';
+import { DEFAULT_VIEW, readViewSettings, resolveScenery, writeViewSettings } from '../src/client/viewSettings';
 import { MAPS } from '../src/data';
 
 const shot = (shooter: string, target: string, hit: boolean): GameEvent => ({ type: 'shot', tick: 1, shooter, target, weapon: 'patrol-carbine', distance: 2, moving: false, breakdown: { accuracy: 0, aim: 0, falloff: 0, movingPenalty: 0, crouchPenalty: 0, crouchBonus: 0, runPenalty: 0, raw: 0, chance: 50 }, roll: 1, hit });
@@ -83,12 +83,23 @@ describe('D21 shake switch (viewSettings.ts)', () => {
     const mem = new Map<string, string>();
     const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
     expect(readViewSettings(null)).toEqual(DEFAULT_VIEW);
-    expect(readViewSettings(storage)).toEqual({ shake: true });
-    expect(writeViewSettings(storage, { shake: false })).toBe(true);
-    expect(readViewSettings(storage)).toEqual({ shake: false });
+    expect(readViewSettings(storage)).toEqual({ shake: true, scenery: 'auto' });
+    expect(writeViewSettings(storage, { shake: false, scenery: 'plain' })).toBe(true);
+    expect(readViewSettings(storage)).toEqual({ shake: false, scenery: 'plain' });
     mem.set('ekc-view', '{"shake": "loud"}');
     expect(readViewSettings(storage)).toEqual(DEFAULT_VIEW);
     mem.set('ekc-view', 'nope');
     expect(readViewSettings(storage)).toEqual(DEFAULT_VIEW);
+    mem.set('ekc-view', '{"shake": false, "scenery": "lavish"}');
+    expect(readViewSettings(storage)).toEqual({ shake: false, scenery: 'auto' });
+  });
+
+  it('RULING ART-11: auto scenery is plain on a software renderer or before one is named, full on a GPU', () => {
+    expect(resolveScenery('auto', 'ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)')).toBe('plain');
+    expect(resolveScenery('auto', 'llvmpipe (LLVM 15.0.7, 256 bits)')).toBe('plain');
+    expect(resolveScenery('auto', '')).toBe('plain');
+    expect(resolveScenery('auto', 'ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 Direct3D11 vs_5_0 ps_5_0)')).toBe('full');
+    expect(resolveScenery('full', 'SwiftShader')).toBe('full');
+    expect(resolveScenery('plain', 'Apple M2')).toBe('plain');
   });
 });
