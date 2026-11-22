@@ -20,7 +20,7 @@ export const cityQuery = {
       const b = s.buildings.find((x) => x.id === def.id)!;
       const slips = s.slips.filter((sl) => sl.building === def.id || (sl.building === null && sl.org === def.org)).length;
       const districtSlips = s.slips.filter((sl) => sl.kind === 'missing' && sl.district === def.district).length;
-      const watching = s.agents.filter((a) => a.status === 'watching' && a.building === def.id).map((a) => a.id);
+      const watching = s.agents.filter((a) => (a.status === 'watching' || a.status === 'travelling') && a.building === def.id).map((a) => a.id);
       return { id: def.id, name: def.name, org: def.org, district: def.district, band: (b.watch?.band ?? null) as Band | null, bandTick: b.watch?.tick ?? null, slips, districtSlips, watching, raidedTick: b.raidedTick, turned: s.orgs.find((o) => o.id === def.org)?.turned ?? false };
     }),
   /** CQRY-5 */

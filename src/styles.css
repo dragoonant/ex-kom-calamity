@@ -376,3 +376,34 @@ html:has(.sounds), body:has(.sounds) { overflow: auto; }
 .sky-row { border-top: 1px solid var(--enamel-edge); padding-top: 4px; margin-top: 4px; }
 .car-lamp { display: inline-flex; align-items: center; gap: 3px; margin-right: 8px; font-size: 10px; }
 .tab-alert { border-color: var(--coral); box-shadow: 0 2px 0 var(--coral-deep); }
+
+/* City board labels (CityOverlays.tsx): a personnel-file name card over the hovered or selected building, and
+   district names in wide caps when the camera is high. Pointer events off: the pick mesh takes every tap. */
+.city-tag {
+  background: var(--paper);
+  border: 1px solid var(--enamel-edge);
+  border-left: 4px solid var(--teal);
+  border-radius: 6px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--graphite);
+}
+.city-tag-selected { border-left-color: var(--agency-red); }
+.city-tag-name { font-family: var(--display); letter-spacing: 0.1em; font-size: 12px; color: var(--teal-deep); text-transform: uppercase; }
+.city-tag-selected .city-tag-name { color: var(--agency-red); }
+.city-tag-line { color: var(--graphite-soft); display: flex; align-items: center; gap: 5px; }
+.city-tag-band { display: inline-block; width: 9px; height: 9px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25); }
+.city-district {
+  font-family: var(--display);
+  font-size: 13px;
+  letter-spacing: 0.32em;
+  color: #fbf7ea;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 8px rgba(31, 63, 66, 0.6);
+  white-space: nowrap;
+  transition: opacity 0.4s;
+  user-select: none;
+}
+.city-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.city-labels > * { position: absolute; left: 0; top: 0; will-change: transform; }

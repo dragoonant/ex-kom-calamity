@@ -22,7 +22,7 @@ export function agentName(index: number): string {
 }
 
 export function newAgent(index: number): Agent {
-  return { id: `ag${index + 1}`, name: agentName(index), status: 'ready', until: 0, building: null, raids: 0 };
+  return { id: `ag${index + 1}`, name: agentName(index), status: 'ready', until: 0, building: null, leg: null, raids: 0 };
 }
 
 export function createCity(setup: CitySetup): CityState {

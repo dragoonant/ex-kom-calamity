@@ -9,7 +9,7 @@ import { BAND_WORDS, buildingName, districtName, itemName, orgName, OVER_TEXT } 
 import { CITY_SPEEDS, useCity } from './store';
 import { SceneryToggle } from '../scenery';
 
-const STATUS_WORD: Record<Agent['status'], string> = { ready: 'READY', watching: 'WATCHING', raiding: 'ON RAID', wounded: 'WOUNDED', dead: 'KILLED' };
+const STATUS_WORD: Record<Agent['status'], string> = { ready: 'READY', travelling: 'DRIVING OUT', watching: 'WATCHING', raiding: 'ON RAID', returning: 'DRIVING HOME', wounded: 'WOUNDED', dead: 'KILLED' };
 
 function lampFor(a: Agent): string {
   if (a.status === 'dead') return 'lamp lamp-off';

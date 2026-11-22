@@ -24,7 +24,7 @@ export interface SkyTone {
 
 const C = (h: string) => new THREE.Color(h);
 const DAY = { zenith: C('#5d9fae'), horizon: C('#e9e2c9'), ground: C('#9c9686') };
-const DUSK = { zenith: C('#3f6f86'), horizon: C('#f2a16a'), ground: C('#6d5a50') };
+const DUSK = { zenith: C('#3f6f86'), horizon: C('#f2a16a'), ground: C('#8f8476') };
 const NIGHT = { zenith: C('#0c1424'), horizon: C('#2a3550'), ground: C('#1a1c24') };
 
 /**
@@ -128,7 +128,7 @@ export function applySky(mat: THREE.ShaderMaterial, t: SkyTone): void {
 }
 
 /** A sky sphere that rides with the camera, drawn after everything opaque so it shades only the open sky. `tone` is read every frame, so the caller may mutate it in place. */
-export function SkyDome({ tone }: { tone: SkyTone }) {
+export function SkyDome({ tone, radius = 450 }: { tone: SkyTone; radius?: number }) {
   const mesh = useRef<THREE.Mesh>(null);
   const mat = useMemo(makeSkyMaterial, []);
   useFrame(({ camera }) => {
@@ -137,7 +137,7 @@ export function SkyDome({ tone }: { tone: SkyTone }) {
   });
   return (
     <mesh ref={mesh} material={mat} raycast={noRay} frustumCulled={false} renderOrder={20}>
-      <sphereGeometry args={[450, 32, 16]} />
+      <sphereGeometry args={[radius, 32, 16]} />
     </mesh>
   );
 }

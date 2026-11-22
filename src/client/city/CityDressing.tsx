@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Skyline, towerRing, type SkyTone, type Tower } from '../board/backdrop';
 import { markWindows, patchWindows, type WindowUniforms } from '../board/windows';
-import { BLOCK, DISTRICT_PAVE, RAIL_Y, SHORE_Z, SIZE, STREET, cityLayout, railLoop, type CityLayout, type Fill } from './cityLayout';
+import { BLOCK, DISTRICT_PAVE, RAIL_Y, SHORE_Z, SIZE, STREET, cityLayout, railLoop, railStraights, type CityLayout, type Fill } from './cityLayout';
 import { PAL } from './cityMeshes';
 import { glowTexture, Inst, unitBox, type Item } from '../board/instanced';
 import { useCity } from './store';
@@ -145,6 +145,7 @@ function Fills({ fills, windows }: { fills: Fill[]; windows: WindowUniforms }) {
           break;
         case 'plaza':
           paving.push({ x: f.x, y: 0.13, z: f.z, sx: 3.5, sz: 3.5, colour: '#e9e1cd' });
+          if (f.seed % 3 !== 0) break; // a fountain on one plaza in three
           basins.push({ x: f.x, y: 0.1, z: f.z, sx: 0.9, sy: 0.22, sz: 0.9, colour: '#d6ccb4' });
           pools.push({ x: f.x, y: 0.1, z: f.z, sx: 0.75, sy: 0.24, sz: 0.75 });
           basins.push({ x: f.x, y: 0.1, z: f.z, sx: 0.12, sy: 0.75, sz: 0.12, colour: '#c9cdd1' });
@@ -335,8 +336,8 @@ function Monorail({ tone }: { tone: SkyTone }) {
     for (let i = 0; i < n; i++) {
       const p = curve.getPointAt(i / n);
       // Pylons stand only on the straights, on the street's centre line.
-      const onX = [BLOCK, SIZE - BLOCK].some((v) => Math.abs(p.x - v) < 0.2);
-      const onZ = [BLOCK, SIZE - BLOCK].some((v) => Math.abs(p.z - v) < 0.2);
+      const onX = railStraights().xs.some((v) => Math.abs(p.x - v) < 0.2);
+      const onZ = railStraights().zs.some((v) => Math.abs(p.z - v) < 0.2);
       if (onX || onZ) out.push({ x: p.x, z: p.z, ry: onX ? 0 : Math.PI / 2 });
     }
     return out;
@@ -405,7 +406,8 @@ function Traffic({ tone }: { tone: SkyTone }) {
   const lanes = useMemo(() => {
     const out: Lane[] = [];
     let k = 0;
-    const lines = [-BLOCK * 2, 0, BLOCK * 2, BLOCK * 4, SIZE, SIZE + BLOCK * 2];
+    const lines: number[] = [];
+    for (let at = -BLOCK * 2; at <= SIZE + BLOCK * 2; at += BLOCK * 2) lines.push(at);
     for (const at of lines) {
       for (const axis of ['x', 'z'] as const) {
         for (let c = 0; c < 2; c++) {
@@ -487,7 +489,7 @@ export function CityDressing({ tone, windows, full }: { tone: SkyTone; windows: 
   const outer = useMemo<Tower[]>(() => layout.outer.map((o) => ({ x: o.x, z: o.z, r: o.w, h: o.h, round: o.round, accent: o.accent, tint: o.tint })), [layout]);
   const far = useMemo(
     () =>
-      towerRing(SIZE / 2, SIZE / 2, 150, 300, 220, 77, (x, z) => {
+      towerRing(SIZE / 2, SIZE / 2, SIZE + 70, SIZE + 250, 260, 77, (x, z) => {
         // Keep the near bay open: the far shore starts well north of the promenade.
         if (z < SHORE_Z && z > SHORE_Z - 60) return true;
         return x > -45 && x < SIZE + 45 && z > SHORE_Z && z < SIZE + 45;

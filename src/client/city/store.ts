@@ -19,7 +19,7 @@ import type { StorageLike } from '../save';
 import { traySlipsFor, type TraySlip } from './text';
 
 export const CAMPAIGN_KEY = 'ekc-campaign';
-export const CAMPAIGN_VERSION = 2; // 2: M5b's shelf, lab and workshop
+export const CAMPAIGN_VERSION = 3; // 2: M5b's shelf, lab and workshop; 3: the 24 x 24 city and travel (TRAVEL)
 export type CitySpeed = 1 | 4 | 12;
 export const CITY_SPEEDS: CitySpeed[] = [1, 4, 12];
 const MAX_TRAY = 60;

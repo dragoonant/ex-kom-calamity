@@ -1,6 +1,7 @@
 // Shared rule helpers (docs/spec/20-city.md). Pure, read-only over the state.
 import { CITY, RESEARCH, type BuildingDef, type Evidence, type OrgDef, type ProjectDef } from '../data/city';
-import type { Band, CityState, ItemId, Org } from './types';
+import { ticksPerHour } from './time';
+import type { Band, CityState, ItemId, Leg, Org } from './types';
 
 export function buildingDef(id: string): BuildingDef | undefined {
   return CITY.buildings.find((b) => b.id === id);
@@ -131,4 +132,35 @@ export function working(state: CityState, item: ItemId, n: number): number {
   if (carried <= 0) return 0;
   const good = stock - state.shop.sabotaged[item];
   return Math.floor((carried * good) / stock);
+}
+
+/** TRAVEL-1: headquarters, and a building's cell centre, in tenths of a cell. */
+export function hqPoint(): { x: number; y: number } {
+  return { x: CITY.agency.hq.x * 10 + 5, y: CITY.agency.hq.y * 10 + 5 };
+}
+
+export function placePoint(state: CityState, id: string): { x: number; y: number } | null {
+  const b = buildingDef(id);
+  if (b) return { x: b.x * 10 + 5, y: b.y * 10 + 5 };
+  const c = state.crashes.find((x) => x.id === id);
+  return c ? { x: c.x, y: c.y } : null;
+}
+
+/** TRAVEL-1: the ticks a drive of this many tenths takes, at least 1. */
+export function travelTicks(state: CityState, fx: number, fy: number, tx: number, ty: number): number {
+  const d = Math.round(Math.sqrt((tx - fx) ** 2 + (ty - fy) ** 2));
+  const tph = ticksPerHour(state.tuning);
+  return Math.max(1, Math.ceil((d * tph) / state.tuning.travel.speedTenthsPerHour));
+}
+
+/** TRAVEL-1: a leg from one point to another leaving now. */
+export function legFrom(state: CityState, from: { x: number; y: number }, to: { x: number; y: number }): Leg {
+  return { fx: from.x, fy: from.y, tx: to.x, ty: to.y, depart: state.tick, arrive: state.tick + travelTicks(state, from.x, from.y, to.x, to.y) };
+}
+
+/** TRAVEL-3: where a drive is at a tick, in integer tenths. */
+export function legAt(leg: Leg, tick: number): { x: number; y: number } {
+  const span = Math.max(1, leg.arrive - leg.depart);
+  const t = Math.min(span, Math.max(0, tick - leg.depart));
+  return { x: leg.fx + Math.trunc(((leg.tx - leg.fx) * t) / span), y: leg.fy + Math.trunc(((leg.ty - leg.fy) * t) / span) };
 }

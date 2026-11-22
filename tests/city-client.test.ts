@@ -45,10 +45,11 @@ describe('16. The client (CSAV, CJOIN)', () => {
     useCity.getState().start(5);
     useCity.getState().setPaused(false);
     useCity.getState().order({ type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag1', 'ag2'] });
-    useCity.getState().advanceTicks(20);
+    const arrive = useCity.getState().game!.raid!.arriveTick;
+    useCity.getState().advanceTicks(arrive + 20);
     expect(useCity.getState().game!.raid!.arrived).toBe(true);
     expect(useCity.getState().paused).toBe(true);
-    expect(useCity.getState().game!.tick).toBe(6);
+    expect(useCity.getState().game!.tick).toBe(arrive);
   });
   it('CJOIN-1 a fight opens the battle of the building site', () => {
     expect(battleFor('automat-row')).toBe('automat-raid');
@@ -56,7 +57,7 @@ describe('16. The client (CSAV, CJOIN)', () => {
     expect(battleFor('city-hall')).toBe('savings-raid');
     useCity.getState().start(6);
     useCity.getState().order({ type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag1'] });
-    useCity.getState().advanceTicks(6);
+    useCity.getState().advanceTicks(useCity.getState().game!.raid!.arriveTick);
     expect(useCity.getState().beginFight()).toMatchObject({ building: 'depot-7', agents: ['ag1'] });
   });
   it('CJOIN-2 the battle result maps back onto the raid and resolves it', () => {
@@ -72,7 +73,7 @@ describe('16. The client (CSAV, CJOIN)', () => {
     expect(res.agentsDown).toEqual(['ag3']);
     useCity.getState().start(8);
     useCity.getState().order({ type: 'raid', side: 'agency', building: 'automat-row', agents: ['ag3', 'ag4'] });
-    useCity.getState().advanceTicks(6);
+    useCity.getState().advanceTicks(useCity.getState().game!.raid!.arriveTick);
     useCity.getState().beginFight();
     useCity.getState().finishFight(res);
     expect(useCity.getState().game!.raid).toBeNull();

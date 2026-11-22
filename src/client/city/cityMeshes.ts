@@ -7,7 +7,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { BuildingKind } from '../../data/city';
 
 export const CELL = 4;
-export const FLOOR_H = 1.5;
+export const FLOOR_H = 2.1;
 
 export const PAL = {
   enamel: '#e7dcc1',

@@ -84,13 +84,13 @@ test('the dressed city by day and by night, and a lot still opens its card throu
   await expect(page.getByTestId('city-scenery')).toHaveText('SCENERY');
   await page.evaluate(() => {
     window.__ekcCity!.advanceTicks(6 * 3);
-    window.__ekcCity!.setCamera({ pitch: 0.42, distance: 72, yaw: Math.PI * 0.22, target: { x: 24, z: 24 } });
+    window.__ekcCity!.setCamera({ pitch: 0.45, distance: 140, yaw: Math.PI * 0.22, target: { x: 48, z: 50 } });
   });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: 'docs/art/shots/m8-city-day-desktop.png' });
   await page.evaluate(() => {
     window.__ekcCity!.advanceTicks(6 * 13);
-    window.__ekcCity!.setCamera({ pitch: 0.9, distance: 62 });
+    window.__ekcCity!.setCamera({ pitch: 0.92, distance: 135, target: { x: 48, z: 54 } });
   });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: 'docs/art/shots/m8-city-night-desktop.png' });

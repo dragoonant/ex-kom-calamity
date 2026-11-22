@@ -5,7 +5,7 @@ import { create } from 'zustand';
 import { BATTLES, RAID_SITES, WEAPONS } from '../data';
 import { createGame, hashState, query, sideSeesTile, step, view, type Action, type GameEvent, type Pos, type Setup, type State, type Unit } from '../engine';
 import { advanceWithAi, isDifficulty, makeAi, type AiDriver, type Difficulty } from '../ai';
-import { bounds, focusOn } from './board/world';
+import { bounds, DIST_MAX, focusOn } from './board/world';
 import { browserStorage, clearSave, makeEnvelope, readSave, summarise, writeSave, type LoadResult, type SaveEnvelope, type SaveReason, type SaveSummary } from './save';
 import { appendFx, fxFor, type Fx } from './fx';
 
@@ -284,6 +284,7 @@ export const useClient = create<ClientState>((set, get) => {
     const battle = BATTLES[setup.battleId];
     bounds.width = game.width;
     bounds.depth = game.depth;
+    bounds.maxDistance = DIST_MAX;
     const focus = game.units.find((u) => u.id === ui.selected) ?? game.units.find((u) => u.side === 'agency');
     if (focus) focusOn(focus);
     set({

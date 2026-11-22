@@ -62,7 +62,8 @@ export interface OuterBuilding {
 }
 
 /** Wall tints for the outer city, all within a step of the enamel cream. */
-const TINTS = ['#ffffff', '#ffffff', '#e2efe9', '#fff0dc', '#f6e6e0', '#e6edf2', '#f9f3dd'];
+// Cooler and greyer than the play area's lots, so the outer city recedes behind them.
+const TINTS = ['#dfe4e4', '#d8e0e2', '#e4e6e0', '#dde3e6', '#e6e3dc', '#d5dde0', '#e0e4e2'];
 
 export interface Lamp {
   x: number;
@@ -95,7 +96,7 @@ export function occupied(): Set<string> {
   return s;
 }
 
-const PASTEL = ['#efe6cf', '#e9dcc0', '#dfe3d6', '#efdcc0', '#e6d8bf', '#d8e2dc'];
+const PASTEL = ['#e2dccb', '#dcd5c3', '#d6dad1', '#e0d6c4', '#d9d2c1', '#d3d9d3'];
 const WORKS = ['#b9b6ad', '#a9aba6', '#c4bba8'];
 
 export interface CityLayout {
@@ -170,7 +171,7 @@ export function cityLayout(): CityLayout {
             // the city climbs to the north-west behind it; the first ring past the edge is low on every side.
             const behind = x < 0 || z < 0;
             const round = r() < (behind ? 0.45 : 0.25);
-            const h = edge < 5 ? 1.2 + r() * 1.6 : behind ? 2.2 + r() * 3 + edge * (0.16 + r() * 0.1) : 1.2 + r() * 1.8 + edge * 0.06;
+            const h = edge < 9 ? 1.0 + r() * 1.2 : behind ? 2.2 + r() * 3 + edge * (0.16 + r() * 0.1) : 1.2 + r() * 1.8 + edge * 0.06;
             outer.push({ x, z, w: round ? 1.3 + r() * 0.2 : 2.6 + r() * 0.4, h, round: round && h > 3, accent: r() < 0.5 ? 0 : 1, tint: TINTS[Math.floor(r() * TINTS.length)]! });
           }
         }
@@ -200,8 +201,8 @@ function fillFor(district: DistrictId, x: number, z: number, r: () => number, tr
       return [{ ...base, kind: 'plaza' }];
     }
     case 'works': {
-      if (r() < 0.4) return [{ ...base, kind: 'tank', w: 1.1, d: 1.1, h: 1.6 + r() * 0.8, colour: WORKS[Math.floor(r() * WORKS.length)]! }];
-      return [{ ...base, kind: 'shed', w: 2.9, d: 2.2 + r() * 0.5, h: 1.25 + r() * 0.5, colour: WORKS[Math.floor(r() * WORKS.length)]! }];
+      if (r() < 0.4) return [{ ...base, kind: 'tank', w: 1.1, d: 1.1, h: 1.1 + r() * 0.6, colour: WORKS[Math.floor(r() * WORKS.length)]! }];
+      return [{ ...base, kind: 'shed', w: 2.9, d: 2.2 + r() * 0.5, h: 0.9 + r() * 0.35, colour: WORKS[Math.floor(r() * WORKS.length)]! }];
     }
     case 'sunbeam':
       if (r() < 0.25) {
@@ -209,27 +210,29 @@ function fillFor(district: DistrictId, x: number, z: number, r: () => number, tr
         tree(0.9, -0.9);
         return [{ ...base, kind: 'park' }];
       }
-      return [{ ...base, kind: 'shop', w: 2.8, d: 2.4, h: 1.0, colour: pastel }];
+      return [{ ...base, kind: 'shop', w: 2.8, d: 2.4, h: 0.8, colour: pastel }];
     case 'hill':
       tree(-1.2, 1.2, 0.9);
       if (r() < 0.5) tree(1.2, 1.25, 0.8);
-      return [{ ...base, kind: 'house', w: 2.0, d: 1.8, h: 1.25, colour: pastel }];
+      return [{ ...base, kind: 'house', w: 2.0, d: 1.8, h: 0.9, colour: pastel }];
     default:
       if (r() < 0.2) {
         tree(0, 0, 1.1);
         return [{ ...base, kind: 'park' }];
       }
-      return [{ ...base, kind: 'row', w: 2.8, d: 2.2, h: r() < 0.5 ? 1.0 : 1.75, colour: pastel }];
+      return [{ ...base, kind: 'row', w: 2.8, d: 2.2, h: r() < 0.6 ? 0.8 : 1.2, colour: pastel }];
   }
 }
 
 /** The monorail: a rounded loop on the streets around the Civic Centre's ring, at this height. */
 export const RAIL_Y = 7.2;
 export function railLoop(): { x: number; z: number }[] {
-  const x0 = BLOCK;
-  const x1 = SIZE - BLOCK;
-  const z0 = BLOCK;
-  const z1 = SIZE - BLOCK;
+  // Around the Civic Centre, on the streets that bound it.
+  const civic = CITY.districts.find((d) => d.id === 'civic')!;
+  const x0 = civic.x * CELL;
+  const x1 = (civic.x + civic.w) * CELL;
+  const z0 = civic.y * CELL;
+  const z1 = (civic.y + civic.d) * CELL;
   const rad = 5;
   const pts: { x: number; z: number }[] = [];
   const corner = (cx: number, cz: number, a0: number) => {
@@ -243,4 +246,10 @@ export function railLoop(): { x: number; z: number }[] {
   corner(x0 + rad, z1 - rad, Math.PI / 2);
   corner(x0 + rad, z0 + rad, Math.PI);
   return pts;
+}
+
+/** The loop's straights, for the pylons: x of the north-south ones, z of the east-west ones. */
+export function railStraights(): { xs: number[]; zs: number[] } {
+  const civic = CITY.districts.find((d) => d.id === 'civic')!;
+  return { xs: [civic.x * CELL, (civic.x + civic.w) * CELL], zs: [civic.y * CELL, (civic.y + civic.d) * CELL] };
 }

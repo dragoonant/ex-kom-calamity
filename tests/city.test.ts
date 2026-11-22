@@ -16,6 +16,7 @@ import {
   hostilesFor,
   replayCity,
   totalInfiltration,
+  travelTicks,
   winChance,
   type CityAction,
   type CityEvent,
@@ -69,10 +70,15 @@ function toMidnight(s: CityState) {
   const abs = s.tick + T.clock.startHour * HOUR;
   return ticks(s, DAY - (abs % DAY));
 }
+/** TRAVEL-2: ticks from a watch order until the report (the drive out plus the watch). */
+function toReport(s: CityState, agent = 'ag1'): number {
+  const a = s.agents.find((x) => x.id === agent)!;
+  return a.until - s.tick + s.tuning.watch.hours * HOUR;
+}
 /** Sends a raid and ticks until the squad is at the door. */
 function atDoor(s: CityState, building: string, agents = ['ag1', 'ag2', 'ag3', 'ag4', 'ag5', 'ag6']) {
   let x = ok(s, { type: 'raid', side: 'agency', building, agents }).state;
-  x = ticks(x, T.raid.travelHours * HOUR).state;
+  x = ticks(x, x.raid!.arriveTick - x.tick).state;
   expect(x.raid?.arrived).toBe(true);
   return x;
 }
@@ -164,9 +170,16 @@ describe('1. The clock (CLOCK)', () => {
     expect(clockOf(T, 16 * HOUR + 29 * DAY)).toMatchObject({ day: 30, month: 1, dayOfMonth: 0 });
   });
   it('CLOCK-3 a tick resolves watches, arrivals, the hour and the day in order', () => {
-    let s = city(1, { watch: { ...T.watch, hours: 1 }, raid: { ...T.raid, travelHours: 1 } });
+    let s = city(1, { watch: { ...T.watch, hours: 1 } });
     s = ok(s, { type: 'watch', side: 'agency', agent: 'ag1', building: 'city-hall' }).state;
     s = ok(s, { type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag2'] }).state;
+    // Line the watch's end and the squad's arrival up on the tick before the hour (TRAVEL-2 drives come first).
+    s = clone(s);
+    const a1 = s.agents.find((a) => a.id === 'ag1')!;
+    a1.status = 'watching';
+    a1.leg = null;
+    a1.until = HOUR;
+    s.raid!.arriveTick = HOUR;
     s = ticks(s, HOUR - 1).state;
     const { events } = ok(s, { type: 'tick' });
     const order = events.map((e) => e.type).filter((t) => ['watched', 'raidArrived', 'hour'].includes(t));
@@ -197,19 +210,21 @@ describe('1. The clock (CLOCK)', () => {
 });
 
 describe('2. The city (CITY)', () => {
-  it('CITY-1 six districts on a 12 x 12 grid', () => {
-    expect(CITY.size).toBe(12);
+  it('CITY-1 six districts on a 24 x 24 grid', () => {
+    expect(CITY.size).toBe(24);
     expect(CITY.districts).toHaveLength(6);
-    for (const d of CITY.districts) expect(d.x + d.w <= 12 && d.y + d.d <= 12).toBe(true);
+    for (const d of CITY.districts) expect(d.x + d.w <= 24 && d.y + d.d <= 24).toBe(true);
+    expect(CITY.districts.reduce((n, d) => n + d.w * d.d, 0)).toBe(24 * 24);
   });
   it('CITY-2 ten organisations, exactly one the source', () => {
     expect(CITY.orgs).toHaveLength(10);
     expect(CITY.orgs.filter((o) => o.source)).toHaveLength(1);
   });
-  it('CITY-3 24 buildings, each owned, in a district, on its own cell', () => {
-    expect(CITY.buildings).toHaveLength(24);
+  it('CITY-3 48 buildings, each owned, in a district, on its own cell', () => {
+    expect(CITY.buildings).toHaveLength(48);
     const cells = new Set(CITY.buildings.map((b) => `${b.x},${b.y}`));
-    expect(cells.size).toBe(24);
+    expect(cells.size).toBe(48);
+    expect(cells.has(`${CITY.agency.hq.x},${CITY.agency.hq.y}`)).toBe(false);
     for (const b of CITY.buildings) {
       expect(CITY.orgs.some((o) => o.id === b.org)).toBe(true);
       expect(CITY.districts.some((d) => d.id === b.district)).toBe(true);
@@ -293,9 +308,10 @@ describe('4. Symptoms (SIGN)', () => {
   it('SIGN-1 infiltrated buildings print genuine slips at about infiltration per mille an hour', () => {
     let n = 0;
     for (let seed = 1; seed <= 10; seed++) n += day(seed, only(city(seed), 'savings', 50)).filter((sl) => sl.genuine).length;
-    // 3 buildings x 24 hours x 5% = 3.6 a day
-    expect(n / 10).toBeGreaterThan(2);
-    expect(n / 10).toBeLessThan(6);
+    // 6 buildings x 24 hours x 5% = 7.2 a day
+    expect(CITY.buildings.filter((b) => b.org === 'savings')).toHaveLength(6);
+    expect(n / 10).toBeGreaterThan(4.5);
+    expect(n / 10).toBeLessThan(10);
     const clean = only(city(), 'savings', 0);
     expect(day(1, clean).filter((sl) => sl.genuine)).toHaveLength(0);
   });
@@ -345,20 +361,25 @@ describe('5. Watching (WATCH)', () => {
   it('WATCH-1 a ready agent leaves to watch; recall brings it back with no report', () => {
     let s = ok(city(), { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state;
     const a = s.agents.find((x) => x.id === 'ag1')!;
-    expect(a.status).toBe('watching');
-    expect(a.until).toBe(T.watch.hours * HOUR);
+    expect(a.status).toBe('travelling');
+    expect(a.building).toBe('depot-7');
     expect(rejected(s, { type: 'watch', side: 'agency', agent: 'ag1', building: 'city-hall' })).toMatch(/not ready/);
+    s = ticks(s, a.until - s.tick).state;
+    expect(s.agents.find((x) => x.id === 'ag1')!.status).toBe('watching');
+    expect(s.agents.find((x) => x.id === 'ag1')!.until).toBe(s.tick + T.watch.hours * HOUR);
     s = ok(s, { type: 'recall', side: 'agency', agent: 'ag1' }).state;
+    expect(s.agents.find((x) => x.id === 'ag1')!.status).toBe('returning');
+    s = ticks(s, s.agents.find((x) => x.id === 'ag1')!.until - s.tick).state;
     expect(s.agents.find((x) => x.id === 'ag1')!.status).toBe('ready');
     expect(s.buildings.find((b) => b.id === 'depot-7')!.watch).toBeNull();
     expect(rejected(s, { type: 'recall', side: 'agency', agent: 'ag1' })).toMatch(/watching/);
   });
-  it('WATCH-2 when the time is up the agent reports and is ready', () => {
+  it('WATCH-2 when the time is up the agent reports and drives home', () => {
     let s = ok(city(), { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state;
-    const r = ticks(s, T.watch.hours * HOUR);
+    const r = ticks(s, toReport(s));
     s = r.state;
     expect(r.events.some((e) => e.type === 'watched' && e.building === 'depot-7')).toBe(true);
-    expect(s.agents.find((x) => x.id === 'ag1')!.status).toBe('ready');
+    expect(s.agents.find((x) => x.id === 'ag1')!.status).toBe('returning');
     expect(s.buildings.find((b) => b.id === 'depot-7')!.watch).not.toBeNull();
   });
   it('WATCH-3 the band is right about 80% of the time, otherwise one band off', () => {
@@ -368,7 +389,7 @@ describe('5. Watching (WATCH)', () => {
     for (let seed = 1; seed <= n; seed++) {
       let s = only(city(seed), 'freight', 30);
       s = ok(s, { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state;
-      s = ticks(s, T.watch.hours * HOUR).state;
+      s = ticks(s, toReport(s)).state;
       const band = s.buildings.find((b) => b.id === 'depot-7')!.watch!.band;
       expect(['low', 'some', 'heavy']).toContain(band);
       if (band === 'some') right += 1;
@@ -381,13 +402,13 @@ describe('5. Watching (WATCH)', () => {
     for (let seed = 1; seed <= 40; seed++) {
       let s = only(city(seed), 'freight', 30);
       s = ok(s, { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state;
-      const r = ticks(s, T.watch.hours * HOUR);
+      const r = ticks(s, toReport(s));
       if (r.events.some((e) => e.type === 'slip' && e.slip.kind === 'spotted' && e.slip.building === 'depot-7' && e.slip.genuine)) spotted += 1;
     }
     expect(spotted).toBeGreaterThan(5);
     let clean = only(city(), 'freight', 0);
     clean = ok(clean, { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state;
-    expect(ticks(clean, T.watch.hours * HOUR).events.some((e) => e.type === 'slip' && e.slip.kind === 'spotted')).toBe(false);
+    expect(ticks(clean, toReport(clean)).events.some((e) => e.type === 'slip' && e.slip.kind === 'spotted')).toBe(false);
   });
 });
 
@@ -404,8 +425,11 @@ describe('6. Raids (RAID)', () => {
   });
   it('RAID-2 the squad arrives after the travel time', () => {
     const s = ok(city(), { type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag1'] }).state;
-    expect(ticks(s, T.raid.travelHours * HOUR - 1).state.raid!.arrived).toBe(false);
-    const r = ticks(s, T.raid.travelHours * HOUR);
+    const depot7 = CITY.buildings.find((b) => b.id === 'depot-7')!;
+    const travel = travelTicks(s, CITY.agency.hq.x * 10 + 5, CITY.agency.hq.y * 10 + 5, depot7.x * 10 + 5, depot7.y * 10 + 5);
+    expect(s.raid!.arriveTick).toBe(s.tick + travel);
+    expect(ticks(s, travel - 1).state.raid!.arrived).toBe(false);
+    const r = ticks(s, travel);
     expect(r.state.raid!.arrived).toBe(true);
     expect(r.events.some((e) => e.type === 'raidArrived')).toBe(true);
   });
@@ -512,7 +536,7 @@ describe('7. Resolution (RES)', () => {
 describe('8. The roster (ROSTER)', () => {
   it('ROSTER-1 an agent carries its status, until tick, watch building and raids', () => {
     const a = city().agents[0]!;
-    expect(a).toEqual({ id: 'ag1', name: CITY.agency.names[0], status: 'ready', until: 0, building: null, raids: 0 });
+    expect(a).toEqual({ id: 'ag1', name: CITY.agency.names[0], status: 'ready', until: 0, building: null, leg: null, raids: 0 });
   });
   it('ROSTER-2 the agency starts with eight named agents', () => {
     const s = city();
@@ -662,13 +686,13 @@ describe('11. View and queries (CVIEW, CQRY)', () => {
   it('CQRY-3 raid odds only once the squad is at the door', () => {
     const s = ok(city(), { type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag1', 'ag2'] }).state;
     expect(cityQuery.raidOdds(s).ok).toBe(false);
-    const d = ticks(s, HOUR).state;
+    const d = ticks(s, s.raid!.arriveTick - s.tick).state;
     expect(cityQuery.raidOdds(d)).toMatchObject({ ok: true, agents: 2 });
   });
   it('CQRY-4 the board counts slips and leaks nothing hidden', () => {
     const s = ticks(only(city(), 'savings', 90), 2 * DAY).state;
     const board = cityQuery.board(cityView(s, 'agency'));
-    expect(board).toHaveLength(24);
+    expect(board).toHaveLength(48);
     expect(board.filter((b) => b.org === 'savings').some((b) => b.slips > 0)).toBe(true);
     expect(JSON.stringify(board)).not.toMatch(/infiltration|genuine/);
   });
@@ -783,5 +807,74 @@ describe('14. Sim (CSIM)', () => {
   it('CSIM-3 a campaign replays to the same hash', () => {
     const r = runCity({ seed: 1, agency: agencyCareful, hostile: hostilePlanner, maxTicks: 20 * DAY });
     expect(hashCity(replayCity({ seed: 1 }, r.state.log))).toBe(hashCity(r.state));
+  });
+});
+
+describe('21. Travel (TRAVEL)', () => {
+  const HQ = { x: CITY.agency.hq.x * 10 + 5, y: CITY.agency.hq.y * 10 + 5 };
+  const at = (id: string) => {
+    const b = CITY.buildings.find((x) => x.id === id)!;
+    return { x: b.x * 10 + 5, y: b.y * 10 + 5 };
+  };
+  it('TRAVEL-1 a drive takes its distance at six cells an hour, at least one tick, leaving now', () => {
+    const s = city();
+    expect(travelTicks(s, 0, 0, 0, 0)).toBe(1);
+    expect(travelTicks(s, 0, 0, 60, 0)).toBe(HOUR); // six cells, one hour
+    expect(travelTicks(s, 0, 0, 30, 40)).toBe(Math.ceil((50 * HOUR) / T.travel.speedTenthsPerHour));
+    const far = CITY.buildings.reduce((a, b) => (Math.hypot(b.x - CITY.agency.hq.x, b.y - CITY.agency.hq.y) > Math.hypot(a.x - CITY.agency.hq.x, a.y - CITY.agency.hq.y) ? b : a));
+    const near = CITY.buildings.reduce((a, b) => (Math.hypot(b.x - CITY.agency.hq.x, b.y - CITY.agency.hq.y) < Math.hypot(a.x - CITY.agency.hq.x, a.y - CITY.agency.hq.y) ? b : a));
+    const tFar = ok(s, { type: 'watch', side: 'agency', agent: 'ag1', building: far.id }).state.agents[0]!;
+    const tNear = ok(s, { type: 'watch', side: 'agency', agent: 'ag1', building: near.id }).state.agents[0]!;
+    expect(tFar.leg).toEqual({ fx: HQ.x, fy: HQ.y, tx: far.x * 10 + 5, ty: far.y * 10 + 5, depart: 0, arrive: tFar.until });
+    expect(tFar.until).toBeGreaterThan(tNear.until);
+    expect(tFar.until).toBeGreaterThan(2 * HOUR); // the far corner is more than two hours out
+  });
+  it('TRAVEL-2 a watcher drives out, watches, reports and drives home, with events', () => {
+    let s = ok(city(), { type: 'watch', side: 'agency', agent: 'ag1', building: 'ambrel-tower' }).state;
+    const out = s.agents[0]!.until;
+    let r = ticks(s, out);
+    expect(r.events.some((e) => e.type === 'watchStarted' && e.building === 'ambrel-tower')).toBe(true);
+    s = r.state;
+    expect(s.agents[0]).toMatchObject({ status: 'watching', leg: null, until: out + T.watch.hours * HOUR });
+    r = ticks(s, T.watch.hours * HOUR);
+    s = r.state;
+    expect(s.agents[0]!.status).toBe('returning');
+    expect(s.agents[0]!.leg).toMatchObject({ fx: at('ambrel-tower').x, fy: at('ambrel-tower').y, tx: HQ.x, ty: HQ.y });
+    r = ticks(s, s.agents[0]!.until - s.tick);
+    expect(r.events.some((e) => e.type === 'home' && e.agent === 'ag1')).toBe(true);
+    expect(r.state.agents[0]).toMatchObject({ status: 'ready', leg: null, until: 0, building: null });
+  });
+  it('TRAVEL-3 a recalled agent turns for home from where its drive has reached', () => {
+    let s = ok(city(), { type: 'watch', side: 'agency', agent: 'ag1', building: 'ambrel-tower' }).state;
+    const leg = s.agents[0]!.leg!;
+    const half = Math.floor((leg.arrive - leg.depart) / 2);
+    s = ticks(s, half).state;
+    s = ok(s, { type: 'recall', side: 'agency', agent: 'ag1' }).state;
+    const back = s.agents[0]!.leg!;
+    const span = leg.arrive - leg.depart;
+    expect(back.fx).toBe(leg.fx + Math.trunc(((leg.tx - leg.fx) * half) / span));
+    expect(back.fy).toBe(leg.fy + Math.trunc(((leg.ty - leg.fy) * half) / span));
+    expect([back.tx, back.ty]).toEqual([HQ.x, HQ.y]);
+    expect(back.arrive - back.depart).toBeLessThanOrEqual(span);
+    expect(s.agents[0]!.status).toBe('returning');
+  });
+  it('TRAVEL-4 a squad drives out together and the standing agents drive home after the raid', () => {
+    let s = ok(city(1, CERTAIN), { type: 'raid', side: 'agency', building: 'depot-7', agents: ['ag1', 'ag2'] }).state;
+    expect(s.agents[0]!.leg).toEqual(s.agents[1]!.leg);
+    expect(s.agents[0]!.leg!.arrive).toBe(s.raid!.arriveTick);
+    s = ticks(s, s.raid!.arriveTick - s.tick).state;
+    expect(s.agents[0]!.leg).toBeNull();
+    s = ok(s, { type: 'resolve', side: 'agency' }).state;
+    expect(s.agents[0]).toMatchObject({ status: 'returning' });
+    expect(s.agents[0]!.leg).toMatchObject({ fx: at('depot-7').x, fy: at('depot-7').y, tx: HQ.x, ty: HQ.y });
+    expect(cityStep(s, { type: 'raid', side: 'agency', building: 'city-hall', agents: ['ag1'] }).ok).toBe(false);
+    s = ticks(s, s.agents[0]!.until - s.tick).state;
+    expect(s.agents[0]!.status).toBe('ready');
+  });
+  it('CINV-11 drives and statuses agree', () => {
+    const s = clone(ok(city(), { type: 'watch', side: 'agency', agent: 'ag1', building: 'depot-7' }).state);
+    expect(cityInvariants(s)).toEqual([]);
+    s.agents[0]!.leg = null;
+    expect(cityInvariants(s).join()).toMatch(/leg mismatch/);
   });
 });

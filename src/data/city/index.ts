@@ -8,7 +8,8 @@ export interface CityTuning {
   spread: { startBiomass: number; sourceStart: number; actEveryHours: number; seedCost: number; seedAmount: number; dailyGrowthPercent: number; biomassPer100Points: number; lobbyAt: number; turnAt: number; cap: number; sourceFloor: number };
   signs: { permillePerPoint: number; noisePermille: number; keep: number; missingMin: number; purchaseMin: number; powerMin: number; perfectMin: number; voteMin: number; humMin: number };
   watch: { hours: number; accuracyPercent: number; spotPercent: number };
-  raid: { travelHours: number; maxAgents: number; hostilesPer10Points: number; maxHostiles: number; turnedGuards: number; takersAt: number; fightersAt: number };
+  travel: { speedTenthsPerHour: number };
+  raid: { maxAgents: number; hostilesPer10Points: number; maxHostiles: number; turnedGuards: number; takersAt: number; fightersAt: number };
   res: { winBasePercent: number; winPerAgent: number; winPerHostile: number; winMinPercent: number; winMaxPercent: number; downPerHostilePercent: number; downOnLossPercent: number; downMaxPercent: number; cleansePerHostile: number; cleanseOnWin: number };
   roster: { startAgents: number; cap: number; woundDays: number; deathPercent: number; recruitCost: number; salaryPerMonth: number };
   fund: { startMoney: number; startConfidence: number; grantBase: number; lobbyCutPercent: number; turnedCutPercent: number; winGain: number; scandalLoss: number; civilianLoss: number; agentLoss: number; missingPer100Points: number };

@@ -34,6 +34,8 @@ function craftAt(s: CityState, kind: 'scout' | 'seeder', x: number, y: number, t
   c.y = y;
   return l;
 }
+const HQX = CITY.agency.hq.x * 10 + 5;
+const HQY = CITY.agency.hq.y * 10 + 5;
 const ALWAYS: Partial<CityTuning> = { air: { ...A, carHitPercent: 100, craftHitPercent: 0 } };
 
 describe('20. The air war (AIR)', () => {
@@ -76,7 +78,7 @@ describe('20. The air war (AIR)', () => {
     expect(b.money).toBe(1000 - A.carCost);
   });
   it('AIR-4 pressed craft are fought on contact; shadowed ones are followed without a shot', () => {
-    let s = craftAt(skies(1, ALWAYS), 'seeder', 75, 75, 'freight-yard'); // over headquarters
+    let s = craftAt(skies(1, ALWAYS), 'seeder', HQX, HQY, 'freight-yard'); // over headquarters
     s = ok(s, { type: 'intercept', side: 'agency', craft: s.craft[0]!.id, cars: ['car1', 'car2'] }).state;
     const shadow = ok(s, { type: 'posture', side: 'agency', craft: s.craft[0]!.id, posture: 'shadow' }).state;
     expect(hours(shadow, 1).events.some((e) => e.type === 'dogfight')).toBe(false);
@@ -87,13 +89,13 @@ describe('20. The air war (AIR)', () => {
   });
   it('AIR-5 a car at 0 is lost; a damaged car goes to the hangar and comes back whole', () => {
     const hurt = { air: { ...A, carHitPercent: 100, craftHitPercent: 100, craftDamage: 60 } };
-    let s = craftAt(skies(1, hurt), 'seeder', 75, 75);
+    let s = craftAt(skies(1, hurt), 'seeder', HQX, HQY);
     s = ok(s, { type: 'intercept', side: 'agency', craft: s.craft[0]!.id, cars: ['car1'] }).state;
     const r = hours(s, 1);
     expect(r.events.some((e) => e.type === 'carLost')).toBe(true);
     expect(r.state.cars[0]!.status).toBe('lost');
     const scratch = { air: { ...A, carHitPercent: 100, carDamage: 100, craftHitPercent: 100, craftDamage: 10 } };
-    let t = craftAt(skies(1, scratch), 'seeder', 75, 75);
+    let t = craftAt(skies(1, scratch), 'seeder', HQX, HQY);
     t = ok(t, { type: 'intercept', side: 'agency', craft: t.craft[0]!.id, cars: ['car1'] }).state;
     t = hours(t, 1).state;
     expect(t.cars[0]!.status).toBe('repair');
@@ -119,7 +121,8 @@ describe('20. The air war (AIR)', () => {
   });
   it('AIR-7 an unraided crash scatters into the nearest organisation', () => {
     const s = clone(skies());
-    s.crashes.push({ id: 'crash9', kind: 'seeder', x: 25, y: 65, building: 'depot-7', survivors: 3, until: s.tick + HOUR });
+    const depot = CITY.buildings.find((b) => b.id === 'depot-7')!;
+    s.crashes.push({ id: 'crash9', kind: 'seeder', x: depot.x * 10 + 5, y: depot.y * 10 + 5, building: 'depot-7', survivors: 3, until: s.tick + HOUR });
     const r = hours(s, 2);
     const e = r.events.find((x) => x.type === 'scattered');
     expect(e && e.type === 'scattered' && e.org).toBe('freight');
@@ -130,7 +133,7 @@ describe('20. The air war (AIR)', () => {
     let s = clone(skies(1, win));
     s.crashes.push({ id: 'crash9', kind: 'seeder', x: 55, y: 35, building: null, survivors: 3, until: s.tick + 24 * HOUR });
     s = ok(s, { type: 'raid', side: 'agency', building: 'crash9', agents: ['ag1', 'ag2', 'ag3'] }).state;
-    s = hours(s, 1).state;
+    s = advanceCityTicks(s, s.raid!.arriveTick - s.tick).state;
     expect(s.raid).toMatchObject({ hostiles: 3, takers: 3 });
     const r = ok(s, { type: 'resolve', side: 'agency' });
     expect(r.state.crashes).toHaveLength(0);
