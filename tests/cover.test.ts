@@ -546,3 +546,68 @@ describe('31. Hiding again, and the dark (BLEND, NIGHT)', () => {
     expect(createGame({ battleId: 'automat-raid', seed: 1 }).tuning.sight.markLastHostiles).toBe(TUNING.sight.markLastHostiles);
   });
 });
+
+describe('22. Smarter aliens (AI-16..18)', () => {
+  function open3(): State {
+    let s = only(yard(), ['a1', 'u2']);
+    s = clone(s);
+    return s;
+  }
+  it('AI-16 two revealed hosts on one agent: the lower id pins, the other flanks', () => {
+    let s = createGame({ battleId: 'automat-raid', seed: 1, roster: { hostiles: { host: 2, taker: 0, fighter: 0 } } });
+    s = clone(s);
+    for (const t of s.tiles) if (t.level === 0) {
+      t.kind = 'ground';
+      t.hp = 100;
+    }
+    const hosts = s.units.filter((u) => u.template === 'host').sort((a, b) => (a.id < b.id ? -1 : 1));
+    const agent = s.units.find((u) => u.side === 'agency')!;
+    for (const u of s.units) if (u.side === 'agency' && u !== agent) u.down = true, u.hp = 0;
+    for (const u of s.units) if (u.side === 'civilian') u.x = 0;
+    agent.x = 10;
+    agent.y = 8;
+    hosts[0]!.x = 6;
+    hosts[0]!.y = 8;
+    hosts[1]!.x = 6;
+    hosts[1]!.y = 10;
+    for (const h of hosts) {
+      h.revealed = true;
+      h.level = 0;
+    }
+    const out = hostileNormal(view(s, 'hostile'), 'hostile');
+    expect(out.some((a) => a.type === 'suppress' && a.unit === hosts[0]!.id)).toBe(true);
+    expect(out.some((a) => a.type === 'move' && a.unit === hosts[1]!.id)).toBe(true);
+  });
+  it('AI-17 a taker two agents see from afar slips out of sight and waits', () => {
+    let s = createGame({ battleId: 'automat-raid', seed: 1, roster: { hostiles: { host: 0, taker: 1, fighter: 0 } } });
+    s = clone(s);
+    for (const t of s.tiles) if (t.level === 0) {
+      t.kind = 'ground';
+      t.hp = 100;
+    }
+    const tk = s.units.find((u) => u.template === 'taker')!;
+    const agent = s.units.find((u) => u.side === 'agency')!;
+    for (const u of s.units) if (u.side === 'civilian') u.x = 0, u.y = 0;
+    agent.x = 4;
+    agent.y = 8;
+    agent.level = 0;
+    const second = s.units.filter((u) => u.side === 'agency')[1]!;
+    second.x = 5;
+    second.y = 9;
+    second.level = 0;
+    tk.x = 12;
+    tk.y = 8;
+    tk.level = 0;
+    // a wall to hide behind, east of the taker
+    for (let y = 5; y <= 11; y++) s.tiles[tileIndex(s, { x: 14, y, level: 0 })]!.kind = 'wall';
+    const out = hostileNormal(view(s, 'hostile'), 'hostile');
+    const mine = out.filter((a) => 'unit' in a && a.unit === tk.id);
+    expect(mine.some((a) => a.type === 'move')).toBe(true);
+    expect(mine.every((a) => a.type !== 'fire')).toBe(true);
+  });
+  it('AI-18 fighters breach sooner', () => {
+    expect(TUNING.ai.breachDetourTicks).toBe(20);
+    expect(TUNING.ai.ambushRange).toBe(5);
+    expect(open3().units.length).toBeGreaterThan(0);
+  });
+});

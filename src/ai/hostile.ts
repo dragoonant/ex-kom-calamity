@@ -2,7 +2,7 @@
 // Hosts pass as citizens, close in and ambush, and flee when exposed; takers charge agents, take citizens and
 // otherwise guard the hosts; fighters fight at whip range from cover, breach walls with their charge and take the
 // stairs after agents on other floors. Everything is a pure function of the view, the seed and the tick (AI-1).
-import { query, type Action, type Pos, type State, type Unit, type Side, coverAgainst, isPinned } from '../engine';
+import { query, type Action, type Pos, type State, type Unit, type Side, canSuppress, coverAgainst, isPinned } from '../engine';
 import { WEAPONS } from '../data';
 import { bestTile, blastTile, fireOrder, firingTile, freeNeighbour, hidingTile, know, moveOrder, stanceOrder, type Know, coverPosture, reloadOrder } from './know';
 import { boundedField, distanceAny, fieldTiles, lineTiles, samePos } from './nav';
@@ -170,6 +170,34 @@ function revealedHost(k: Know, u: Unit, out: Action[]): void {
     } else roam(k, u, out);
     return;
   }
+  // AI-16: two revealed hosts on one agent: the lower id pins it with suppressive fire, the other flanks.
+  const partner = k.own.find((o) => o.id !== u.id && !o.down && o.template === 'host' && (!o.disguised || o.revealed) && o.level === u.level && distanceAny(o, u) <= 6);
+  if (partner && k.canFire(u, e)) {
+    if (u.id < partner.id) {
+      if (canSuppress(k.view, u, e).ok && (u.ammo ?? 1) >= 2) {
+        const same = u.suppressAt && u.suppressAt.level === e.level && Math.max(Math.abs(u.suppressAt.x - e.x), Math.abs(u.suppressAt.y - e.y)) <= 1;
+        if (!same) push(out, { type: 'suppress', side: k.side, unit: u.id, at: { x: e.x, y: e.y, level: e.level } });
+        return;
+      }
+    } else {
+      const a0 = Math.atan2(partner.y - e.y, partner.x - e.x);
+      const spot = bestTile(k, u, 25, (p, ticks) => {
+        if (p.level !== e.level || !query.los(k.view, p, e)) return null;
+        const d = Math.hypot(p.x - e.x, p.y - e.y);
+        if (d < 2 || d > weaponRange(u)) return null;
+        let da = Math.abs(Math.atan2(p.y - e.y, p.x - e.x) - a0);
+        if (da > Math.PI) da = 2 * Math.PI - da;
+        if (da < Math.PI / 3) return null;
+        return 100 + da * 20 + coverAgainst(k.view, p, e).value * 0.5 - ticks * 0.6;
+      });
+      if (spot && spot.ticks > 0 && !samePos(u, spot)) {
+        push(out, fireOrder(k, u, e));
+        push(out, coverPosture(k, u, e, true));
+        push(out, moveOrder(k, u, spot));
+        return;
+      }
+    }
+  }
   // AI-14: a revealed host with its charge throws it at three or more agents together.
   if (u.charges > 0 && !u.blast) {
     const at = blastTile(k, u, 3);
@@ -227,6 +255,16 @@ function taker(k: Know, u: Unit, out: Action[]): void {
   const t = k.view.tuning.ai;
   push(out, stanceOrder(k, u, 'engage'));
   const e = straggler(k, u, false);
+  // AI-17: seen from afar, a taker slips out of sight and waits; it rushes only an agent within ai.ambushRange.
+  const near = k.nearestEnemy(u);
+  if (k.seenBy(u) >= 2 && (!near || distanceAny(u, near) > t.ambushRange)) {
+    const to = hidingTile(k, u, 20);
+    if (to && to.ticks > 0) {
+      if (u.fireTarget) push(out, { type: 'halt', side: k.side, unit: u.id });
+      push(out, moveOrder(k, u, to));
+      return;
+    }
+  }
   if (e && distanceAny(u, e) <= t.takerChaseRange && (cluster(k, e) <= 2 || alliesNear(k, u, 8) >= 2 || distanceAny(u, e) <= 3)) {
     push(out, fireOrder(k, u, e));
     if (!k.canFire(u, e)) {

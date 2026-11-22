@@ -33,7 +33,7 @@ export interface Tuning {
   save: { autosaveSeconds: number };
   structure: { fallDamage: number };
   /** Section 22 (AI): the hostile AI's windows and ranges. */
-  ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number };
+  ai: { decideTicks: number; hostAmbushRange: number; fleeHpPercent: number; takerChaseRange: number; coverSearchTicks: number; breachRange: number; breachDetourTicks: number; randomOrderPercent: number; isolationRange: number; huntAfterAgentsDown: number; huntAfterSeconds: number; ambushRange: number };
   /** Section 25 (COVER): what each grade of cover takes off a ranged hit chance. */
   cover: { full: number; half: number; low: number };
   /** Section 26 (SNAP): a shot at a stance target is quick and loose. */
