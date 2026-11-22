@@ -4,7 +4,7 @@
 // stairs after agents on other floors. Everything is a pure function of the view, the seed and the tick (AI-1).
 import { query, type Action, type Pos, type State, type Unit, type Side, coverAgainst, isPinned } from '../engine';
 import { WEAPONS } from '../data';
-import { bestTile, blastTile, fireOrder, firingTile, freeNeighbour, hidingTile, know, moveOrder, stanceOrder, type Know, coverPosture } from './know';
+import { bestTile, blastTile, fireOrder, firingTile, freeNeighbour, hidingTile, know, moveOrder, stanceOrder, type Know, coverPosture, reloadOrder } from './know';
 import { boundedField, distanceAny, fieldTiles, lineTiles, samePos } from './nav';
 import { unitRng, pickWith } from './rng';
 
@@ -158,6 +158,11 @@ function revealedHost(k: Know, u: Unit, out: Action[]): void {
   }
   push(out, stanceOrder(k, u, 'engage'));
   if (!e) {
+    const reload = reloadOrder(k, u); // AI-15
+    if (reload) {
+      push(out, reload);
+      return;
+    }
     const big = k.nearestEnemy(u);
     if (big) {
       const n = freeNeighbour(k, big, u);

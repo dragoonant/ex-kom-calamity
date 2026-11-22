@@ -70,6 +70,9 @@ export interface Unit {
   suppression?: number;
   /** SUP-3: the tile the unit is pinning with suppressive fire, or null. */
   suppressAt?: Pos | null;
+  /** AMMO-1..3: rounds left (null: the weapon never runs dry) and ticks of reload left (0: not reloading). */
+  ammo?: number | null;
+  reloadLeft?: number;
   /** OBJ-1: a capture under way. */
   capture?: { target: string; progress: number } | null;
   /** OBJ-1, OBJ-3: taken alive, or evacuated to safety; both leave the field (down) without a body. */
@@ -130,6 +133,7 @@ export type Action =
   | { type: 'blast'; side: Side; unit: string; at: Pos }
   | { type: 'suppress'; side: Side; unit: string; at: Pos }
   | { type: 'capture'; side: Side; unit: string; target: string }
+  | { type: 'reload'; side: Side; unit: string }
   | { type: 'evacuate'; side: Side; unit: string; target: string }
   | { type: 'withdraw'; side: Side };
 
@@ -187,6 +191,8 @@ export type GameEvent =
   | { type: 'suppressFire'; tick: number; unit: string; at: Pos; weapon: string; pinned: string[] }
   | { type: 'strayHit'; tick: number; shooter: string; target: string; victim: string; roll: number }
   | { type: 'captured'; tick: number; unit: string; by: string }
+  | { type: 'reloading'; tick: number; unit: string; ticks: number }
+  | { type: 'reloaded'; tick: number; unit: string }
   | { type: 'evacuating'; tick: number; unit: string; to: Pos }
   | { type: 'saved'; tick: number; unit: string }
   | { type: 'coreSecured'; tick: number; by: string }

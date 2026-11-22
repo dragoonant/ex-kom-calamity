@@ -22,7 +22,11 @@ function fmtSeconds(s: number): string {
 }
 
 function weaponName(u: Unit): string {
-  return u.weapon ? (WEAPONS[u.weapon]?.name ?? u.weapon) : 'unarmed';
+  if (!u.weapon) return 'unarmed';
+  const w = WEAPONS[u.weapon];
+  const name = w?.name ?? u.weapon;
+  // AMMO-1: rounds left of a load.
+  return w?.magazine && u.ammo !== null && u.ammo !== undefined ? `${name} ${u.ammo}/${w.magazine}` : name;
 }
 
 function lampClass(u: Unit): string {
@@ -34,6 +38,7 @@ function lampClass(u: Unit): string {
 
 function agentStatus(u: Unit): string {
   if (u.down) return '';
+  if ((u.reloadLeft ?? 0) > 0) return 'RELOADING';
   if (u.suppressAt) return 'SUPPRESSING';
   if (u.capture) return 'CAPTURING';
   if ((u.suppression ?? 0) >= 60) return 'PINNED';
@@ -106,6 +111,9 @@ export function Hud() {
         s.order({ type: 'halt', side: 'agency', unit: s.selected });
       } else if (e.code === 'KeyB' && s.selected) {
         s.setMode(s.mode === 'blast' ? 'normal' : 'blast');
+      } else if (e.code === 'KeyL' && s.selected) {
+        // AMMO-4: L reloads the selected agent.
+        s.order({ type: 'reload', side: 'agency', unit: s.selected });
       } else if (e.code === 'KeyV' && s.selected) {
         // SUP-3: V arms suppressive fire for the next tap.
         s.setMode(s.mode === 'suppress' ? 'normal' : 'suppress');
@@ -282,6 +290,9 @@ export function Hud() {
                       CAPTURE
                     </button>
                   )}
+                  <button type="button" className={`toggle ${(sel.reloadLeft ?? 0) > 0 ? 'toggle-on' : ''}`} data-testid="reload" onClick={() => order({ type: 'reload', side: 'agency', unit: sel.id })}>
+                    RELOAD
+                  </button>
                   <button type="button" className={`toggle ${mode === 'evacuate' ? 'toggle-alert' : ''}`} data-testid="evacuate" aria-pressed={mode === 'evacuate'} onClick={() => setMode(mode === 'evacuate' ? 'normal' : 'evacuate')}>
                     EVACUATE
                   </button>

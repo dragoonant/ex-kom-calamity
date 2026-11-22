@@ -1,3 +1,4 @@
+import { WEAPONS } from '../data';
 // ARCH-3, ORD-8: every legal action for a side, tick first, never empty.
 import type { Action, Side, State } from './types';
 import { POSTURES, SIDES, STANCES } from './types';
@@ -31,6 +32,11 @@ export function legalActions(state: State, side: Side): Action[] {
       if (sideSeesUnit(state, side, t)) acts.push({ type: 'fire', side, unit: u.id, target: t.id });
     }
     // ORD-9
+    // AMMO-4: an early reload.
+    {
+      const w = u.weapon ? WEAPONS[u.weapon] : undefined;
+      if (w?.magazine && u.ammo !== null && u.ammo !== undefined && u.ammo < w.magazine && !(u.reloadLeft ?? 0)) acts.push({ type: 'reload', side, unit: u.id });
+    }
     // OBJ-1, OBJ-2: captures and evacuations of the units beside it.
     for (const t of state.units) {
       if (t.down || t.level !== u.level || Math.max(Math.abs(t.x - u.x), Math.abs(t.y - u.y)) > 1 || t === u) continue;

@@ -40,6 +40,8 @@ export interface Tuning {
   snap: { penalty: number; aimPercent: number };
   /** Section 28 (STRAY, PANIC): the price of standing together. */
   stray: { percent: number };
+  /** Section 30 (AMMO). */
+  ammo: { suppressRounds: number };
   /** Section 29 (OBJ): capture, evacuation and the wreck's core. */
   objective: { captureTicks: number; captureHpPercent: number; coreTicks: number; burnSeconds: number };
   panic: { range: number; amount: number };
@@ -60,6 +62,9 @@ export interface WeaponDef {
   cooldownTicks: number;
   /** STR-6: what a stray round does to the wall behind the target. */
   structureDamage: number;
+  /** AMMO-1: rounds per load and reload time; absent, the weapon never runs dry. */
+  magazine?: number;
+  reloadTicks?: number;
   /** TAKE-1: the template a living citizen becomes when this weapon hits it (melee only). */
   takes?: string;
   source: string;

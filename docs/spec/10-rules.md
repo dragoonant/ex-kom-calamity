@@ -148,7 +148,7 @@ Source documents: `docs/GAME-DESIGN.md` sections 2 and 3, `PLAN.md` D3, D4, D6, 
 
 ## 16. Invariants (INV) - checked by `sim` and `action-fuzz` after every step
 - **INV-1** `legalActions(state, side)` is never empty for any side (ARCH-3).
-- **INV-2** `0 <= hp <= maxHp` for every unit; a unit is down exactly when `hp = 0`.
+- **INV-2** `0 <= hp <= maxHp` for every unit; a unit is down exactly when `hp = 0`, or when it was captured or saved (OBJ-1, OBJ-3), which take it off the field alive.
 - **INV-3** No two living units share a tile; every unit, standing or down, is on a passable tile that exists (a collapse moves it, STR-5); every tile carries an integer level in `0..levels-1`.
 - **INV-4** `tick` never decreases and increases by exactly 1 per accepted tick while the battle is not over.
 - **INV-5** `JSON.parse(JSON.stringify(state))` deep-equals `state`; the JSON text contains no `NaN`, `Infinity` or `undefined`.
@@ -282,6 +282,7 @@ Sweep vs stand did not move (neither driver crouches or runs). Random vs random 
 - **AI-12** (2026-11-22) Both `normal` drivers prefer firing tiles with cover against their target (half the cover's value in the tile's score), crouch when they fire from a tile that has cover against their target, and stand before they move.
 - **AI-13** (2026-11-22) The `normal` agency driver lays suppressive fire on a target it can fire at when its aimed chance is under `suppress.aiBelow = 30` (SUP-3); a `normal` fighter that is pinned (SUP-4) with no cover against its target breaks line of sight before anything else.
 - **AI-14** (2026-11-22) A `normal` spitter throws at two or more agents within its throw, otherwise closes to one tile inside throwing range keeping out of sight, and hides once its charges are spent; a revealed host with its charge throws it at three or more agents together; both `normal` drivers score a firing tile 6 lower for each friend beside it, so squads spread out (12 cost the bench a battle in 200; 6 holds it).
+- **AI-15** (2026-11-22) A `normal` agent with no enemy in sight, and a revealed host with none in reach, reload a weapon that is under half full; in a fight, a `normal` agent on its last round reloads early while two or more squadmates still have rounds to fire, so the squad's reloads are staggered.
 - **AI-10** Bench: `npm run bench:ai` plays `bench-raid` (6 agents against 4 hosts, 2 takers, 2 fighters and 4 citizens on `civic-savings-branch`, a roster chosen so that `random` against `random` is near even) over seeded battles in both seats (normal hostiles against random agents, then normal agents against random hostiles, alternating seeds), with the invariants of section 16 checked after every step, and prints the normal side's win rate per seat and overall; a draw (timeout or mutual) is not a win. The gate (`PLAN.md` M3) is at least 95 percent over at least 200 battles, and the same seed in the same seat must replay to the same hash. The result is recorded in section 23.
 
 ## 23. AI bench baseline (KB rule 30)
@@ -312,6 +313,12 @@ Cover (section 25, AI-12), 2026-11-22: **96.5% (193/200)** on `bench-raid` (norm
 - **POSE-5** Every unit that advances its move progress on a running order sets `lastRunTick = tick`, whether or not it completes the step that tick (TIME-3a).
 
 Posture and pace (section 24, D21 c), 2026-11-20: **unchanged**: 95.0% (190/200) on `bench-raid` with the same per-seat rows; 85%, 80% and 85% on the three sites. Neither the AI nor the bench's random agents give posture or run orders yet (RULING POSE-1), so the new terms never apply there. The AI slice that teaches cover and pace needs its own result.
+
+## 30. Ammunition (AMMO) - 2026-11-22, `PLAN.md` D26 (5): stagger the fire
+- **AMMO-1** A weapon with a `magazine` (rounds) and `reloadTicks` in `weapons.json` runs dry; one without (the bite, the whip) never does. A unit starts with a full load (`ammo`); `ammo` is null for a weapon that never runs dry. A citizen taken (TAKE-1) starts with a full load of its new weapon.
+- **AMMO-2** Each shot (FIRE-4) uses one round; a suppressive burst (SUP-3) uses `ammo.suppressRounds = 2` (what is left, if less).
+- **AMMO-3** A weapon left with no rounds starts reloading at once (`reloading { unit, ticks }`): for `reloadTicks` ticks the unit cannot aim or fire, though it may move; then the load is full again (`reloaded`). A capture or suppressive fire in hand waits out the reload.
+- **AMMO-4** `{ type: "reload", side, unit }` starts a reload early, when the load is not full and no reload is running; `legalActions` lists it then.
 
 ## 29. Objectives with a clock (OBJ) - 2026-11-22, `PLAN.md` D26 (4)
 - **OBJ-1** **Capture:** when the battle's roster allows it (`roster.capture`, the city's restraints; `state.canCapture`), `{ type: "capture", side, unit, target }` starts a capture of a revealed host or taker beside the agent (Chebyshev 1, same level) at no more than `objective.captureHpPercent = 50` percent of its health. While the target stays beside it the agent neither moves nor fires; after `objective.captureTicks = 10` ticks the target is **captured**: it leaves the field (down, `captured`, no body), counts in `score.hostilesDown` and `score.captured`, and emits `captured`. Any move, fire, suppress or halt order ends a capture.

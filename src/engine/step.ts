@@ -1,5 +1,5 @@
 // ARCH-2: the pure step. Orders (section 4) and the tick (TIME-3, sections 5-12).
-import { UNITS, type Side } from '../data';
+import { UNITS, WEAPONS, type Side } from '../data';
 import type { Action, GameEvent, Pos, State, StepResult, Unit } from './types';
 import { POSTURES, SIDES, STANCES } from './types';
 import { inBounds, isPassable, tileIndex } from './map';
@@ -147,6 +147,18 @@ function applyOrder(state: State, action: Exclude<Action, { type: 'tick' }>): St
       unitById(st, action.unit)!.blast = { at: { x: action.at.x, y: action.at.y, level: action.at.level }, progress: 0 };
       return accept(st, action);
     }
+    case 'reload': {
+      // AMMO-4
+      const w = weaponOf(target);
+      if (!w?.magazine || target.ammo === null || target.ammo === undefined) return reject(state, 'that weapon does not reload');
+      if ((target.reloadLeft ?? 0) > 0) return reject(state, 'already reloading');
+      if (target.ammo >= w.magazine) return reject(state, 'the magazine is full');
+      const st = cloneState(state);
+      const u = unitById(st, action.unit)!;
+      const ev = accept(st, action);
+      startReload(st, u, w, ev.ok ? ev.events : []);
+      return ev;
+    }
     case 'capture': {
       // OBJ-1
       const why = captureBlock(state, target, action.target);
@@ -224,6 +236,25 @@ function runTick(state: State): StepResult {
         if (u.blast.progress >= st.tuning.blast.armTicks) detonate(st, u, events, occ);
         continue;
       }
+    }
+    // AMMO-3: a reload runs down whatever else the unit does; while it runs, the unit cannot fire.
+    let reloading = false;
+    if ((u.reloadLeft ?? 0) > 0) {
+      u.reloadLeft = u.reloadLeft! - 1;
+      if (u.reloadLeft === 0) {
+        u.ammo = weaponOf(u)?.magazine ?? null;
+        events.push({ type: 'reloaded', tick: st.tick, unit: u.id });
+      } else reloading = true;
+    }
+    if (reloading) {
+      u.aimProgress = 0;
+      if (u.capture || u.suppressAt) {
+        u.moving = false;
+        continue;
+      }
+      if (isPinned(st, u) && st.tick % 2 === 1) u.moving = false;
+      else advanceMove(st, u, events, occ);
+      continue;
     }
     // OBJ-1: a capture under way holds the agent beside its target.
     if (u.capture) {
@@ -362,6 +393,7 @@ function suppressFire(st: State, u: Unit, cooldown: number, events: GameEvent[])
     u.revealed = true;
     events.push({ type: 'revealed', tick: st.tick, unit: u.id, by: 'fire' });
   }
+  useRounds(st, u, st.tuning.ammo?.suppressRounds ?? 1, events); // AMMO-2
   const pinned: string[] = [];
   for (const t of st.units) {
     if (t.down || t.side === u.side || t.side === 'civilian' || t.level !== at.level) continue;
@@ -370,6 +402,20 @@ function suppressFire(st: State, u: Unit, cooldown: number, events: GameEvent[])
     pinned.push(t.id);
   }
   events.push({ type: 'suppressFire', tick: st.tick, unit: u.id, at: { ...at }, weapon: u.weapon!, pinned });
+}
+
+/** AMMO-2, AMMO-3: rounds spent; an empty weapon starts reloading. */
+function useRounds(st: State, u: Unit, n: number, events: GameEvent[]): void {
+  if (u.ammo === null || u.ammo === undefined) return;
+  u.ammo = Math.max(0, u.ammo - n);
+  const w = weaponOf(u);
+  if (u.ammo === 0 && w) startReload(st, u, w, events);
+}
+
+function startReload(st: State, u: Unit, w: NonNullable<ReturnType<typeof weaponOf>>, events: GameEvent[]): void {
+  u.reloadLeft = w.reloadTicks ?? 1;
+  u.aimProgress = 0;
+  events.push({ type: 'reloading', tick: st.tick, unit: u.id, ticks: u.reloadLeft });
 }
 
 /** OBJ-1: why a capture cannot start, or null. */
@@ -443,6 +489,8 @@ function resolveShot(st: State, u: Unit, t: Unit, events: GameEvent[], occ: Map<
   u.lastFiredTick = st.tick;
   u.aimProgress = 0;
   st.score.shotsFired += 1;
+  // AMMO-2
+  useRounds(st, u, 1, events);
   // SUP-1: being shot at, hit or miss, suppresses the target (ranged fire only).
   if (w.kind === 'ranged') addSuppression(st, t, st.tuning.suppress.perShot + (hit ? st.tuning.suppress.perHit : 0));
   events.push({
@@ -511,6 +559,9 @@ function take(st: State, t: Unit, by: Unit, templateId: string, events: GameEven
   t.moveTicks = tpl.moveTicks;
   t.sight = tpl.sight;
   t.weapon = tpl.weapon;
+  // AMMO-1: a new host starts with a full load.
+  t.ammo = tpl.weapon && WEAPONS[tpl.weapon]?.magazine ? WEAPONS[tpl.weapon]!.magazine! : null;
+  t.reloadLeft = 0;
   t.disguised = tpl.disguised;
   t.revealed = seen;
   t.stance = tpl.defaultStance;

@@ -51,6 +51,8 @@ function makeUnit(id: string, name: string, templateId: string, weapon: string |
     lastRunTick: null,
     suppression: 0,
     suppressAt: null,
+    ammo: weapon && WEAPONS[weapon]?.magazine ? WEAPONS[weapon]!.magazine! : null,
+    reloadLeft: 0,
   };
 }
 

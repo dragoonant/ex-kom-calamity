@@ -1,3 +1,4 @@
+import { WEAPONS } from '../data';
 // What a side knows: everything here is read from its view (ARCH-5, VIEW-1..4) and query.* on that view.
 // For the hostile side the enemies are the agency units it currently sees; for the agency they are the
 // units its view marks hostile (revealed hosts, takers, fighters). An unrevealed host is a citizen to the
@@ -101,6 +102,14 @@ export function moveOrder(k: Know, u: Unit, to: Pos): Action | null {
 
 export function stanceOrder(k: Know, u: Unit, stance: Unit['stance']): Action | null {
   return u.stance === stance ? null : { type: 'stance', side: k.side, unit: u.id, stance };
+}
+
+/** AI-15: reload between fights: under half a magazine with no enemy in view. */
+export function reloadOrder(k: Know, u: Unit): Action | null {
+  const w = u.weapon ? WEAPONS[u.weapon] : undefined;
+  if (!w?.magazine || u.ammo === null || u.ammo === undefined || (u.reloadLeft ?? 0) > 0) return null;
+  if (u.ammo * 2 >= w.magazine) return null;
+  return { type: 'reload', side: k.side, unit: u.id };
 }
 
 /** AI-12: crouch to fire from cover, stand to move. */

@@ -427,3 +427,78 @@ describe('29. Objectives with a clock (OBJ)', () => {
     expect(legalActions(s, 'agency')).toContainEqual({ type: 'capture', side: 'agency', unit: 'a1', target: 'u2' });
   });
 });
+
+describe('30. Ammunition (AMMO)', () => {
+  const run = (s: State, n: number) => {
+    const evs: { type: string }[] = [];
+    for (let i = 0; i < n; i++) {
+      const r = step(s, { type: 'tick' }) as { state: State; events: { type: string }[] };
+      s = r.state;
+      evs.push(...r.events);
+    }
+    return { s, evs };
+  };
+  function duel(): State {
+    let s = only(yard(), ['a1', 'u2']);
+    s = place(s, 'a1', 2, 3);
+    s = place(s, 'u2', 6, 3);
+    s = clone(s);
+    const u2 = s.units.find((u) => u.id === 'u2')!;
+    u2.revealed = true;
+    u2.stance = 'hold';
+    u2.hp = 9999;
+    u2.maxHp = 9999;
+    s.tuning = { ...s.tuning, stray: { percent: 0 } };
+    return s;
+  }
+  it('AMMO-1 units start with a full load; a weapon without a magazine never runs dry', () => {
+    const s = createGame({ battleId: 'first-raid', seed: 1 });
+    const a1 = s.units.find((u) => u.id === 'a1')!;
+    expect(a1.ammo).toBe(WEAPONS[a1.weapon!]!.magazine);
+    const taker = createGame({ battleId: 'automat-raid', seed: 1 }).units.find((u) => u.template === 'taker')!;
+    expect(taker.ammo).toBeNull();
+  });
+  it('AMMO-2 a shot uses a round and a suppressive burst two', () => {
+    let s = (step(duel(), { type: 'fire', side: 'agency', unit: 'a1', target: 'u2' }) as { state: State }).state;
+    const w = WEAPONS[s.units.find((u) => u.id === 'a1')!.weapon!]!;
+    s = run(s, w.aimTicks).s;
+    expect(s.units.find((u) => u.id === 'a1')!.ammo).toBe(w.magazine! - 1);
+    let p = (step(duel(), { type: 'suppress', side: 'agency', unit: 'a1', at: { x: 6, y: 3, level: 0 } }) as { state: State }).state;
+    p = run(p, Math.ceil(w.aimTicks / 2)).s;
+    expect(p.units.find((u) => u.id === 'a1')!.ammo).toBe(w.magazine! - TUNING.ammo.suppressRounds);
+  });
+  it('AMMO-3 an empty weapon reloads by itself, and cannot fire meanwhile', () => {
+    let s = clone(duel());
+    const a1 = s.units.find((u) => u.id === 'a1')!;
+    a1.ammo = 1;
+    s = (step(s, { type: 'fire', side: 'agency', unit: 'a1', target: 'u2' }) as { state: State }).state;
+    const w = WEAPONS[a1.weapon!]!;
+    const r = run(s, w.aimTicks);
+    expect(r.evs.some((e) => e.type === 'reloading')).toBe(true);
+    const mid = r.s.units.find((u) => u.id === 'a1')!;
+    expect(mid.ammo).toBe(0);
+    const shotsBefore = r.s.score.shotsFired;
+    const after = run(r.s, w.reloadTicks! - 1);
+    expect(after.s.score.shotsFired).toBe(shotsBefore);
+    const done = run(after.s, 1);
+    expect(done.evs.some((e) => e.type === 'reloaded')).toBe(true);
+    expect(done.s.units.find((u) => u.id === 'a1')!.ammo).toBe(w.magazine);
+  });
+  it('AMMO-4 a reload can start early, not on a full load', () => {
+    const full = duel();
+    expect(step(full, { type: 'reload', side: 'agency', unit: 'a1' }).ok).toBe(false);
+    const half = clone(full);
+    half.units.find((u) => u.id === 'a1')!.ammo = 3;
+    expect(legalActions(half, 'agency')).toContainEqual({ type: 'reload', side: 'agency', unit: 'a1' });
+    const r = step(half, { type: 'reload', side: 'agency', unit: 'a1' });
+    expect(r.ok && (r as { state: State }).state.units.find((u) => u.id === 'a1')!.reloadLeft).toBe(WEAPONS[half.units[0]!.weapon!]!.reloadTicks);
+  });
+  it('AI-15 a normal agent with nobody in sight reloads a half-empty weapon', () => {
+    let s = only(yard(), ['a1']);
+    s = clone(s);
+    for (const u of s.units) if (u.side === 'hostile') u.x = 0;
+    s.units.find((u) => u.id === 'a1')!.ammo = 2;
+    const acts = makeAgencyNormal()(view(s, 'agency'), 'agency');
+    expect(acts).toContainEqual({ type: 'reload', side: 'agency', unit: 'a1' });
+  });
+});

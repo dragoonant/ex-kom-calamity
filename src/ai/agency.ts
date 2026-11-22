@@ -4,7 +4,7 @@
 // never runs it, the bench does. It still reads only view(state, 'agency').
 import { query, tileIndex, type Action, type Pos, type Side, type State, type Unit, canSuppress, coverAgainst, isPinned } from '../engine';
 import { WEAPONS } from '../data';
-import { bestTile, coverPosture, fireOrder, firingTile, freeNeighbour, know, moveOrder, stanceOrder, type Know } from './know';
+import { bestTile, coverPosture, reloadOrder, fireOrder, firingTile, freeNeighbour, know, moveOrder, stanceOrder, type Know } from './know';
 import { distanceAny } from './nav';
 import type { AiDriver } from './types';
 
@@ -65,6 +65,15 @@ function agent(k: Know, a: Unit, out: Action[], checked: Set<string>, claimed: M
     if (n) push(moveOrder(k, a, n));
   };
   if (e) {
+    // AI-15: stagger reloads: on its last round, an agent reloads early while two or more squadmates still fire.
+    const wpn = a.weapon ? WEAPONS[a.weapon] : undefined;
+    if (wpn?.magazine && a.ammo !== null && a.ammo !== undefined && a.ammo <= 1 && !(a.reloadLeft ?? 0)) {
+      const firing = k.own.filter((o) => o.id !== a.id && !o.down && !(o.reloadLeft ?? 0) && (o.ammo ?? 1) > 1).length;
+      if (firing >= 2) {
+        push({ type: 'reload', side: k.side, unit: a.id });
+        return;
+      }
+    }
     // AI-13: pinned in the open, the agent first moves to the nearest firing tile with cover against its target.
     if (isPinned(k.view, a) && coverAgainst(k.view, a, e).grade === 'none') {
       const spot = bestTile(k, a, 20, (p, ticks) => (coverAgainst(k.view, p, e).value > 0 && query.los(k.view, p, e) ? 100 - ticks : null));
@@ -100,6 +109,12 @@ function agent(k: Know, a: Unit, out: Action[], checked: Set<string>, claimed: M
       const n = freeNeighbour(k, e, a);
       if (n) push(moveOrder(k, a, n));
     }
+    return;
+  }
+  // AI-15: no enemy in sight: top up a half-empty weapon first.
+  const reload = reloadOrder(k, a);
+  if (reload) {
+    push(reload);
     return;
   }
   const far = k.nearestEnemy(a);
