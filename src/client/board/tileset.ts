@@ -56,6 +56,7 @@ export const OVERLAY = {
   blast: new THREE.Color('#d9533f'),
   hover: new THREE.Color('#ffffff'),
   hidden: new THREE.Color('#3a4446'),
+  lamplight: new THREE.Color('#ffd9a0'),
   scorch: new THREE.Color('#2b2f33'),
   crack: new THREE.Color('#1b1b1f'),
   rubble: new THREE.Color('#8a7f73'),

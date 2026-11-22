@@ -134,6 +134,8 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
       // Damage shows: a tile darkens as its hp falls below its material's (STR-3).
       const max = MATERIALS[t.material]?.hp ?? 0;
       if (max > 0 && t.hp < max) c.lerp(OVERLAY.scorch, 0.55 * (1 - t.hp / max));
+      // NIGHT-2 on the board: at night the tiles the rules count as lit (rooms, lamp pools) glow warm.
+      if (state.night && (t.kind === 'floor' || t.kind === 'ground' || t.kind === 'stair') && query.lit(state, t)) c.lerp(OVERLAY.lamplight, 0.22);
       if (!derived.visible.has(idx)) c.lerp(OVERLAY.hidden, 0.42);
       if (derived.path.has(idx)) c.lerp(OVERLAY.path, 0.7);
       if (derived.blast.has(idx)) c.lerp(OVERLAY.blast, 0.65);
@@ -142,7 +144,7 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
       mesh.setColorAt(i, c);
     }
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width]);
+  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width, state.night]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLayoutEffect(() => {
     const mesh = ref.current;

@@ -4,7 +4,9 @@
 // west, a cool sky fill, no shadow maps (an integrated GPU keeps 60 fps), window and lamp glow by emissive
 // instances, the alien cores pulsing through one shared material.
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { MAPS } from '../../data';
+import type { State } from '../../engine';
 import { feed, makeAccumulator } from '../loop';
 import { useClient } from '../store';
 import { CameraRig } from './CameraRig';
@@ -15,7 +17,7 @@ import { Props } from './Props';
 import { Surroundings } from './Surroundings';
 import { RendererName, useSceneryLevel } from '../scenery';
 import { Tiles, useBoardDerived } from './Tiles';
-import { live } from './world';
+import { LEVEL_H, live } from './world';
 
 /** The evening palette the scene clears to and lights with; also read by the gallery. */
 export const EVENING = {
@@ -52,13 +54,34 @@ export function RendererHandle() {
   return null;
 }
 
-/** NIGHT-1: a raid at night: a dim moonlit fill, a faint cool key; the lamps and windows carry the light. */
+/** NIGHT-1: a raid at night. The rules cut sight on dark streets (NIGHT-2), but the board must still show the
+ * player the building and every figure in it: a bright cool moonlit fill and key keep the whole site readable in a
+ * blue night register, and the street lamps cast warm pools of their own (`NightLamps`). */
 export function NightLights() {
   return (
     <>
-      <hemisphereLight args={['#3a4a66', '#1f1a16', 0.45]} />
-      <directionalLight position={[-20, 24, 10]} intensity={0.35} color="#9fb8e0" />
-      <directionalLight position={[18, 10, -22]} intensity={0.12} color={EVENING.fill} />
+      <hemisphereLight args={['#8fa3c8', '#4a4038', 1.35]} />
+      <directionalLight position={[-20, 24, 10]} intensity={1.05} color="#c2d2f0" />
+      <directionalLight position={[18, 10, -22]} intensity={0.4} color={EVENING.fill} />
+    </>
+  );
+}
+
+/** At most this many lamp lights, so a lamp-lined block does not multiply the cost of every lit material. */
+const MAX_LAMP_LIGHTS = 8;
+
+/** NIGHT-2 drawn: a warm point light under each street lamp's head, reaching about the rules' lamp range. */
+export function NightLamps({ state }: { state: State }) {
+  const active = useClient((s) => s.level);
+  const lamps = useMemo(() => (MAPS[state.mapId]?.props ?? []).filter((p) => p.kind === 'lamp').slice(0, MAX_LAMP_LIGHTS), [state.mapId]);
+  const reach = (state.tuning.night?.lampRange ?? 3) + 2.5;
+  return (
+    <>
+      {lamps
+        .filter((p) => p.level <= active)
+        .map((p, i) => (
+          <pointLight key={i} position={[p.x + 0.5, p.level * LEVEL_H + 2.9, p.y + 0.5]} color="#ffc27a" intensity={9} distance={reach} decay={1.4} />
+        ))}
     </>
   );
 }
@@ -85,6 +108,7 @@ function Board() {
     <>
       {scenery === 'full' && <Surroundings width={agency.width} depth={agency.depth} night={agency.night === true} />}
       <Tiles state={agency} derived={derived} />
+      {agency.night === true && <NightLamps state={agency} />}
       <Props state={agency} />
       <Figures state={agency} />
       <Marks state={agency} />

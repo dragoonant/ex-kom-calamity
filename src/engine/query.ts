@@ -3,7 +3,7 @@ import type { Pos, ShotBreakdown, Side, State, Unit } from './types';
 import { coverAgainst, type CoverGrade } from './cover';
 import { distance as tileDistance, hasLineOfSight, tileIndex } from './map';
 import { pathField, pathTo, posOfIndex } from './path';
-import { sideSeesUnit, unitById, visibleTileIndices } from './sight';
+import { isLit, sideSeesUnit, unitById, visibleTileIndices } from './sight';
 import { canFire, damageRange as weaponDamageRange, hitBreakdown } from './fire';
 import { MATERIALS } from '../data';
 import { blastFootprint, canBlast, isBreakable } from './structure';
@@ -87,6 +87,10 @@ export const query = {
   },
   visibleTiles(state: State, side: Side): Pos[] {
     return visibleTileIndices(state, side).map((idx) => posOfIndex(state, idx));
+  },
+  /** NIGHT-2: whether a tile is lit (an indoor floor or stair, or ground near a street lamp); the board warms it. */
+  lit(state: State, p: Pos): boolean {
+    return isLit(state, p);
   },
   los(state: State, a: Pos, b: Pos): boolean {
     return hasLineOfSight(state, a, b);
