@@ -78,20 +78,25 @@ describe('D21 cracks on damaged tiles (tileset.ts)', () => {
   });
 });
 
-describe('D21 shake switch (viewSettings.ts)', () => {
+describe('D21 shake switch and the D28 shadows switch (viewSettings.ts)', () => {
   it('reads the default from nothing, round-trips, and rejects nonsense', () => {
     const mem = new Map<string, string>();
     const storage = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) };
     expect(readViewSettings(null)).toEqual(DEFAULT_VIEW);
-    expect(readViewSettings(storage)).toEqual({ shake: true, scenery: 'auto' });
-    expect(writeViewSettings(storage, { shake: false, scenery: 'plain' })).toBe(true);
-    expect(readViewSettings(storage)).toEqual({ shake: false, scenery: 'plain' });
+    expect(readViewSettings(storage)).toEqual({ shake: true, shadows: true, scenery: 'auto' });
+    expect(writeViewSettings(storage, { shake: false, shadows: true, scenery: 'plain' })).toBe(true);
+    expect(readViewSettings(storage)).toEqual({ shake: false, shadows: true, scenery: 'plain' });
+    expect(writeViewSettings(storage, { shake: true, shadows: false, scenery: 'auto' })).toBe(true);
+    expect(readViewSettings(storage)).toEqual({ shake: true, shadows: false, scenery: 'auto' });
+    // A save from before the shadows and scenery switches keeps its shake and takes their defaults.
+    mem.set('ekc-view', '{"shake": false}');
+    expect(readViewSettings(storage)).toEqual({ shake: false, shadows: true, scenery: 'auto' });
     mem.set('ekc-view', '{"shake": "loud"}');
     expect(readViewSettings(storage)).toEqual(DEFAULT_VIEW);
     mem.set('ekc-view', 'nope');
     expect(readViewSettings(storage)).toEqual(DEFAULT_VIEW);
     mem.set('ekc-view', '{"shake": false, "scenery": "lavish"}');
-    expect(readViewSettings(storage)).toEqual({ shake: false, scenery: 'auto' });
+    expect(readViewSettings(storage)).toEqual({ shake: false, shadows: true, scenery: 'auto' });
   });
 
   it('RULING ART-11: auto scenery is plain on a software renderer or before one is named, full on a GPU', () => {

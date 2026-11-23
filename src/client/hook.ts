@@ -49,6 +49,8 @@ export interface EkcHook {
   audio(): AudioReport | null;
   /** D21 f: the camera shake now and whether the player's switch allows it. */
   shake(): { amp: number; enabled: boolean };
+  /** The raid board's detail tier and shadows switch (world.ts `view`; RULING ART-11). */
+  detail(): { detail: 'full' | 'low'; shadows: boolean };
   setAudio(s: { volume?: number; muted?: boolean; music?: number; source?: 'auto' | 'synth' }): void;
 }
 

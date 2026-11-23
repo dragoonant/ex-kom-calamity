@@ -9,7 +9,7 @@ import { unitLabel, useClient, type Speed } from './store';
 import { director } from './App';
 import { browserStorage } from './save';
 import { readViewSettings, writeViewSettings } from './viewSettings';
-import { shake } from './board/world';
+import { setShadows, shake, view } from './board/world';
 
 function levelName(level: number): string {
   return level === 0 ? 'GROUND' : `LEVEL ${level}`;
@@ -68,10 +68,17 @@ export function Hud() {
     shake.enabled = shakeOn;
     if (!shakeOn) shake.amp = 0;
   }, [shakeOn]);
+  const [shadowsOn, setShadowsOn] = useState(() => readViewSettings(browserStorage()).shadows);
+  useEffect(() => setShadows(shadowsOn), [shadowsOn]);
   const toggleShake = () => {
     const next = !shakeOn;
     writeViewSettings(browserStorage(), { ...readViewSettings(browserStorage()), shake: next });
     setShakeOn(next);
+  };
+  const toggleShadows = () => {
+    const next = !shadowsOn;
+    writeViewSettings(browserStorage(), { ...readViewSettings(browserStorage()), shadows: next });
+    setShadowsOn(next);
   };
   const setMuted = (muted: boolean) => {
     director.setMuted(muted);
@@ -208,6 +215,10 @@ export function Hud() {
               <input className="volume-slider" type="range" min={0} max={100} value={Math.round(audio.volume * 100)} aria-label="Volume" data-testid="volume" onChange={(e) => setVolume(Number(e.target.value) / 100)} />
               <button type="button" className={`toggle ${shakeOn ? '' : 'toggle-alert'}`} data-testid="shake" aria-pressed={shakeOn} onClick={toggleShake}>
                 {shakeOn ? 'SHAKE' : 'NO SHAKE'}
+              </button>
+              {/* On a software renderer (view.detail low) no shadow map is made, so the switch says so and stays off. */}
+              <button type="button" className={`toggle ${shadowsOn && view.detail === 'full' ? '' : 'toggle-alert'}`} data-testid="shadows" aria-pressed={shadowsOn && view.detail === 'full'} disabled={view.detail !== 'full'} onClick={toggleShadows}>
+                {shadowsOn && view.detail === 'full' ? 'SHADOWS' : 'NO SHADOWS'}
               </button>
             </div>
             <div className={`save-lamp ${saveStatus.ok ? '' : 'save-lamp-alert'}`} data-testid="save-lamp">

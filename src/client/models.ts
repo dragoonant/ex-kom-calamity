@@ -284,15 +284,18 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
   const total = urls.length;
   onProgress(0, total);
   let loaded = 0;
-  // Six fetches at a time (round 10 took the boot list from 14 files to 40; one at a time, a slow connection waited
-  // for each in turn). The hand-off to the loader below toggles three's global Cache, so it runs one file at a time.
+  // Three fetches at a time (round 10 took the boot list from 14 files to 40; one at a time, a slow connection waited
+  // for each in turn; six at once raised Chromium's ERR_CACHE_READ_FAILURE on a fresh profile once in six save e2e
+  // runs). The hand-off to the loader below toggles three's global Cache, so it runs one file at a time.
   let handOff: Promise<void> = Promise.resolve();
   const one = async (url: string) => {
     try {
       setModelState(url, 'loading');
       // Fetch the whole file first, so a missing GLB is a known failure and the start switch opens only once the
       // bytes are really here (rule 26); the loader then reads them back from the HTTP cache.
-      const r = await fetch(url, { cache: 'force-cache' });
+      // A failed read of the disk cache (ERR_CACHE_READ_FAILURE) is retried once from the network, so a figure is not
+      // left a stand-in for the session over a cache race.
+      const r = await fetch(url, { cache: 'force-cache' }).catch(() => fetch(url, { cache: 'reload' }));
       if (!r.ok) throw new Error(`${url}: ${r.status}`);
       const bytes = await r.arrayBuffer();
       if (KEEP_BYTES.has(url)) PRELOADED_BYTES.set(url, bytes.slice(0));
@@ -323,6 +326,6 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
   const worker = async () => {
     while (next < urls.length) await one(urls[next++]!);
   };
-  await Promise.all(Array.from({ length: Math.min(6, urls.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(3, urls.length) }, worker));
   onProgress(total, total);
 }

@@ -22,7 +22,8 @@ async function perf(page: Page) {
 
 test('the full raid site with the tile set, props and effects stays inside the frame budget, and shots are remade', async ({ page }) => {
   const errors = watchErrors(page);
-  await openTitle(page);
+  // The full detail tier even on this headless software renderer, so the budget and the shots cover the full look.
+  await openTitle(page, '?detail=full');
   await startRaid(page);
   // Street level, desktop: the squad at the west kerb, the bank's facade and a lamp (MAP-10: Civic Savings).
   await page.evaluate(() => {

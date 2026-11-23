@@ -49,7 +49,9 @@ describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
     const layers = makeLayers(layerCapacity(s));
     fillLayers(layers, { state: s, map, active: 6 });
     expect(layers.glass.count).toBe(323);
-    expect(layers.mullion.count).toBe(323 * 2);
+    // Four bars a window (frame top and bottom, centre bar, transom), a handle per closed door, a rail per stair
+    // (before D28 the buffer was sized for the windows alone, so the handles and rails were dropped).
+    expect(layers.mullion.count).toBe(323 * 4 + 113 + 42);
     expect(layers.leaf.count).toBe(113);
     expect(layers.step.count).toBe(42 * 4);
     expect(layers.chunk.count).toBe(0);
@@ -69,7 +71,7 @@ describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
     expect(layers.scorch.count).toBe(1);
   });
 
-  it('MAP-9 a window turns to lie in its wall: flat in an east-west run, a quarter turn in a north-south run, the default when alone', () => {
+  it('MAP-9 a window or door turns to lie in its wall: flat in an east-west run, a quarter turn in a north-south run, the default when alone', () => {
     const map = MAPS['halcyon-block']!;
     const s = createGame({ battleId: 'block-raid', seed: 1 }) as State;
     const w = s.width;
@@ -77,7 +79,7 @@ describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
     let ew = 0;
     let ns = 0;
     for (const t of s.tiles) {
-      if (t.kind !== 'window') continue;
+      if (t.kind !== 'window' && t.kind !== 'door') continue;
       const yaw = openingYaw(s.tiles, w, d, t);
       const base = t.level * w * d;
       const side = (x: number, y: number) => s.tiles[base + y * w + x];
@@ -92,7 +94,7 @@ describe('M4 tile set (docs/art/tile-set.md; MAP-9)', () => {
         ew++;
       }
     }
-    // The block has windows on both faces of its buildings.
+    // The block has windows and doors on both faces of its buildings.
     expect(ew).toBeGreaterThan(0);
     expect(ns).toBeGreaterThan(0);
     expect(map).toBeTruthy();
@@ -263,19 +265,15 @@ describe('Round 10 assets and surfaces (docs/art/round-10.md)', () => {
     }
   });
 
-  it('the surface strip has the shader layers in order, and every tile kind of every style maps to a layer or to none', async () => {
+  it('the surface strip has the shader layers in order, and every drawn pattern but plain has a generated swatch', async () => {
     const { readFileSync, existsSync } = await import('node:fs');
-    const { SURFACES, surfaceOf, surfaceLayer } = await import('../src/client/board/surface');
+    const { SURFACES, SIDE, TOP, SIDE_SWATCH, TOP_SWATCH } = await import('../src/client/board/surface');
     const meta = JSON.parse(readFileSync('public/textures/tiles.json', 'utf8')) as { size: number; layers: string[]; mean: number[][] };
     expect(meta.layers).toEqual([...SURFACES]);
     expect(meta.mean).toHaveLength(SURFACES.length);
     expect(existsSync('public/textures/tiles.webp')).toBe(true);
-    for (const style of ['residential', 'office', 'bank', 'depot', 'automat', 'street'] as const) {
-      for (const kind of ['ground', 'floor', 'wall', 'window', 'stair', 'rubble'] as const) {
-        const s = surfaceOf({ kind, material: 'brick' } as never, style, false);
-        expect(surfaceLayer(s), `${style} ${kind}`).toBeGreaterThanOrEqual(0);
-      }
-      expect(surfaceLayer(surfaceOf({ kind: 'void', material: 'brick' } as never, style, false))).toBe(-1);
-    }
+    for (const k of Object.keys(SIDE) as (keyof typeof SIDE)[]) expect(SIDE_SWATCH[k] === null, `side ${k}`).toBe(k === 'plain');
+    for (const k of Object.keys(TOP) as (keyof typeof TOP)[]) expect(TOP_SWATCH[k] === null, `top ${k}`).toBe(k === 'plain');
+    for (const v of [...Object.values(SIDE_SWATCH), ...Object.values(TOP_SWATCH)]) if (v) expect(SURFACES).toContain(v);
   });
 });

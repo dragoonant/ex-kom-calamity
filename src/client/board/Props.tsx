@@ -82,7 +82,7 @@ function PropKindMesh({ kind, list, state, active, glow, geometry: given, materi
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
   }, [list, state.tiles, active, glow, geometry]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <instancedMesh key={geometry.uuid} name={name} ref={ref} args={[geometry, material ?? (glow ? GLOWING : BODY), Math.max(1, list.length)]} raycast={NO_RAYCAST} frustumCulled={false} />;
+  return <instancedMesh key={geometry.uuid} name={name} ref={ref} args={[geometry, material ?? (glow ? GLOWING : BODY), Math.max(1, list.length)]} raycast={NO_RAYCAST} frustumCulled={false} castShadow={!glow} receiveShadow={!glow} />;
 }
 
 export function Props({ state }: { state: State }) {

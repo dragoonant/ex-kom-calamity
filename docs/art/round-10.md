@@ -1,7 +1,7 @@
 # Art round 10: generated art for what was procedural (2026-11-22)
 
 The owner asked for generated art wherever the game still drew procedural shapes: the title screen, the buildings in
-the tactical and strategic modes, the furniture inside the buildings, and the aliens still on stand-ins (PLAN D28).
+the tactical and strategic modes, the furniture inside the buildings, and the aliens still on stand-ins (PLAN D29).
 Everything ran on the owner's GPU (RTX 5080, 16 GB) through local, permissively licensed models: no paid API, no
 Gemini, no Hugging Face router.
 
@@ -37,25 +37,29 @@ poster draws in full as before.
 
 ## 3. Tactical buildings: textures, not models
 Walls and floors break tile by tile (D16 c), so a whole-building model cannot stand in for them. Instead the tile
-boxes wear generated material swatches (`src/client/board/surface.ts`):
+faces wear generated material swatches:
 
 - `tools/concept/pack_textures.py` makes each swatch seamless (a crop to the length that wraps best on each axis,
   then a half-roll blend under a 12% feathered border) and packs the 16 layers into `public/textures/tiles.webp`
   (512 x 8192, 581 KB) with `tiles.json` (layer names, each layer's mean colour, sources). Preview:
   `docs/concept/samples/r10/sheet-textures-tiled.jpg`.
-- One `DataArrayTexture`, sampled triplanar from world position, so a wall of separate boxes reads as one brick wall
-  and no UVs are needed. Each tile instance carries its layer in `aSurf` (-1: none).
-- **The swatch adds detail, not colour:** the shader multiplies the tile's existing colour by texel / layer mean
-  (clamped 0.35 to 1.8), so the style palettes, damage, visibility, path, blast and hover tints keep their meaning.
-- Mapping (mirrors `baseColour`): outer walls brick (residential, street), render (office), ashlar (bank), steel
-  (depot), enamel (automat); plaster and steel walls by material; floors parquet, linoleum, marble, concrete;
-  roofs tar, gravel, lead; stairs and rubble concrete; the ground paving.
-- PLAIN scenery and a failed load both set `uSurfOn` to 0: the plain colours.
-- RULING: ART-12 | tactical buildings get textures on the tile boxes, not models | destructible tiles (D16 c) and
-  the one pick mesh per level (KB rule 25) rule out a building mesh; the textures change no geometry, no pick and no
-  draw call (the same instanced mesh per level) | closes ART-5 for the tile set. provisional
-- Known: the chequer, lead and enamel swatches show a faint ghost of the blend; chequer is in the strip but no tile
-  uses it.
+- **They ride on the D28 facade pass** (`src/client/board/surface.ts`, `docs/art/tile-set.md` section 1b), which
+  landed on `main` while this round ran: that shader already picks a pattern per face from each tile's codes
+  (`tileSurface`), draws interior faces in plaster and shades floor edges. Once the strip has loaded (`loadSurfaces`,
+  one `DataArrayTexture`), a face whose pattern has a swatch samples it instead of drawing the pattern
+  (`SIDE_SWATCH`: brick, ashlar, plaster, steel, render, glazed to enamel, boards to parquet; `TOP_SWATCH`: planks to
+  parquet, terrazzo to marble, tiles to linoleum, concrete, roofing to tar, asphalt, paving). Sides sample along the
+  wall and up, tops on the ground plane, a repeat every 2 units.
+- **The swatch adds detail, not colour:** the face's colour is multiplied by texel / layer mean (clamped 0.35 to 1.8),
+  so the style palettes, damage, visibility, path, blast and hover tints keep their meaning, and the D28 edge shade,
+  grime and panes stay on top.
+- The drawn patterns remain the fallback: when the strip fails, on PLAIN scenery (`uSurfOn` 0) and on the low detail
+  tier (`EKC_LOW` skips both). Every material made by `patchSurface` gets them, so the street around a site does too.
+- RULING: ART-14 | tactical buildings get generated textures on the tile faces, not models, through the D28 pattern
+  codes | destructible tiles (D16 c) and the one pick mesh per level (KB rule 25) rule out a building mesh; the
+  swatches change no geometry, no pick and no draw call | closes ART-5 for the tile set. provisional
+- Known: gravel, lead and chequer are in the strip but no pattern uses them (the D28 codes have one roofing and one
+  floor tile); the chequer, lead and enamel swatches show a faint ghost of the seam blend.
 
 ## 4. Models
 One pipeline for every object (`tools/figures/objects.json`, `batch_objects.py`): cutout, Hunyuan3D 2.1 shape
