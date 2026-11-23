@@ -7,6 +7,16 @@ import { create } from 'zustand';
 import { browserStorage } from './save';
 import { readViewSettings, resolveScenery, writeViewSettings, type Scenery } from './viewSettings';
 
+/** `?detail=full` or `?detail=low` on the URL forces the tier for this visit (the raid board reads it too, world.ts). */
+function urlScenery(): Scenery | null {
+  try {
+    const d = new URLSearchParams(window.location.search).get('detail');
+    return d === 'full' ? 'full' : d === 'low' ? 'plain' : null;
+  } catch {
+    return null;
+  }
+}
+
 interface SceneryState {
   setting: Scenery;
   renderer: string;
@@ -14,7 +24,7 @@ interface SceneryState {
 }
 
 export const useScenery = create<SceneryState>((set) => ({
-  setting: readViewSettings(browserStorage()).scenery,
+  setting: urlScenery() ?? readViewSettings(browserStorage()).scenery,
   renderer: '',
   set(setting) {
     const storage = browserStorage();

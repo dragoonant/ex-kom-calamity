@@ -20,6 +20,7 @@ From 3d-game-generation `templates/presentation-concept.md`. Status: **the owner
 | Typefaces | Display: a geometric sans in wide caps; body: a humanist sans; numerals: tabular, as on a meter face |
 | Frame shapes | Rounded-rectangle panels with a chrome bead edge, visible screw heads at corners, no cut corners |
 | Title screen and menu | A city skyline poster in flat colour under the console; menu items are labelled toggle switches |
+| The board's surroundings | D28 (2026-11-21): the raid site is the top of our own plotting console (enamel deck, lamp rows, toggles, dials, chrome bead), standing in a **light** enamel operations hall where operators sweep the city on round scopes and plotters mark wall boards; no dark room and no holograms (`docs/art/tile-set.md` 9) |
 | HUD | A console strip along the bottom: agent lamps, stance switches, a large PAUSE paddle; time control reads as a dial |
 | Event feed | Message slips that drop into a tray, newest on top, each stamped with the sim time |
 | City wire (2026-11-22) | In the city, the organism's slips run on a graphite news crawl across the top of the view, a red CITY WIRE tab at its left; building names are underlined buttons that open the file card. Everything else still drops into the tray |

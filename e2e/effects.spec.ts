@@ -31,7 +31,7 @@ test('a charge makes the stylised explosion and jolts the camera; the shake swit
   // The switch: off, kept, and a second blast gives no jolt.
   await page.getByTestId('shake').click();
   await expect(page.getByTestId('shake')).toHaveText('NO SHAKE');
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ekc-view')!))).toEqual({ shake: false, scenery: 'auto' });
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ekc-view')!))).toEqual({ shake: false, shadows: true, scenery: 'auto' });
   await page.evaluate(() => {
     const h = window.__ekc!;
     h.order({ type: 'blast', side: 'agency', unit: 'a1', at: { x: 4, y: 13, level: 0 } });
@@ -43,7 +43,7 @@ test('a charge makes the stylised explosion and jolts the camera; the shake swit
   await page.keyboard.press('Space');
   await page.reload();
   await expect(page.getByTestId('title')).toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem('ekc-view'))).toBe('{"shake":false,"scenery":"auto"}');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('ekc-view')!))).toEqual({ shake: false, shadows: true, scenery: 'auto' });
   await sweepText(page);
   expect(errors).toEqual([]);
 });
