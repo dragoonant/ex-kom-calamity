@@ -7,6 +7,7 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useFittedAsset } from '../board/assetScene';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { Skyline, towerRing, type SkyTone, type Tower } from '../board/backdrop';
 import { markWindows, patchWindows, type WindowUniforms } from '../board/windows';
@@ -422,6 +423,8 @@ function Traffic({ tone }: { tone: SkyTone }) {
   const domeGeo = useMemo(() => new THREE.SphereGeometry(0.2, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.1, -0.05), []);
   const body = useMemo(() => new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.3, metalness: 0.25 }), []);
   const dome = useMemo(() => new THREE.MeshStandardMaterial({ color: '#2f4552', roughness: 0.1, metalness: 0.2 }), []);
+  // Round 10: the generated civilian car when its file loaded (one instanced draw, tinted per lane like the stand-in).
+  const civil = useFittedAsset('vehicle:civilian', bodyGeo, { mode: 'uniform' });
   const bodies = useRef<THREE.InstancedMesh>(null);
   const domes = useRef<THREE.InstancedMesh>(null);
   const lights = useMemo(() => {
@@ -443,7 +446,7 @@ function Traffic({ tone }: { tone: SkyTone }) {
     const c = new THREE.Color();
     lanes.forEach((l, i) => bodies.current?.setColorAt(i, c.set(l.colour)));
     if (bodies.current?.instanceColor) bodies.current.instanceColor.needsUpdate = true;
-  }, [lanes]);
+  }, [lanes, civil]);
   const tmp = useMemo(() => ({ m: new THREE.Matrix4(), q: new THREE.Quaternion(), p: new THREE.Vector3(), s: new THREE.Vector3(1, 1, 1), up: new THREE.Vector3(0, 1, 0) }), []);
   useFrame(() => {
     const b = bodies.current;
@@ -475,8 +478,8 @@ function Traffic({ tone }: { tone: SkyTone }) {
   });
   return (
     <group>
-      <instancedMesh ref={bodies} args={[bodyGeo, body, lanes.length]} raycast={noRay} frustumCulled={false} castShadow />
-      <instancedMesh ref={domes} args={[domeGeo, dome, lanes.length]} raycast={noRay} frustumCulled={false} />
+      <instancedMesh key={civil ? 'glb' : 'plain'} name={civil ? 'traffic-glb' : undefined} ref={bodies} args={[civil?.geometry ?? bodyGeo, civil?.material ?? body, lanes.length]} raycast={noRay} frustumCulled={false} castShadow />
+      <instancedMesh ref={domes} args={[domeGeo, dome, lanes.length]} raycast={noRay} frustumCulled={false} visible={!civil} />
       <points geometry={lights} material={lightMat} raycast={noRay} frustumCulled={false} />
     </group>
   );

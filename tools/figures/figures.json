@@ -1,73 +1,118 @@
 {
-  "_": "One entry per figure role. reference: the locked concept (PLAN D7, D14). height: world units in the client (FIGURE_H = 1.2 is the agent; the placeholders' sizes for the others). body: humanoid figures are gated by head share, shoulders and legs; creatures record their dimensions. preset: Standard = octree 384 / 50 steps, High = 512 / 50 (the studio's presets). seeds: tried in order until the gate passes, at most three.",
-  "agent": {
-    "reference": "docs/concept/samples/chrome-suit-t2-h2.jpg",
-    "body": "humanoid",
-    "height": 1.2,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "humanoid"
-  },
-  "host": {
-    "reference": "docs/concept/samples/alien-host-s42.jpg",
-    "body": "humanoid",
-    "height": 1.2,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "humanoid"
-  },
-  "taker": {
-    "reference": "docs/concept/samples/alien-taker-s51.jpg",
-    "body": "creature",
-    "height": 0.95,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "legs"
-  },
-  "fighter": {
-    "reference": "docs/concept/samples/gemini-alien-fighter-a.jpg",
-    "body": "creature",
-    "height": 1.5,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "legs"
-  },
-  "agent-t1": {
-    "reference": "docs/concept/samples/chrome-suit-t1-1.jpg",
-    "body": "humanoid",
-    "height": 1.2,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "humanoid"
-  },
-  "citizen": {
-    "reference": "docs/concept/samples/chrome-citizen-1.jpg",
-    "body": "humanoid",
-    "height": 1.2,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "humanoid"
-  },
-  "citizen-2": {
-    "reference": "docs/concept/samples/chrome-citizen-2.jpg",
-    "body": "humanoid",
-    "height": 1.2,
-    "preset": "high",
-    "faces": 30000,
-    "texture": 2048,
-    "seeds": [1234, 7, 42],
-    "rig": "humanoid"
-  }
+ "_": "One entry per figure role. reference: the locked concept (PLAN D7, D14). height: world units in the client (FIGURE_H = 1.2 is the agent; the placeholders' sizes for the others). body: humanoid figures are gated by head share, shoulders and legs; creatures record their dimensions. preset: Standard = octree 384 / 50 steps, High = 512 / 50 (the studio's presets). seeds: tried in order until the gate passes, at most three. shapeReference: the reference the kept shape was generated from, when the paint reference changed later (round 10 repaint, D25).",
+ "agent": {
+  "reference": "docs/concept/samples/chrome-suit-t2-h2.jpg",
+  "body": "humanoid",
+  "height": 1.2,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "humanoid"
+ },
+ "host": {
+  "reference": "docs/concept/samples/r10/repaint-host-s161.jpg",
+  "body": "humanoid",
+  "height": 1.2,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "humanoid",
+  "shapeReference": "docs/concept/samples/alien-host-s42.jpg"
+ },
+ "taker": {
+  "reference": "docs/concept/samples/r10/repaint-taker-s163.jpg",
+  "body": "creature",
+  "height": 0.95,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "legs",
+  "shapeReference": "docs/concept/samples/alien-taker-s51.jpg"
+ },
+ "fighter": {
+  "reference": "docs/concept/samples/r10/repaint-fighter-s166.jpg",
+  "body": "creature",
+  "height": 1.5,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "legs",
+  "shapeReference": "docs/concept/samples/gemini-alien-fighter-a.jpg"
+ },
+ "agent-t1": {
+  "reference": "docs/concept/samples/chrome-suit-t1-1.jpg",
+  "body": "humanoid",
+  "height": 1.2,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "humanoid"
+ },
+ "citizen": {
+  "reference": "docs/concept/samples/chrome-citizen-1.jpg",
+  "body": "humanoid",
+  "height": 1.2,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "humanoid"
+ },
+ "citizen-2": {
+  "reference": "docs/concept/samples/chrome-citizen-2.jpg",
+  "body": "humanoid",
+  "height": 1.2,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "humanoid"
+ },
+ "spitter": {
+  "reference": "docs/concept/samples/r10/alien-spitter-s152.jpg",
+  "body": "creature",
+  "height": 0.9,
+  "preset": "high",
+  "faces": 30000,
+  "texture": 2048,
+  "seeds": [
+   1234,
+   7,
+   42
+  ],
+  "rig": "legs"
+ }
 }

@@ -10,9 +10,9 @@ import { useGLTF } from '@react-three/drei';
 import { useSyncExternalStore } from 'react';
 import { Cache } from 'three';
 
-export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'citizen-2' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter';
+export type FigureRole = 'agent-t1' | 'agent-t2' | 'citizen' | 'citizen-2' | 'host-hidden' | 'host-revealed' | 'taker' | 'fighter' | 'spitter';
 
-export const FIGURE_ROLES: FigureRole[] = ['agent-t1', 'agent-t2', 'citizen', 'citizen-2', 'host-hidden', 'host-revealed', 'taker', 'fighter'];
+export const FIGURE_ROLES: FigureRole[] = ['agent-t1', 'agent-t2', 'citizen', 'citizen-2', 'host-hidden', 'host-revealed', 'taker', 'fighter', 'spitter'];
 
 /** Camera distance (world units) beyond which the 8k LOD is drawn instead of the 30k model. */
 export const LOD_DISTANCE = 12;
@@ -133,15 +133,80 @@ export const FIGURE_SLOTS: Record<FigureRole, FigureSlot> = {
     gate: { headShare: null, shoulders: null, legs: null, mode: 'recorded', verdict: 'recorded', ruling: 'CREATURE-1, FIGHTER-1' },
     templates: ['fighter'],
   },
+  spitter: {
+    role: 'spitter',
+    label: 'Spitter',
+    // Round 10 (2026-11-22): its own body, so RULING STRAY-3 (the spitter wore the taker's) is closed.
+    ...figure('spitter'),
+    glow: { x: 0, y: 0.38, z: 0.3, size: 0.4 },
+    gate: { headShare: null, shoulders: null, legs: null, mode: 'recorded', verdict: 'recorded', ruling: 'CREATURE-1' },
+    templates: ['spitter'],
+  },
 };
 
-/** Every url preloaded at startup: the rigged files the board draws first, then the full models for the gallery. */
-export const MODEL_URLS: string[] = [
-  ...new Set([
-    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].rigged).filter((u): u is string => !!u),
-    ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u),
-  ]),
+// Round 10 (docs/art/round-10.md): generated models for what was procedural geometry. Each slot names the file the
+// GPU pass delivered (tools/figures/objects.json, docs/art/round-10-models.json), or null to draw the procedural
+// piece. A slot that fails to load keeps the procedural piece too (rule 26), so a missing file never leaves a hole.
+export type AssetGroup = 'prop' | 'building' | 'vehicle' | 'craft';
+export interface AssetSlot {
+  id: string;
+  group: AssetGroup;
+  label: string;
+  url: string | null;
+}
+const slot = (group: AssetGroup, name: string, label: string, file: string | null): AssetSlot => ({ id: `${group}:${name}`, group, label, url: file ? `models/${group === 'prop' ? 'props' : group === 'building' ? 'buildings' : group === 'vehicle' ? 'vehicles' : 'craft'}/${file}.glb` : null });
+
+export const ASSET_SLOTS: AssetSlot[] = [
+  slot('prop', 'desk', 'Desk', 'desk'),
+  slot('prop', 'counter', 'Counter', 'counter'),
+  slot('prop', 'shelf', 'Shelf', 'shelf'),
+  slot('prop', 'bed', 'Bed', 'bed'),
+  slot('prop', 'locker', 'Locker', 'locker'),
+  slot('prop', 'machine', 'Vending machine', 'machine'),
+  slot('prop', 'lamp', 'Street lamp', 'lamp'),
+  slot('prop', 'kiosk-sign', 'Kiosk sign', 'kiosk-sign'),
+  slot('prop', 'bench', 'Bench', 'bench'),
+  slot('prop', 'vehicle', 'Parked saloon', 'vehicle'),
+  slot('prop', 'planter', 'Planter', 'planter'),
+  slot('prop', 'tank', 'Roof tank', 'tank'),
+  slot('prop', 'vent', 'Roof vent', 'vent'),
+  slot('prop', 'mast', 'Radio mast', 'mast'),
+  slot('prop', 'crate', 'Crate', 'crate'),
+  slot('building', 'office', 'Office tower', 'office'),
+  slot('building', 'bank', 'Bank', 'bank'),
+  slot('building', 'broadcast', 'Broadcast station', 'broadcast'),
+  slot('building', 'residential', 'Apartment block', 'residential'),
+  slot('building', 'power', 'Power station', 'power'),
+  slot('building', 'automat', 'Automat', 'automat'),
+  slot('building', 'depot', 'Depot', 'depot'),
+  slot('building', 'civic', 'Civic hall', 'civic'),
+  slot('building', 'works', 'Works', 'works'),
+  slot('building', 'hq', 'Agency headquarters', 'hq'),
+  slot('vehicle', 'patrol-car', 'Agency patrol car', 'patrol-car'),
+  slot('vehicle', 'van', 'Agency van', 'van'),
+  slot('vehicle', 'civilian', 'Civilian flying car', 'civilian'),
+  slot('craft', 'scout', 'Scout', 'scout'),
+  slot('craft', 'seeder', 'Seeder', 'seeder'),
+  slot('craft', 'carrier', 'Carrier', 'carrier'),
 ];
+const ASSET_BY_ID = new Map(ASSET_SLOTS.map((a) => [a.id, a]));
+
+/**
+ * The urls preloaded at startup: the rigged figures the board draws and the round 10 assets; the 30k figure models
+ * only on `?gallery`, which is the only page that draws them (the board draws the rigged mesh, D21). This took the
+ * first load on Pages from 14 figure files to 7 (STATUS known limits, 2026-11-22).
+ */
+export function modelUrls(gallery: boolean): string[] {
+  return [
+    ...new Set([
+      ...FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].rigged).filter((u): u is string => !!u),
+      ...ASSET_SLOTS.map((a) => a.url).filter((u): u is string => !!u),
+      ...(gallery ? FIGURE_ROLES.map((r) => FIGURE_SLOTS[r].url).filter((u): u is string => !!u) : []),
+    ]),
+  ];
+}
+/** Every url either page may preload (tests read it). */
+export const MODEL_URLS: string[] = modelUrls(true);
 
 export type ModelState = 'placeholder' | 'loading' | 'ready' | 'failed';
 const modelState = new Map<string, ModelState>();
@@ -189,11 +254,40 @@ export function lodUrlOf(role: FigureRole): string | null {
   return lod && modelState.get(lod) === 'ready' ? lod : null;
 }
 
-export async function preloadModels(onProgress: (loaded: number, total: number) => void): Promise<void> {
-  const total = MODEL_URLS.length;
+/** An asset slot's url when its file loaded, else null (the procedural piece is drawn). */
+export function assetUrlOf(id: string): string | null {
+  const url = ASSET_BY_ID.get(id)?.url ?? null;
+  return url && modelState.get(url) === 'ready' ? url : null;
+}
+
+/** An asset slot's state, for the gallery. */
+export function assetStateOf(id: string): ModelState {
+  const url = ASSET_BY_ID.get(id)?.url ?? null;
+  if (!url) return 'placeholder';
+  return modelState.get(url) ?? 'loading';
+}
+
+/** The asset url for a React piece, re-read whenever the preload changes any slot. */
+export function useAssetUrl(id: string): string | null {
+  return useSyncExternalStore(subscribeModels, () => assetUrlOf(id));
+}
+
+/**
+ * The bytes of the slots drawn by code that builds its meshes itself (vehicles and craft, `board/assetScene.ts`), kept
+ * from the preload so they are parsed from memory, never read back from the disk cache (see below).
+ */
+export const PRELOADED_BYTES = new Map<string, ArrayBuffer>();
+const KEEP_BYTES = new Set(ASSET_SLOTS.filter((a) => a.group === 'vehicle' || a.group === 'craft').map((a) => a.url));
+
+export async function preloadModels(onProgress: (loaded: number, total: number) => void, gallery = false): Promise<void> {
+  const urls = modelUrls(gallery);
+  const total = urls.length;
   onProgress(0, total);
   let loaded = 0;
-  for (const url of MODEL_URLS) {
+  // Six fetches at a time (round 10 took the boot list from 14 files to 40; one at a time, a slow connection waited
+  // for each in turn). The hand-off to the loader below toggles three's global Cache, so it runs one file at a time.
+  let handOff: Promise<void> = Promise.resolve();
+  const one = async (url: string) => {
     try {
       setModelState(url, 'loading');
       // Fetch the whole file first, so a missing GLB is a known failure and the start switch opens only once the
@@ -201,17 +295,22 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
       const r = await fetch(url, { cache: 'force-cache' });
       if (!r.ok) throw new Error(`${url}: ${r.status}`);
       const bytes = await r.arrayBuffer();
+      if (KEEP_BYTES.has(url)) PRELOADED_BYTES.set(url, bytes.slice(0));
       // Hand the loader these bytes instead of letting it read the file back from the browser's disk cache: three's
       // FileLoader checks its own cache first (key `file:<url>`) and passes the entry to the parser on a 0 ms timer. A
       // second read of a 7 MB entry that was written a moment ago failed with ERR_CACHE_READ_FAILURE on a fresh
       // Chromium profile (the save e2e, 2026-11-20), which would have left that figure a stand-in for the session.
       // The parser copies what it keeps, so the entry is dropped once the timer has fired.
-      Cache.enabled = true;
-      Cache.add(`file:${url}`, bytes);
-      useGLTF.preload(url);
-      await new Promise((res) => setTimeout(res, 20));
-      Cache.remove(`file:${url}`);
-      Cache.enabled = false;
+      const step = handOff.then(async () => {
+        Cache.enabled = true;
+        Cache.add(`file:${url}`, bytes);
+        useGLTF.preload(url);
+        await new Promise((res) => setTimeout(res, 20));
+        Cache.remove(`file:${url}`);
+        Cache.enabled = false;
+      });
+      handOff = step.catch(() => undefined);
+      await step;
       setModelState(url, 'ready');
     } catch {
       // A failed load leaves the placeholder in place (rule 26); the count still advances so the button opens.
@@ -219,6 +318,11 @@ export async function preloadModels(onProgress: (loaded: number, total: number) 
     }
     loaded += 1;
     onProgress(loaded, total);
-  }
+  };
+  let next = 0;
+  const worker = async () => {
+    while (next < urls.length) await one(urls[next++]!);
+  };
+  await Promise.all(Array.from({ length: Math.min(6, urls.length) }, worker));
   onProgress(total, total);
 }

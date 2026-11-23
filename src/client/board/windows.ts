@@ -141,3 +141,82 @@ ${
   mat.customProgramCacheKey = () => `ekc-windows-${mode}`;
   return mat;
 }
+
+/**
+ * Round 10, mode 'mask': windows on a generated building model (docs/art/round-10.md). The model's own texture already
+ * paints its windows, so the shader picks out the glass (texels clearly darker than their neighbourhood) instead of
+ * cutting panes, then lights a stable hashed share of the panes by night from world position, exactly like 'grid'. With
+ * `allLit` the uniforms' uLit is 1 and every pane glows the material's emissive colour (the hum and turned buildings),
+ * pulsed from outside through emissiveIntensity as the procedural bands are.
+ */
+export function patchGlass<T extends THREE.MeshStandardMaterial>(mat: T, u: WindowUniforms, tint: 'warm' | 'emissive'): T {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, u);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vEkcW;\nvarying vec3 vEkcN;')
+      .replace(
+        '#include <project_vertex>',
+        `#include <project_vertex>
+{
+  vec4 gP = vec4(transformed, 1.0);
+  mat3 gM = mat3(modelMatrix);
+#ifdef USE_INSTANCING
+  gP = instanceMatrix * gP;
+  gM = gM * mat3(instanceMatrix);
+#endif
+  vEkcW = (modelMatrix * gP).xyz;
+  vEkcN = normalize(gM * objectNormal);
+}`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        `#include <common>
+uniform float uNight;
+uniform float uLit;
+uniform vec2 uPitch;
+uniform vec3 uWarm;
+uniform vec3 uGlass;
+varying vec3 vEkcW;
+varying vec3 vEkcN;
+${HASH}
+float ekcMask = 0.0;
+float ekcOn = 0.0;
+float ekcH = 0.0;`,
+      )
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+{
+  vec3 c = diffuseColor.rgb;
+  float lum = dot(c, vec3(0.299, 0.587, 0.114));
+  float wall = 1.0 - step(0.6, abs(normalize(vEkcN).y));
+  // Glass is what is clearly darker than its own neighbourhood (mip 4: the 16 x 16 texel average). A colour rule
+  // missed grey panes and lit a blue roof; this one marks 18-27% of nine of the ten building textures (the bank 6%,
+  // mostly columns), measured on the files (docs/art/round-10.md).
+#ifdef USE_MAP
+  float local = dot(textureLod(map, vMapUv, 4.0).rgb, vec3(0.299, 0.587, 0.114));
+  ekcMask = wall * smoothstep(0.25, 0.45, 1.0 - lum / max(local, 0.001)) * (1.0 - smoothstep(0.4, 0.6, lum));
+#endif
+  vec3 n = normalize(vEkcN);
+  bool alongZ = abs(n.x) > abs(n.z);
+  float u = alongZ ? vEkcW.z : vEkcW.x;
+  float face = alongZ ? sign(n.x) * 3.0 : sign(n.z) * 7.0;
+  vec2 cell = floor(vec2(u / uPitch.x, vEkcW.y / uPitch.y));
+  ekcH = ekcHash(vec3(cell, face));
+  ekcOn = step(ekcH, uLit);
+}`,
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+${
+  tint === 'warm'
+    ? '  totalEmissiveRadiance = mix(uWarm, vec3(0.75, 0.85, 1.0), step(0.82, fract(ekcH * 7.31))) * ekcMask * ekcOn * uNight * (0.6 + 0.6 * fract(ekcH * 3.7)) * 1.4;'
+    : '  totalEmissiveRadiance *= ekcMask * ekcOn;'
+}`,
+      );
+  };
+  mat.customProgramCacheKey = () => `ekc-glass-${tint}`;
+  return mat;
+}

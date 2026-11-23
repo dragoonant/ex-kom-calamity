@@ -8,6 +8,8 @@
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { useFittedAsset } from '../board/assetScene';
+import type { Fitted } from '../board/glbFit';
 import { CITY } from '../../data/city';
 import { type Band, type CityState, type Leg } from '../../city';
 import { rig } from '../board/world';
@@ -56,8 +58,22 @@ function altitude(t: number, cruise: number): number {
   return 0.5 + up * cruise;
 }
 
-function makeCar(scale: number, body: THREE.Material, belly: THREE.Material, glass: THREE.Material, pods: THREE.Material): THREE.Group {
+/** The box the procedural car fills at scale 1 (front to +z): what a generated car or van is fitted into. */
+const CAR_BOX = new THREE.Box3(new THREE.Vector3(-0.62, -0.32, -0.8), new THREE.Vector3(0.62, 0.46, 0.8));
+
+function makeCar(scale: number, body: THREE.Material, belly: THREE.Material, glass: THREE.Material, pods: THREE.Material, model: Fitted | null = null): THREE.Group {
   const g = new THREE.Group();
+  if (model) {
+    // Round 10: the generated patrol car or van, fitted into the stand-in's box.
+    const m = new THREE.Mesh(model.geometry, model.material);
+    m.name = 'car-glb';
+    m.scale.setScalar(scale);
+    m.raycast = noRay;
+    m.castShadow = true;
+    g.add(m);
+    g.userData.model = model;
+    return g;
+  }
   const hull = new THREE.Mesh(new THREE.CapsuleGeometry(0.34 * scale, 0.9 * scale, 6, 12).rotateX(Math.PI / 2), body);
   const under = new THREE.Mesh(new THREE.CapsuleGeometry(0.3 * scale, 0.8 * scale, 6, 12).rotateX(Math.PI / 2).scale(1, 0.6, 1).translate(0, -0.12 * scale, 0), belly);
   const dome = new THREE.Mesh(new THREE.SphereGeometry(0.28 * scale, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.18 * scale, -0.1 * scale), glass);
@@ -85,6 +101,8 @@ function AgencyCars({ view }: { view: CityState }) {
   );
   const root = useRef<THREE.Group>(null);
   const cars = useRef(new Map<string, THREE.Group>());
+  const carFit = useFittedAsset('vehicle:patrol-car', CAR_BOX, { mode: 'uniform' });
+  const vanFit = useFittedAsset('vehicle:van', CAR_BOX, { mode: 'uniform' });
   // A dashed route on the ground from each car to where it is going (flat strips), and a ring at the far end.
   const dashRef = useRef<THREE.InstancedMesh>(null);
   const dashGeo = useMemo(() => new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), []);
@@ -103,7 +121,9 @@ function AgencyCars({ view }: { view: CityState }) {
     if (!g) return;
     const want = new Set<string>([...drives.map((d) => d.key), ...parked.map((a) => `park-${a.id}`), ...(door ? ['door'] : [])]);
     for (const [k, car] of cars.current) {
-      if (!want.has(k)) {
+      const big = k === 'squad' || k === 'door';
+      const model = big ? vanFit : carFit;
+      if (!want.has(k) || (car.userData.model ?? null) !== model) {
         g.remove(car);
         cars.current.delete(k);
       }
@@ -111,7 +131,7 @@ function AgencyCars({ view }: { view: CityState }) {
     for (const k of want) {
       if (cars.current.has(k)) continue;
       const big = k === 'squad' || k === 'door';
-      const car = makeCar(big ? 2.6 : 1.7, mats.body, mats.belly, mats.glass, mats.pods);
+      const car = makeCar(big ? 2.6 : 1.7, mats.body, mats.belly, mats.glass, mats.pods, big ? vanFit : carFit);
       car.userData.fresh = true;
       g.add(car);
       cars.current.set(k, car);

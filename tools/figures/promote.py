@@ -30,6 +30,7 @@ ap.add_argument('--tex', type=int, default=0)
 ap.add_argument('--lod-tex', type=int, default=1024)
 ap.add_argument('--ref-chin', type=float, help='reference chin row by eye (fraction of height from the top)')
 ap.add_argument('--roughness', type=float, default=0.9)
+ap.add_argument('--calm-hue', help='passed to finalize.py')
 ap.add_argument('--no-regrade', action='store_true', help='keep the paint colours as Hunyuan made them')
 args = ap.parse_args()
 
@@ -60,6 +61,8 @@ fin_args = [args.role, os.path.join(att, 'textured.glb'), '--yaw', args.yaw, '--
             '--roughness', args.roughness, '--out', out]
 if not args.no_regrade:
     fin_args += ['--regrade', os.path.join(out, 'cutout.png')]
+if args.calm_hue:
+    fin_args += ['--calm-hue', args.calm_hue]
 fin = json.loads(sh(P.PY21, 'finalize.py', *fin_args)[-1])
 # the four PNG views (the front one is the gate's input) stay in the attempt folder; the repo gets the JPEG sheets
 sh(P.PY21, 'render.py', os.path.join(out, 'textured.glb'), att, '--size', 768, '--keep-png')

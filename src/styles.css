@@ -228,6 +228,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .title { position: relative; height: 100%; display: flex; flex-direction: column; overflow: hidden; background: #1f3f42; }
 .poster { position: relative; flex: 1 1 auto; min-height: 140px; overflow: hidden; }
 .poster-art { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.poster-backdrop { position: absolute; inset: 0; background-size: cover; background-position: center bottom; background-repeat: no-repeat; }
 .poster-twinkle { animation: poster-twinkle 9s ease-in-out infinite; }
 @keyframes poster-twinkle { 0%, 100% { opacity: 1; } 45% { opacity: 1; } 55% { opacity: 0.15; } 80% { opacity: 0.15; } }
 .poster-beacon { animation: poster-beacon 2.4s ease-in-out infinite; }
@@ -293,6 +294,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .gallery-canvas { flex: 1 1 auto; min-height: 220px; }
 .gallery-console { flex: none; max-height: 56%; overflow-y: auto; padding-bottom: 14px; }
 .gallery-table { font-size: 12px; margin: 8px 0; }
+.gallery-assets-canvas { flex: none; height: 340px; min-height: 0; margin: 10px 0 6px; }
 .gallery-table th { width: auto; }
 .gallery-table thead th { font-family: var(--display); font-size: 10px; letter-spacing: 0.12em; color: var(--teal-deep); border-bottom: 2px solid var(--graphite); }
 .gallery-fail td, .gallery-fail th { color: var(--coral-deep); }

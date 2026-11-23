@@ -1,0 +1,469 @@
+{
+ "_": "Round 10 objects (docs/art/round-10.md): one entry per asset slot of src/client/models.ts ASSET_SLOTS. Same pipeline as the figures (cutout -> 2.1 shape -> 2.0 paint) without the humanoid gate; batch_objects.py runs them in order and finalize.py --align squares the footprint to the axes. faces: the triangles kept in the shipped model; texture: its size; cutBase: slice off a paving slab under a building.",
+ "props-desk": {
+  "reference": "docs/concept/samples/r10/prop-desk-s102.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "desk.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-counter": {
+  "reference": "docs/concept/samples/r10/prop-counter-s104.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "counter.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-shelf": {
+  "reference": "docs/concept/samples/r10/prop-shelf-s105.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "shelf.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-bed": {
+  "reference": "docs/concept/samples/r10/prop-bed-s107.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "bed.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-locker": {
+  "reference": "docs/concept/samples/r10/prop-locker-s110.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "locker.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-machine": {
+  "reference": "docs/concept/samples/r10/prop-machine-s111.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "machine.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-lamp": {
+  "reference": "docs/concept/samples/r10/prop-lamp-s113.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "lamp.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-kiosk-sign": {
+  "reference": "docs/concept/samples/r10/prop-kiosk-sign-s115.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "kiosk-sign.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-bench": {
+  "reference": "docs/concept/samples/r10/prop-bench-s117.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "bench.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-vehicle": {
+  "reference": "docs/concept/samples/r10/prop-vehicle-s120.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "vehicle.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-planter": {
+  "reference": "docs/concept/samples/r10/prop-planter-s121.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "planter.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-tank": {
+  "reference": "docs/concept/samples/r10/prop-tank-s124.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "tank.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-vent": {
+  "reference": "docs/concept/samples/r10/prop-vent-s125.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "vent.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-mast": {
+  "reference": "docs/concept/samples/r10/prop-mast-s127.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "mast.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "props-crate": {
+  "reference": "docs/concept/samples/r10/prop-crate-s130.jpg",
+  "body": "object",
+  "group": "props",
+  "file": "crate.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 1500,
+  "texture": 512,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "buildings-office": {
+  "reference": "docs/concept/samples/city-r9/bldg-office-s41.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "office.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-bank": {
+  "reference": "docs/concept/samples/city-r9/bldg-bank-s55.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "bank.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-broadcast": {
+  "reference": "docs/concept/samples/r10/bldg-broadcast-nosign-s213.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "broadcast.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-residential": {
+  "reference": "docs/concept/samples/city-r9/bldg-apartments-s48.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "residential.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-power": {
+  "reference": "docs/concept/samples/city-r9/bldg-power-s49.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "power.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 20000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true,
+  "note": "20k: the lattice pylons and lines fold under any reduction to 8k (round-10.md, LOWPOLY-1)"
+ },
+ "buildings-hq": {
+  "reference": "docs/concept/samples/city-r9/bldg-hq-s51.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "hq.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-automat": {
+  "reference": "docs/concept/samples/r10/bldg-automat-s131.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "automat.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-depot": {
+  "reference": "docs/concept/samples/r10/bldg-depot-s134.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "depot.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-civic": {
+  "reference": "docs/concept/samples/r10/bldg-civic-s135.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "civic.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "buildings-works": {
+  "reference": "docs/concept/samples/r10/bldg-works-s138.jpg",
+  "body": "object",
+  "group": "buildings",
+  "file": "works.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 8000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": true
+ },
+ "vehicles-patrol-car": {
+  "reference": "docs/concept/samples/city-r9/patrol-car-b-s13.jpg",
+  "body": "object",
+  "group": "vehicles",
+  "file": "patrol-car.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 3000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "vehicles-van": {
+  "reference": "docs/concept/samples/city-r9/transport-van-s22.jpg",
+  "body": "object",
+  "group": "vehicles",
+  "file": "van.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 3000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "vehicles-civilian": {
+  "reference": "docs/concept/samples/r10/car-civilian-s140.jpg",
+  "body": "object",
+  "group": "vehicles",
+  "file": "civilian.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 3000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "craft-scout": {
+  "reference": "docs/concept/samples/r10/alien-scout-s141.jpg",
+  "body": "object",
+  "group": "craft",
+  "file": "scout.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 6000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "craft-seeder": {
+  "reference": "docs/concept/samples/r10/alien-seeder-nostem-s150.jpg",
+  "body": "object",
+  "group": "craft",
+  "file": "seeder.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 6000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ },
+ "craft-carrier": {
+  "reference": "docs/concept/samples/r10/alien-carrier-s148.jpg",
+  "body": "object",
+  "group": "craft",
+  "file": "carrier.glb",
+  "height": 1.0,
+  "preset": "standard",
+  "faces": 6000,
+  "texture": 1024,
+  "seeds": [
+   1234,
+   7
+  ],
+  "cutBase": false
+ }
+}

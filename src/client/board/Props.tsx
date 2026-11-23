@@ -3,8 +3,15 @@
 // displays, the kiosk sign, the mast beacon). A prop shows the state of the tile under it: intact, knocked askew
 // and darkened when the floor is damaged, gone when the floor is rubble or has collapsed. No handlers, no
 // raycast (KB rule 25). Refilled when the tiles or the cut-away change, never per frame.
-import { useLayoutEffect, useMemo, useRef } from 'react';
+// Round 10: a kind whose generated model loaded (models.ts ASSET_SLOTS, `prop:<kind>`) draws that model's geometry
+// and texture in the same one instanced mesh, fitted into the procedural piece's box (glbFit.ts), so placements,
+// footprints and the draw count are unchanged; the glow parts stay as they are.
+import { Suspense, useLayoutEffect, useMemo, useRef } from 'react';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { useAssetUrl } from '../models';
+import { boxOf, fitScene } from './glbFit';
+import { ModelBoundary } from './placeholders';
 import { MAPS, type PropKind } from '../../data';
 import type { State } from '../../engine';
 import { useClient } from '../store';
@@ -22,9 +29,36 @@ const E = new THREE.Euler();
 const C = new THREE.Color();
 const PLACE: PropPlacement = { x: 0, y: 0, z: 0, yaw: 0, tilt: 0, scale: 1, tint: 1, shown: false };
 
-function PropKindMesh({ kind, list, state, active, glow }: { kind: PropKind; list: PropInstance[]; state: State; active: number; glow: boolean }) {
+interface KindProps {
+  kind: PropKind;
+  list: PropInstance[];
+  state: State;
+  active: number;
+  glow: boolean;
+}
+
+/** The generated model of a kind, fitted into its procedural box. */
+function GlbPropKindMesh({ url, ...p }: KindProps & { url: string }) {
+  const gltf = useGLTF(url);
+  const fitted = useMemo(() => fitScene(gltf.scene, { box: boxOf(propGeometry(p.kind)), mode: 'footprint' }), [gltf.scene, p.kind]);
+  return <PropKindMesh {...p} geometry={fitted.geometry} material={fitted.material} name={`prop-glb-${p.kind}`} />;
+}
+
+function PropBody(p: KindProps) {
+  const url = useAssetUrl(`prop:${p.kind}`);
+  if (!url) return <PropKindMesh {...p} />;
+  return (
+    <ModelBoundary fallback={<PropKindMesh {...p} />}>
+      <Suspense fallback={null}>
+        <GlbPropKindMesh {...p} url={url} />
+      </Suspense>
+    </ModelBoundary>
+  );
+}
+
+function PropKindMesh({ kind, list, state, active, glow, geometry: given, material, name }: KindProps & { geometry?: THREE.BufferGeometry; material?: THREE.Material; name?: string }) {
   const ref = useRef<THREE.InstancedMesh>(null);
-  const geometry = useMemo(() => propGeometry(kind, glow), [kind, glow]);
+  const geometry = useMemo(() => given ?? propGeometry(kind, glow), [given, kind, glow]);
   useLayoutEffect(() => {
     const mesh = ref.current;
     if (!mesh) return;
@@ -47,8 +81,8 @@ function PropKindMesh({ kind, list, state, active, glow }: { kind: PropKind; lis
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
     mesh.computeBoundingSphere();
-  }, [list, state.tiles, active, glow]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <instancedMesh ref={ref} args={[geometry, glow ? GLOWING : BODY, Math.max(1, list.length)]} raycast={NO_RAYCAST} frustumCulled={false} />;
+  }, [list, state.tiles, active, glow, geometry]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <instancedMesh key={geometry.uuid} name={name} ref={ref} args={[geometry, material ?? (glow ? GLOWING : BODY), Math.max(1, list.length)]} raycast={NO_RAYCAST} frustumCulled={false} />;
 }
 
 export function Props({ state }: { state: State }) {
@@ -58,7 +92,7 @@ export function Props({ state }: { state: State }) {
   return (
     <group>
       {[...groups.entries()].map(([kind, list]) => (
-        <PropKindMesh key={kind} kind={kind} list={list} state={state} active={active} glow={false} />
+        <PropBody key={kind} kind={kind} list={list} state={state} active={active} glow={false} />
       ))}
       {[...groups.entries()]
         .filter(([kind]) => PROP_GLOW[kind])

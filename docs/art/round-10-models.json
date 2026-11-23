@@ -1,0 +1,529 @@
+{
+ "props-desk": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-desk-s102.jpg",
+  "file": "models/props/desk.glb",
+  "triangles": 1432,
+  "bytes": 161996,
+  "texture": 512,
+  "yaw": -0.5,
+  "dimensions": {
+   "width": 1.13,
+   "depth": 0.71,
+   "height": 1.0
+  },
+  "gpuSeconds": 193,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-desk\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-counter": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-counter-s104.jpg",
+  "file": "models/props/counter.glb",
+  "triangles": 1500,
+  "bytes": 165600,
+  "texture": 512,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 2.325,
+   "depth": 0.717,
+   "height": 1.0
+  },
+  "gpuSeconds": 168,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-counter\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-shelf": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-shelf-s105.jpg",
+  "file": "models/props/shelf.glb",
+  "triangles": 1498,
+  "bytes": 173232,
+  "texture": 512,
+  "yaw": -0.5,
+  "dimensions": {
+   "width": 0.77,
+   "depth": 0.286,
+   "height": 1.0
+  },
+  "gpuSeconds": 176,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-shelf\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-bed": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-bed-s107.jpg",
+  "file": "models/props/bed.glb",
+  "triangles": 1495,
+  "bytes": 172236,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.66,
+   "depth": 1.576,
+   "height": 1.0
+  },
+  "gpuSeconds": 194,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-bed\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-locker": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-locker-s110.jpg",
+  "file": "models/props/locker.glb",
+  "triangles": 1500,
+  "bytes": 170440,
+  "texture": 512,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.479,
+   "depth": 0.434,
+   "height": 1.0
+  },
+  "gpuSeconds": 188,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-locker\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-machine": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-machine-s111.jpg",
+  "file": "models/props/machine.glb",
+  "triangles": 1499,
+  "bytes": 169704,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 0.441,
+   "depth": 0.39,
+   "height": 1.0
+  },
+  "gpuSeconds": 167,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-machine\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-lamp": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-lamp-s113.jpg",
+  "file": "models/props/lamp.glb",
+  "triangles": 1500,
+  "bytes": 165208,
+  "texture": 512,
+  "yaw": -77.0,
+  "dimensions": {
+   "width": 0.329,
+   "depth": 0.207,
+   "height": 1.0
+  },
+  "gpuSeconds": 174,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-lamp\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-kiosk-sign": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-kiosk-sign-s115.jpg",
+  "file": "models/props/kiosk-sign.glb",
+  "triangles": 1500,
+  "bytes": 158440,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 0.592,
+   "depth": 0.091,
+   "height": 1.0
+  },
+  "gpuSeconds": 156,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-kiosk-sign\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-bench": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-bench-s117.jpg",
+  "file": "models/props/bench.glb",
+  "triangles": 1500,
+  "bytes": 167912,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.711,
+   "depth": 0.819,
+   "height": 1.0
+  },
+  "gpuSeconds": 182,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-bench\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-vehicle": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-vehicle-s120.jpg",
+  "file": "models/props/vehicle.glb",
+  "triangles": 1496,
+  "bytes": 177480,
+  "texture": 512,
+  "yaw": -89.5,
+  "dimensions": {
+   "width": 2.779,
+   "depth": 1.07,
+   "height": 1.0
+  },
+  "gpuSeconds": 154,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-vehicle\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-planter": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-planter-s121.jpg",
+  "file": "models/props/planter.glb",
+  "triangles": 1486,
+  "bytes": 191192,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 0.778,
+   "depth": 0.763,
+   "height": 1.0
+  },
+  "gpuSeconds": 198,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-planter\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-tank": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-tank-s124.jpg",
+  "file": "models/props/tank.glb",
+  "triangles": 1500,
+  "bytes": 165876,
+  "texture": 512,
+  "yaw": -7.5,
+  "dimensions": {
+   "width": 0.421,
+   "depth": 0.418,
+   "height": 1.0
+  },
+  "gpuSeconds": 164,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-tank\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-vent": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-vent-s125.jpg",
+  "file": "models/props/vent.glb",
+  "triangles": 1499,
+  "bytes": 167520,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 0.559,
+   "depth": 0.548,
+   "height": 1.0
+  },
+  "gpuSeconds": 198,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-vent\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-mast": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-mast-s127.jpg",
+  "file": "models/props/mast.glb",
+  "triangles": 1496,
+  "bytes": 171184,
+  "texture": 512,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.279,
+   "depth": 0.27,
+   "height": 1.0
+  },
+  "gpuSeconds": 162,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-mast\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "props-crate": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/prop-crate-s130.jpg",
+  "file": "models/props/crate.glb",
+  "triangles": 1500,
+  "bytes": 181292,
+  "texture": 512,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.31,
+   "depth": 1.138,
+   "height": 1.0
+  },
+  "gpuSeconds": 210,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\props-crate\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-office": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/bldg-office-s41.jpg",
+  "file": "models/buildings/office.glb",
+  "triangles": 8000,
+  "bytes": 872800,
+  "texture": 1024,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 0.467,
+   "depth": 0.443,
+   "height": 1.0
+  },
+  "gpuSeconds": 177,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-office\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-bank": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/bldg-bank-s55.jpg",
+  "file": "models/buildings/bank.glb",
+  "triangles": 7997,
+  "bytes": 826616,
+  "texture": 1024,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.036,
+   "depth": 1.015,
+   "height": 1.0
+  },
+  "gpuSeconds": 196,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-bank\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-broadcast": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/bldg-broadcast-nosign-s213.jpg",
+  "file": "models/buildings/broadcast.glb",
+  "triangles": 7997,
+  "bytes": 871988,
+  "texture": 1024,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.438,
+   "depth": 0.418,
+   "height": 1.0
+  },
+  "gpuSeconds": 189,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-broadcast\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-residential": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/bldg-apartments-s48.jpg",
+  "file": "models/buildings/residential.glb",
+  "triangles": 7893,
+  "bytes": 870332,
+  "texture": 1024,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.677,
+   "depth": 0.622,
+   "height": 1.0
+  },
+  "gpuSeconds": 190,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-residential\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-power": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/bldg-power-s49.jpg",
+  "file": "models/buildings/power.glb",
+  "triangles": 20000,
+  "bytes": 2060556,
+  "texture": 1024,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.99,
+   "depth": 0.811,
+   "height": 1.0
+  },
+  "gpuSeconds": 213,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-power\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-hq": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/bldg-hq-s51.jpg",
+  "file": "models/buildings/hq.glb",
+  "triangles": 8000,
+  "bytes": 852028,
+  "texture": 1024,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.769,
+   "depth": 0.704,
+   "height": 1.0
+  },
+  "gpuSeconds": 174,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-hq\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-automat": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/bldg-automat-s131.jpg",
+  "file": "models/buildings/automat.glb",
+  "triangles": 8000,
+  "bytes": 900632,
+  "texture": 1024,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.865,
+   "depth": 1.607,
+   "height": 1.0
+  },
+  "gpuSeconds": 193,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-automat\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-depot": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/bldg-depot-s134.jpg",
+  "file": "models/buildings/depot.glb",
+  "triangles": 8000,
+  "bytes": 847120,
+  "texture": 1024,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 2.179,
+   "depth": 1.956,
+   "height": 1.0
+  },
+  "gpuSeconds": 161,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-depot\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-civic": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/bldg-civic-s135.jpg",
+  "file": "models/buildings/civic.glb",
+  "triangles": 7999,
+  "bytes": 875176,
+  "texture": 1024,
+  "yaw": -90.0,
+  "dimensions": {
+   "width": 0.872,
+   "depth": 0.721,
+   "height": 1.0
+  },
+  "gpuSeconds": 192,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-civic\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "buildings-works": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/bldg-works-s138.jpg",
+  "file": "models/buildings/works.glb",
+  "triangles": 7986,
+  "bytes": 854876,
+  "texture": 1024,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.053,
+   "depth": 1.024,
+   "height": 1.0
+  },
+  "gpuSeconds": 172,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\buildings-works\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "vehicles-patrol-car": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/patrol-car-b-s13.jpg",
+  "file": "models/vehicles/patrol-car.glb",
+  "triangles": 2999,
+  "bytes": 342964,
+  "texture": 1024,
+  "yaw": -89.5,
+  "dimensions": {
+   "width": 3.677,
+   "depth": 1.922,
+   "height": 1.0
+  },
+  "gpuSeconds": 167,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\vehicles-patrol-car\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "vehicles-van": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/city-r9/transport-van-s22.jpg",
+  "file": "models/vehicles/van.glb",
+  "triangles": 3000,
+  "bytes": 356944,
+  "texture": 1024,
+  "yaw": 0.0,
+  "dimensions": {
+   "width": 1.943,
+   "depth": 0.748,
+   "height": 1.0
+  },
+  "gpuSeconds": 183,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\vehicles-van\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "vehicles-civilian": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/car-civilian-s140.jpg",
+  "file": "models/vehicles/civilian.glb",
+  "triangles": 3000,
+  "bytes": 366472,
+  "texture": 1024,
+  "yaw": -44.0,
+  "dimensions": {
+   "width": 2.254,
+   "depth": 2.252,
+   "height": 1.0
+  },
+  "gpuSeconds": 186,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\vehicles-civilian\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "craft-scout": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/alien-scout-s141.jpg",
+  "file": "models/craft/scout.glb",
+  "triangles": 5999,
+  "bytes": 638252,
+  "texture": 1024,
+  "yaw": 83.5,
+  "dimensions": {
+   "width": 3.343,
+   "depth": 0.927,
+   "height": 1.0
+  },
+  "gpuSeconds": 159,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\craft-scout\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "craft-seeder": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/alien-seeder-nostem-s150.jpg",
+  "file": "models/craft/seeder.glb",
+  "triangles": 5912,
+  "bytes": 690272,
+  "texture": 1024,
+  "yaw": -5.5,
+  "dimensions": {
+   "width": 1.471,
+   "depth": 0.749,
+   "height": 1.0
+  },
+  "gpuSeconds": 195,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\craft-seeder\\s1234-standard\\final\\turnaround.jpg"
+ },
+ "craft-carrier": {
+  "ok": true,
+  "seed": 1234,
+  "reference": "docs/concept/samples/r10/alien-carrier-s148.jpg",
+  "file": "models/craft/carrier.glb",
+  "triangles": 6000,
+  "bytes": 635128,
+  "texture": 1024,
+  "yaw": -88.5,
+  "dimensions": {
+   "width": 4.85,
+   "depth": 0.963,
+   "height": 1.0
+  },
+  "gpuSeconds": 169,
+  "turnaround": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\craft-carrier\\s1234-standard\\final\\turnaround.jpg"
+ }
+}

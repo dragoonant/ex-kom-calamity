@@ -54,6 +54,40 @@ def cut_base(mesh):
     return mesh, None
 
 
+def pick_low_poly(mesh, target):
+    """The planar halving keeps most props whole, but thin lattices (a power station's pylons and lines) can fold it
+    into a few sheets; then Hunyuan's own reducer is kept if it stays closer to the 20k mesh (surface area and box)."""
+    import numpy as np
+
+    def score(m):
+        box = np.prod(np.maximum(m.extents, 1e-6)) / np.prod(np.maximum(mesh.extents, 1e-6))
+        return abs(1 - m.area / mesh.area) + abs(1 - box)
+
+    a = low_poly(mesh, target)
+    print(f'low poly (planar halving): area {a.area / mesh.area:.2f}, score {score(a):.2f}', flush=True)
+    if score(a) < 0.25:
+        return a
+    b = FaceReducer()(mesh.copy(), max_facenum=target)
+    print(f'low poly (hunyuan reducer): area {b.area / mesh.area:.2f}, score {score(b):.2f}', flush=True)
+    return a if score(a) <= score(b) else b
+
+
+def low_poly(mesh, target):
+    """Below 20k faces Hunyuan's reducer (preservetopology on, one step) folds a marching-cubes mesh into a few huge
+    triangles; halving with planar quadrics and without the topology lock keeps a 1.5k prop whole (round 10)."""
+    import pymeshlab
+    import trimesh
+    ms = pymeshlab.MeshSet()
+    ms.add_mesh(pymeshlab.Mesh(vertex_matrix=mesh.vertices, face_matrix=mesh.faces))
+    n = len(mesh.faces)
+    while n > target:
+        n = max(target, n // 2)
+        ms.apply_filter('meshing_decimation_quadric_edge_collapse', targetfacenum=n, qualitythr=0.3, planarquadric=True,
+                        preserveboundary=True, boundaryweight=3, preservenormal=False, preservetopology=False, autoclean=True)
+    m = ms.current_mesh()
+    return trimesh.Trimesh(m.vertex_matrix(), m.face_matrix())
+
+
 t0 = time.time()
 print('loading Hunyuan3D 2.1 shape model', flush=True)
 import torch
@@ -76,7 +110,10 @@ if args.cut_base:
     if cut:
         print(f'base cut at {cut:.0%}', flush=True)
     mesh = FloaterRemover()(mesh)
-mesh = FaceReducer()(mesh, max_facenum=args.faces)
+mesh = FaceReducer()(mesh, max_facenum=max(args.faces, 20000))
+if args.faces < 20000:
+    mesh.export(args.out.replace('.glb', '-20k.glb'))
+    mesh = pick_low_poly(mesh, args.faces)
 mesh.metadata.clear()  # the reducer's temp .ply path would otherwise land in the GLB extras (KB rule 11)
 mesh.metadata['name'] = 'shape'
 mesh.export(args.out)

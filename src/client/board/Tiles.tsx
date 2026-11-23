@@ -14,6 +14,8 @@ import { query, tileIndex, type Pos, type State, type Tile } from '../../engine'
 import { useClient } from '../store';
 import { LEVEL_H, live } from './world';
 import { OVERLAY, WALL_H_ACTIVE, baseColour, buildingIndex, fillLayers, layerCapacity, makeLayers, styleAt, type Layer, type LayerKind } from './tileset';
+import { SURFACE_UNIFORMS, loadSurfaces, patchSurface, surfaceLayer, surfaceOf, withSurfaceAttribute } from './surface';
+import { useSceneryLevel } from '../scenery';
 
 const BOX = new THREE.BoxGeometry(1, 1, 1);
 const NO_RAYCAST = () => undefined;
@@ -65,6 +67,21 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
   tilesRef.current = tiles;
   const map = MAPS[state.mapId];
   const bIndex = useMemo(() => (map ? buildingIndex(map) : null), [map]);
+  // Each level owns its box geometry so it can carry its own per-tile swatch attribute (surface.ts, round 10).
+  // One memo for both: a separate attribute memo, run twice by StrictMode, left the geometry holding a second attribute
+  // the effect never wrote (every tile drew untextured in dev).
+  const { geometry, surf } = useMemo(() => {
+    const g = BOX.clone();
+    return { geometry: g, surf: withSurfaceAttribute(g, count) };
+  }, [count]);
+  const material = useMemo(() => patchSurface(new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0.05 })), []);
+  useEffect(
+    () => () => {
+      geometry.dispose();
+      material.dispose();
+    },
+    [geometry, material],
+  );
 
   const tileOf = (instanceId: number): Pos | null => {
     const t = tilesRef.current[base + instanceId];
@@ -127,10 +144,13 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
       const idx = base + i;
       if (t.kind === 'void') {
         mesh.setColorAt(i, c.set('#000000'));
+        surf.setX(i, -1);
         continue;
       }
       const where = bIndex ? styleAt(bIndex, state.width, t.x, t.y) : { style: 'street' as const, building: null };
-      baseColour(t, where.style, !!where.building && level === where.building.floors, c);
+      const isRoof = !!where.building && level === where.building.floors;
+      baseColour(t, where.style, isRoof, c);
+      surf.setX(i, surfaceLayer(surfaceOf(t, where.style, isRoof)));
       // Damage shows: a tile darkens as its hp falls below its material's (STR-3).
       const max = MATERIALS[t.material]?.hp ?? 0;
       if (max > 0 && t.hp < max) c.lerp(OVERLAY.scorch, 0.55 * (1 - t.hp / max));
@@ -142,7 +162,8 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
       mesh.setColorAt(i, c);
     }
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width]);
+    surf.needsUpdate = true;
+  }, [tiles, base, count, level, active, derived, hover, bIndex, state.width, surf]);
 
   useLayoutEffect(() => {
     const mesh = ref.current;
@@ -183,15 +204,13 @@ function LevelTiles({ state, level, active, derived, hover }: { state: State; le
   return (
     <instancedMesh
       ref={ref}
-      args={[BOX, undefined, count]}
+      args={[geometry, material, count]}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
       onPointerMove={onPointerMove}
       onPointerOut={onPointerOut}
       frustumCulled={false}
-    >
-      <meshStandardMaterial roughness={0.85} metalness={0.05} />
-    </instancedMesh>
+    />
   );
 }
 
@@ -244,7 +263,22 @@ function Dressing({ state, active }: { state: State; active: number }) {
   );
 }
 
+/** Turns the swatches on once the strip has loaded, and off on PLAIN scenery (RULING ART-11). */
+function useSurfaces(): void {
+  const scenery = useSceneryLevel();
+  useEffect(() => {
+    let live = true;
+    loadSurfaces().then((st) => {
+      if (live) SURFACE_UNIFORMS.uSurfOn.value = st === 'ready' && scenery === 'full' ? 1 : 0;
+    });
+    return () => {
+      live = false;
+    };
+  }, [scenery]);
+}
+
 export function Tiles({ state, derived }: { state: State; derived: Derived }) {
+  useSurfaces();
   const active = useClient((s) => s.level);
   const hover = useClient((s) => s.hover);
   const levels: number[] = [];

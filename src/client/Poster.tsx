@@ -4,7 +4,11 @@
 // mood-dusk-s62), a monorail with its train crossing, civilian cars and an agency patrol car in the air. Flat
 // shapes only, our own; deterministic, so every visit paints the same city. Motion is SVG and CSS and stops
 // under prefers-reduced-motion.
-import { useMemo, type ReactElement } from 'react';
+// Round 10 (docs/art/round-10.md; owner's choice 2026-11-22, "Full painting"): a generated painting
+// (public/title/backdrop.webp, title-backdrop-s174; a tall one, s176, for portrait screens) is the whole scene once it
+// has loaded, and only what flies stays drawn on top of it: the drifting clouds, the civilian cars and the agency's
+// patrol car. Until the painting loads, or if it fails, the poster is drawn in full as before.
+import { useEffect, useMemo, useState, type ReactElement } from 'react';
 
 const W = 1600;
 const H = 900;
@@ -134,7 +138,28 @@ const SKY_LANES = [
   { d: 'M 1700 180 C 1100 200, 600 170, -80 190', dur: 40, colour: '#e7dcc1', delay: 3 },
 ];
 
+/** Loads the painting for this screen's shape; resolves to its url, or null while loading or on a failure. */
+function useBackdrop(): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof Image === 'undefined') return;
+    const tall = window.matchMedia?.('(orientation: portrait)').matches;
+    const want = tall ? 'title/backdrop-tall.webp' : 'title/backdrop.webp';
+    const img = new Image();
+    let live = true;
+    img.onload = () => {
+      if (live) setUrl(want);
+    };
+    img.src = want;
+    return () => {
+      live = false;
+    };
+  }, []);
+  return url;
+}
+
 export function Poster() {
+  const backdrop = useBackdrop();
   const reduced = useMemo(() => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, []);
   const art = useMemo(() => {
     const r = rng(1962);
@@ -145,6 +170,8 @@ export function Poster() {
     return { far, mid, near, stars };
   }, []);
   return (
+    <>
+    {backdrop && <div className="poster-backdrop" data-testid="poster-backdrop" style={{ backgroundImage: `url(${backdrop})` }} />}
     <svg className="poster-art" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" aria-hidden="true">
       <defs>
         <linearGradient id="poster-sky" x1="0" y1="0" x2="0" y2="1">
@@ -165,10 +192,14 @@ export function Poster() {
           ))}
         </mask>
       </defs>
-      <rect width={W} height={H} fill="url(#poster-sky)" />
-      {art.stars}
-      <circle cx="1090" cy="560" r="300" fill="url(#poster-halo)" />
-      <circle cx="1090" cy="560" r="150" fill="#f7d58a" mask="url(#poster-sun-bands)" />
+      {!backdrop && (
+        <>
+          <rect width={W} height={H} fill="url(#poster-sky)" />
+          {art.stars}
+          <circle cx="1090" cy="560" r="300" fill="url(#poster-halo)" />
+          <circle cx="1090" cy="560" r="150" fill="#f7d58a" mask="url(#poster-sun-bands)" />
+        </>
+      )}
       <g className="poster-clouds">
         <g className="poster-cloud poster-cloud-a">
           <rect x="120" y="150" width="340" height="26" rx="13" fill="#f8eedb" opacity="0.5" />
@@ -182,7 +213,7 @@ export function Poster() {
           <rect x="560" y="300" width="300" height="18" rx="9" fill="#f9d7b0" opacity="0.7" />
         </g>
       </g>
-      <g>{art.far}</g>
+      {!backdrop && <g>{art.far}</g>}
       {/* Civilian cars on their lanes, small and high. */}
       {SKY_LANES.map((l, i) => (
         <g key={`car${i}`} opacity={reduced ? 0 : 1}>
@@ -191,7 +222,9 @@ export function Poster() {
           {!reduced && <animateMotion dur={`${l.dur}s`} begin={`${l.delay}s`} repeatCount="indefinite" path={l.d} rotate="auto" />}
         </g>
       ))}
-      <g>{art.mid}</g>
+      {!backdrop && <g>{art.mid}</g>}
+      {!backdrop && (
+        <>
       {/* The monorail: track, pylons and a three-car train. */}
       <path d={RAIL} stroke="#d9dde0" strokeWidth="9" fill="none" />
       <path d={RAIL} stroke="#8d959b" strokeWidth="2" fill="none" transform="translate(0 6)" />
@@ -211,6 +244,8 @@ export function Poster() {
       {heroTower(70, 120, 640, 'h1')}
       {heroTower(1380, 140, 620, 'h2')}
       {heroTower(1240, 80, 420, 'h3')}
+        </>
+      )}
       {/* The agency's patrol car: red with a black belly and two fan pods. */}
       <g className="poster-patrol" opacity={reduced ? 0 : 1}>
         <ellipse cx="0" cy="0" rx="34" ry="11" fill="#c8322a" />
@@ -220,7 +255,8 @@ export function Poster() {
         <ellipse cx="16" cy="10" rx="9" ry="5" fill="#c9cdd1" />
         {!reduced && <animateMotion dur="15s" begin="2s" repeatCount="indefinite" path="M -120 520 C 300 460, 700 560, 1000 480 S 1500 430, 1760 470" rotate="auto" />}
       </g>
-      <rect x="0" y={BASE} width={W} height={H - BASE} fill="#1f3f42" />
+      {!backdrop && <rect x="0" y={BASE} width={W} height={H - BASE} fill="#1f3f42" />}
     </svg>
+    </>
   );
 }

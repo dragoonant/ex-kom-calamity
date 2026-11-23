@@ -241,3 +241,41 @@ describe('M4 audio settings and catalogue (PLAN.md Q19)', () => {
     expect(new Set(SOUND_NAMES).size).toBe(SOUND_NAMES.length);
   });
 });
+
+describe('Round 10 assets and surfaces (docs/art/round-10.md)', () => {
+  it('every asset slot names a GLB that exists, a prop or vehicle under 400 KB and a building or craft under 2.2 MB, and the preload takes them all', async () => {
+    const { existsSync, statSync } = await import('node:fs');
+    const { ASSET_SLOTS, modelUrls } = await import('../src/client/models');
+    expect(ASSET_SLOTS).toHaveLength(31);
+    const boot = modelUrls(false);
+    for (const a of ASSET_SLOTS) {
+      expect(a.url, a.id).not.toBeNull();
+      const path = `public/${a.url}`;
+      expect(existsSync(path), path).toBe(true);
+      const cap = a.group === 'prop' || a.group === 'vehicle' ? 400_000 : 2_200_000;
+      expect(statSync(path).size, path).toBeLessThan(cap);
+      expect(boot).toContain(a.url);
+    }
+    // The 30k figure models load only on ?gallery; the board's rigged files load at boot (round 10).
+    for (const r of FIGURE_ROLES) {
+      if (FIGURE_SLOTS[r].rigged) expect(boot).toContain(FIGURE_SLOTS[r].rigged);
+      if (FIGURE_SLOTS[r].url) expect(boot).not.toContain(FIGURE_SLOTS[r].url);
+    }
+  });
+
+  it('the surface strip has the shader layers in order, and every tile kind of every style maps to a layer or to none', async () => {
+    const { readFileSync, existsSync } = await import('node:fs');
+    const { SURFACES, surfaceOf, surfaceLayer } = await import('../src/client/board/surface');
+    const meta = JSON.parse(readFileSync('public/textures/tiles.json', 'utf8')) as { size: number; layers: string[]; mean: number[][] };
+    expect(meta.layers).toEqual([...SURFACES]);
+    expect(meta.mean).toHaveLength(SURFACES.length);
+    expect(existsSync('public/textures/tiles.webp')).toBe(true);
+    for (const style of ['residential', 'office', 'bank', 'depot', 'automat', 'street'] as const) {
+      for (const kind of ['ground', 'floor', 'wall', 'window', 'stair', 'rubble'] as const) {
+        const s = surfaceOf({ kind, material: 'brick' } as never, style, false);
+        expect(surfaceLayer(s), `${style} ${kind}`).toBeGreaterThanOrEqual(0);
+      }
+      expect(surfaceLayer(surfaceOf({ kind: 'void', material: 'brick' } as never, style, false))).toBe(-1);
+    }
+  });
+});

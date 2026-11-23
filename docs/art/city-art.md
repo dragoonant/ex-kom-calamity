@@ -1,5 +1,7 @@
 # City and craft art, round 9 (2026-11-21)
 
+**Round 10 (2026-11-22) followed this up on the owner's GPU (`docs/art/round-10.md`):** the craft were re-prompted as single natural objects without the word "craft" and passed; the six building picks below (broadcast with its sign painted out), four new kinds, `patrol-car-b-s13`, `transport-van-s22`, a civilian car and the three craft are now generated GLBs in the city, and the host, taker and fighter repaint references were made by image edits of the locked D14 references.
+
 Judging samples for the strategic layer (`docs/strategic-layer.md`, PLAN D24) and the alien repaint (D25, Q22). Made with FLUX.1-dev through the Hugging Face router (`tools/concept/render.py`, the same call as `tools/sample-concepts.py`); prompts in `docs/concept/samples/city-r9/prompts-r9.json` describe shapes in measurements and materials only. Palette: enamel cream, teal, mustard, graphite, chrome; agency signal red and black; aliens pearl `#d4dadb`, amber `#e0a030`, dark chitin. No Gemini calls.
 
 **Calls:** 44 image calls (36 first seeds + 8 re-rolls, all returned an image); 3 image-to-3D calls, all refused (below). No GLB was made, so `public/models/craft/` was not created.

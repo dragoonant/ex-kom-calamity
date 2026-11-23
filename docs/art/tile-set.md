@@ -91,9 +91,11 @@ Headless Chromium draws through SwiftShader at a few frames a second, so wall-cl
 - RULING: ART-3 | A damaged prop leans and darkens; it never breaks on its own | Props have no health (RULING MAP-9); the tile's health is the only truth, so the prop shows it. provisional
 - RULING: ART-4 | Effects and sounds only for what the agency sees, structure excepted | The fx queue is built from the same `view` the tray uses (VIEW-2, AI-9); tiles are public (VIEW-1), so a far breach is heard and seen. provisional
 - Rulings ART-6..ART-10 (the sky, the city dressing, the raid surroundings, the title poster) are in `docs/art/dressing.md` section 5.
-- RULING: ART-5 | Pass 1 ships no textures and no GPU assets | The owner's GPU host (PLAN.md Q7) is not reachable from this session; the merged-geometry props and style palettes are designed so a GLB per kind can replace a merged geometry by name in `propGeometry` without touching the map or the layers. provisional
+- RULING: ART-5 | Pass 1 ships no textures and no GPU assets | The owner's GPU host (PLAN.md Q7) is not reachable from this session; the merged-geometry props and style palettes are designed so a GLB per kind can replace a merged geometry by name in `propGeometry` without touching the map or the layers. **Closed by round 10 (2026-11-22, `docs/art/round-10.md`):** the 15 prop kinds are generated GLBs fitted to the old pieces' boxes, and the tile boxes wear 16 generated material swatches (RULING ART-12 there).
 
 ## 8. For the GPU pass (M4b)
+Done in round 10 except shadows (`docs/art/round-10.md`): props by GLB per kind (`ASSET_SLOTS` in `models.ts`, the glow parts kept as separate emissive meshes), facades by a triplanar texture array on the pick mesh rather than an atlas on the layers (`board/surface.ts`), figures since M4b.
+
 - Replace `propGeometry(kind)` with a loaded GLB per kind (same origin: standing on y = 0, facing +z, one tile wide); keep the glow parts as separate emissive meshes or bake emissive into the GLB.
 - Facade textures (brick courses, enamel panels, signage) as a small atlas on the pick mesh and the layers; the palettes above are the colour keys.
 - Rigged figures into `public/models/<role>.glb` and `FIGURE_SLOTS[role].url` (`models.ts`); the gallery measures them by named nodes (head, torso, leg).

@@ -1,59 +1,40 @@
 {
  "role": "host",
- "reference": "docs/concept/samples/alien-host-s42.jpg",
+ "reference": "docs/concept/samples/r10/repaint-host-s161.jpg",
  "attempt": {
   "role": "host",
-  "reference": "docs/concept/samples/alien-host-s42.jpg",
+  "reference": "docs/concept/samples/r10/repaint-host-s161.jpg",
+  "shapeReference": "docs/concept/samples/alien-host-s42.jpg",
   "seed": 7,
-  "preset": "high",
-  "octree": 512,
-  "steps": 50,
-  "guidance": 5.0,
-  "faces": 30000,
+  "preset": "repaint",
+  "shapeFrom": "s7-high",
   "texture": 2048,
-  "cutBase": false,
   "stages": {
    "cutout": {
-    "seconds": 0,
+    "seconds": 19,
     "ok": true,
     "tail": [
-     "cached"
-    ]
-   },
-   "shape": {
-    "seconds": 205,
-    "ok": true,
-    "tail": [
-     "Diffusion Sampling::   2%|\u258f         | 1/50 [00:03<03:10,  3.89s/it]",
-     "Diffusion Sampling::   4%|\u258d         | 2/50 [00:04<01:31,  1.90s/it]",
-     "Diffusion Sampling::   6%|\u258c         | 3/50 [00:04<00:59,  1.27s/it]",
-     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:28<00:00,  1.99it/s]",
-     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:28<00:00,  1.73it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16799/16876 [01:24<00:00, 198.56it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16820/16876 [01:24<00:00, 197.79it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16842/16876 [01:24<00:00, 200.35it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16863/16876 [01:24<00:00, 198.10it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:24<00:00, 199.00it/s]",
-     "generated in 131s: 691480 raw faces",
-     "shape: 30000 faces, 201s total"
+     "cutout (896, 1168)"
     ]
    },
    "paint": {
-    "seconds": 63,
+    "seconds": 60,
     "ok": true,
     "tail": [
-     "loading Hunyuan3D 2.0 paint model",
-     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.63it/s]",
-     "Loading pipeline components...:  83%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e | 5/6 [00:08<00:01,  1.88s/it]",
-     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:08<00:00,  1.34s/it]",
-     "loaded in 25s; painting at 2048",
-     "textured: 3.8 MB, 61s total"
+     "Loading pipeline components...:  17%|\u2588\u258b        | 1/6 [00:00<00:01,  3.56it/s]",
+     "Loading pipeline components...:  33%|\u2588\u2588\u2588\u258e      | 2/6 [00:01<00:02,  1.37it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:01<00:00,  4.29it/s]",
+     "Loading pipeline components...:   0%|          | 0/6 [00:00<?, ?it/s]",
+     "Loading pipeline components...:  17%|\u2588\u258b        | 1/6 [00:00<00:02,  1.92it/s]",
+     "Loading pipeline components...:  33%|\u2588\u2588\u2588\u258e      | 2/6 [00:07<00:16,  4.21s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.02it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.23s/it]"
     ]
    }
   },
-  "started": "2026-11-18 13:56:59",
-  "finished": "2026-11-18 14:01:27",
-  "gpuSeconds": 268
+  "started": "2026-11-22 15:49:30",
+  "finished": "2026-11-22 15:50:49",
+  "gpuSeconds": 60
  },
  "finalize": {
   "landmarks": {
@@ -62,12 +43,12 @@
   },
   "full": {
    "triangles": 30000,
-   "bytes": 6811192,
+   "bytes": 6902164,
    "texture": "as painted"
   },
   "lod": {
    "triangles": 8000,
-   "bytes": 1978868,
+   "bytes": 1974712,
    "texture": 1024
   },
   "dimensions": {
@@ -77,7 +58,8 @@
   },
   "yaw": 0.0,
   "roughness": 0.9,
-  "regrade": true
+  "regrade": true,
+  "calmHue": "185,260"
  },
  "gate": {
   "verdict": "fail",
@@ -93,14 +75,14 @@
    "chin_source": "given"
   },
   "reference": {
-   "head_share": 0.21,
-   "shoulders_in_heads": 1.23,
-   "legs_in_heads": 1.9,
-   "aspect": 0.384,
-   "chin_source": "given"
+   "head_share": 0.172,
+   "shoulders_in_heads": 2.03,
+   "legs_in_heads": 2.31,
+   "aspect": 0.377,
+   "chin_source": "neck minimum"
   }
  },
- "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\host\\s7-high",
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\host\\s7-repaint",
  "files": [
   "cutout.png",
   "job.json",

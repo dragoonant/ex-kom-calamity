@@ -1,0 +1,525 @@
+{
+ "note": "Round 10, the art pass that replaces procedural art (furniture, buildings, vehicles, alien craft, the spitter, the D25 repaint references, the title backdrop, tile textures). Made 2026-11-22 on the owner's GPU with FLUX.2 klein 4B (Apache-2.0) through the local Flux Studio (tools/concept/flux_local.mjs), so the images may ship. Palette per PLAN D5/D11 and D25/Q22 (pearl #d4dadb, amber #e0a030, dark chitin; no coral, no green on aliens). Shapes in measurements and materials only (KB rule 23); names and shapes checked against GAME-DESIGN.md section 5 (KB rule 29). kind 'edit' items take refs (repo paths) and send prompt as the instruction, without a style prefix.",
+ "model": "klein",
+ "style_prop": "Photograph of a premium hand-painted scale model of one single piece of furniture or equipment from a 1950s vision of the future, serious and detailed, matte realistic paint with crisp edge highlights. The whole object is in frame with a wide empty margin on every side, centred, seen from 45 degrees to the front-left and 30 degrees above, plain pure white background, soft even studio light, no floor, no shadow, no other objects, no lettering, no logos.",
+ "style_model": "Photograph of a premium hand-painted scale model, serious and highly detailed, matte realistic paint with crisp edge highlights. The whole object is in frame with a wide empty margin on every side, centred, seen from 45 degrees to the front-left and slightly above, so the nose and the full length of one side both show, plain pure white background, soft even studio light, no base, no stand, no other objects. No lettering, no badges, no logos.",
+ "style_building": "Isometric three-quarter view from 35 degrees above of one single building made as a premium hand-painted architectural scale model, serious and detailed, matte realistic paint with crisp edges, standing on a small square slab of pavement. The whole building is in frame with a wide empty margin, centred, plain pure white background, soft even studio light, no lettering, no signs. A 1950s vision of the future: cream enamel walls, teal trim, mustard accents, graphite window frames, polished chrome bands.",
+ "style_alien": "Photograph of a premium hand-painted miniature of a living organism, grown rather than built, all smooth organic surfaces: no metal, no rivets, no panel lines, no guns, no windows, no cockpit, no canopy, no fins, no engines, no lettering. Matte realistic paint with crisp edge highlights. The whole object is in frame with a wide empty margin, centred, seen from 45 degrees to the front-left and slightly above, floating in mid-air, plain pure white background, soft even studio light.",
+ "style_creature": "Photograph of a premium hand-painted tabletop miniature of a creature, serious and highly detailed, matte realistic paint with crisp edge highlights, unsettling mood. Whole creature in frame standing directly on the ground with no base, front three-quarter view, centred, plain pure white background, soft even studio light.",
+ "style_poster": "Screen-printed travel poster of a 1950s vision of the future, flat areas of colour with crisp clean edges, a little paper grain, limited palette of teal, peach, enamel cream, mustard, graphite and soft coral sky. No text, no lettering, no title, no border, no people in the foreground.",
+ "style_texture": "A perfectly flat material swatch seen straight on, orthographic, filling the whole frame edge to edge, evenly lit with no shadows, no perspective, no vignette, no objects, no border, the pattern continues past every edge. Realistic, finely detailed, matte.",
+ "items": [
+  {
+   "id": "prop-desk",
+   "kind": "prop",
+   "aspect": "1:1",
+   "seeds": [
+    101,
+    102
+   ],
+   "prompt": "Subject: an office desk 1.4 metres wide, 0.7 deep and 0.78 tall. A flat top of pale walnut veneer with a rounded front edge and a thin chrome band, standing on two box pedestals of cream enamel steel with three drawers each and small chrome pulls, a wire letter tray on top and a small teal enamel desk lamp with a domed shade."
+  },
+  {
+   "id": "prop-counter",
+   "kind": "prop",
+   "aspect": "3:2",
+   "seeds": [
+    103,
+    104
+   ],
+   "prompt": "Subject: a service counter 2 metres long, 0.6 deep and 0.7 tall. A long box with rounded ends, the front panel in cream enamel with three horizontal chrome bands, a teal top of linoleum with a chrome edge, a mechanical cash till in graphite and chrome at one end."
+  },
+  {
+   "id": "prop-shelf",
+   "kind": "prop",
+   "aspect": "3:4",
+   "seeds": [
+    105,
+    106
+   ],
+   "prompt": "Subject: a steel shelving unit 1 metre wide, 0.4 deep and 1.2 tall. Two graphite enamel uprights with round chrome feet, three cream enamel shelves, on the shelves a few plain cardboard boxes in mustard, teal and cream and some bound files."
+  },
+  {
+   "id": "prop-bed",
+   "kind": "prop",
+   "aspect": "3:2",
+   "seeds": [
+    107,
+    108
+   ],
+   "prompt": "Subject: a single bed 2 metres long, 0.9 wide and 0.7 tall at the headboard. A low walnut frame on short tapered legs, a white mattress and pillow, a folded teal wool blanket, a curved headboard in cream enamel with a chrome rail."
+  },
+  {
+   "id": "prop-locker",
+   "kind": "prop",
+   "aspect": "3:4",
+   "seeds": [
+    109,
+    110
+   ],
+   "prompt": "Subject: a steel locker cabinet 0.8 metres wide, 0.45 deep and 1.5 tall with rounded vertical corners. Body in cream enamel, two tall doors in teal enamel with three ventilation slots near the top, small chrome handles and a chrome number plate with no number on it."
+  },
+  {
+   "id": "prop-machine",
+   "kind": "prop",
+   "aspect": "3:4",
+   "seeds": [
+    111,
+    112
+   ],
+   "prompt": "Subject: a vending machine 0.9 metres wide, 0.7 deep and 1.6 tall with a rounded top. Body in warm coral-red enamel with a polished chrome crown, a large lit display window in the upper half showing rows of small packets behind glass, a row of chrome buttons, a chrome delivery tray at the bottom."
+  },
+  {
+   "id": "prop-lamp",
+   "kind": "prop",
+   "aspect": "2:3",
+   "seeds": [
+    113,
+    114
+   ],
+   "prompt": "Subject: a street lamp 3.3 metres tall. A slim tapered teal enamel post on a round stepped base, one curved arm at the top holding a drum-shaped lamp head with a frosted glass underside and a cream enamel shade, the glass glowing warm white."
+  },
+  {
+   "id": "prop-kiosk-sign",
+   "kind": "prop",
+   "aspect": "3:4",
+   "seeds": [
+    115,
+    116
+   ],
+   "prompt": "Subject: a free-standing street sign board 2.3 metres tall. A single teal post, a wide rounded cream enamel board on top with a broad coral band across it carrying no letters at all, a thin teal rail along its bottom edge."
+  },
+  {
+   "id": "prop-bench",
+   "kind": "prop",
+   "aspect": "3:2",
+   "seeds": [
+    117,
+    118
+   ],
+   "prompt": "Subject: a public bench 1.8 metres long and 0.8 tall. A seat and a back rail of slatted pale timber, two curved legs of graphite enamel steel with chrome caps."
+  },
+  {
+   "id": "prop-vehicle",
+   "kind": "model",
+   "aspect": "3:2",
+   "seeds": [
+    119,
+    120
+   ],
+   "prompt": "Subject: a parked two-tone civilian saloon car of a 1950s vision of the future, about 5 metres long, 1.9 wide and 1.4 tall, on four wheels half hidden under rounded wheel spats. Teal enamel lower body, a cream enamel roof and a cream trim line along each side, a clear glass bubble cabin, two small coral tail fins at the back, a chrome bumper bar and a lit headlamp strip across the nose. A ground car, wheels on the ground."
+  },
+  {
+   "id": "prop-planter",
+   "kind": "prop",
+   "aspect": "1:1",
+   "seeds": [
+    121,
+    122
+   ],
+   "prompt": "Subject: a square planter box 1 metre wide and 0.5 tall of warm red brick with a cream stone rim, planted with low clipped evergreen shrubs in two tiers rising to 1 metre."
+  },
+  {
+   "id": "prop-tank",
+   "kind": "prop",
+   "aspect": "3:4",
+   "seeds": [
+    123,
+    124
+   ],
+   "prompt": "Subject: a rooftop water tank 1.6 metres tall. A short steel drum 1 metre across in pale grey enamel with a domed coral-red lid, standing on four splayed steel legs with cross braces, a thin pipe running down one leg."
+  },
+  {
+   "id": "prop-vent",
+   "kind": "prop",
+   "aspect": "1:1",
+   "seeds": [
+    125,
+    126
+   ],
+   "prompt": "Subject: a rooftop ventilation unit 0.9 metres tall. A square grey steel housing with a dark louvred grille on the front, a round fan drum on top with a cream enamel conical cap."
+  },
+  {
+   "id": "prop-mast",
+   "kind": "prop",
+   "aspect": "2:3",
+   "seeds": [
+    127,
+    128
+   ],
+   "prompt": "Subject: a rooftop radio mast 4.6 metres tall. A slim lattice steel pole painted graphite on a square base plate, two cross bars with small insulators, a round dish antenna on one side, a red beacon lamp at the very top."
+  },
+  {
+   "id": "prop-crate",
+   "kind": "prop",
+   "aspect": "1:1",
+   "seeds": [
+    129,
+    130
+   ],
+   "prompt": "Subject: a shipping crate 0.8 metres on each side. Pale timber planks held by three graphite steel bands, a small mustard stencil plate on one face with no letters."
+  },
+  {
+   "id": "bldg-automat",
+   "kind": "building",
+   "aspect": "1:1",
+   "seeds": [
+    131,
+    132
+   ],
+   "prompt": "Subject: a one-storey streamlined self-service restaurant 20 metres long with one rounded end, a full-length band of tall windows, a cantilevered flat roof with a rounded mustard edge, a vertical cream fin over the entrance with no letters, cream and teal enamel panels."
+  },
+  {
+   "id": "bldg-depot",
+   "kind": "building",
+   "aspect": "1:1",
+   "seeds": [
+    133,
+    134
+   ],
+   "prompt": "Subject: a two-storey goods depot 30 metres long: a big shed of ribbed sheet steel painted blue-grey under a low curved roof, three large mustard roll-up loading doors along the front, a small two-storey office block with ribbon windows at one end, a short loading dock."
+  },
+  {
+   "id": "bldg-civic",
+   "kind": "building",
+   "aspect": "1:1",
+   "seeds": [
+    135,
+    136
+   ],
+   "prompt": "Subject: a civic hall: a broad four-storey block with rounded corners and a raised entrance porch of four slim square piers, a stepped central tower rising to eight storeys with a round clock face near its top and a short flat crown, long ribbon windows, cream walls with teal bands."
+  },
+  {
+   "id": "bldg-works",
+   "kind": "building",
+   "aspect": "1:1",
+   "seeds": [
+    137,
+    138
+   ],
+   "prompt": "Subject: an industrial works: a long two-storey factory hall with a sawtooth roof of glazed north lights, two round storage tanks beside it, a single tall round chimney with two chrome rings, pipe racks between them, cream and graphite walls with mustard doors."
+  },
+  {
+   "id": "car-civilian",
+   "kind": "model",
+   "aspect": "4:3",
+   "seeds": [
+    139,
+    140
+   ],
+   "prompt": "Subject: a small four-seat civilian flying car of a 1950s vision of the future, about 4.5 metres long. A rounded teardrop body in pale cream enamel with a mustard belly, a clear bubble canopy, chrome trim lines, two small round ducted lift fans in pods on short stub wings. No wheels; it hovers a little above the ground."
+  },
+  {
+   "id": "alien-scout",
+   "kind": "alien",
+   "aspect": "4:3",
+   "seeds": [
+    141,
+    142,
+    143
+   ],
+   "prompt": "Subject: a giant smooth seed pod about 6 metres long, a spindle three times as long as it is wide, tapering to a soft point at both ends. Milky pearl-white skin like polished porcelain with a cool grey sheen. Five raised hoops of dark glossy brown-black chitin wrap around it from end to end. Thin glowing amber filament lines run under the skin between the hoops. It hangs in the air with nothing holding it."
+  },
+  {
+   "id": "alien-seeder",
+   "kind": "alien",
+   "aspect": "4:3",
+   "seeds": [
+    144,
+    145,
+    146
+   ],
+   "prompt": "Subject: a giant lumpy gourd about 12 metres long and 6 tall lying on its side, its swollen body covered in heavy overlapping curved plates of dark glossy brown-black chitin with smooth milky pearl-white skin between them. Under its belly hangs a tight bunch of a dozen round translucent amber pods, each glowing softly from inside. It hangs in the air with nothing holding it."
+  },
+  {
+   "id": "alien-carrier",
+   "kind": "alien",
+   "aspect": "16:9",
+   "seeds": [
+    147,
+    148,
+    149
+   ],
+   "prompt": "Subject: an enormous smooth larva about 60 metres long with no legs and no head, a long body of twelve ribbed rings of dark glossy brown-black chitin tapering at both ends, the top of every ring covered by a smooth milky pearl-white plate like polished porcelain, two long straight rows of small round glowing amber lights along each flank. It hangs in the air with nothing holding it. The whole body in frame."
+  },
+  {
+   "id": "alien-spitter",
+   "kind": "creature",
+   "aspect": "1:1",
+   "seeds": [
+    151,
+    152,
+    153
+   ],
+   "prompt": "Subject: a squat alien organism about 0.9 metres tall, not shaped like a person or an animal. A heavy pear-shaped body of smooth milky pearl-white skin like polished porcelain with thin glowing amber filament lines under it, standing low on four short thick jointed legs of dark glossy brown-black chitin. At the front of the body hangs one large translucent sac the size of the body's head end, glowing amber from inside and full of round spores, below a short upturned chitin tube like a mortar barrel made of shell. No eyes, no face, no arms."
+  },
+  {
+   "id": "repaint-host",
+   "kind": "edit",
+   "refs": [
+    "docs/concept/samples/alien-host-s42.jpg"
+   ],
+   "seeds": [
+    161,
+    162
+   ],
+   "prompt": "Keep the figure's exact shape, pose, proportions, clothes, camera and white background. Repaint only the alien head and any growths: the skin becomes a cool smooth milky pearl-white like polished porcelain with a faint blue-grey sheen, no green anywhere. The growths on top of the head become three raised ridges that glow amber from inside like a lamp filament. A soft amber glow shows at the throat above the collar."
+  },
+  {
+   "id": "repaint-taker",
+   "kind": "edit",
+   "refs": [
+    "docs/concept/samples/alien-taker-s51.jpg"
+   ],
+   "seeds": [
+    163,
+    164
+   ],
+   "prompt": "Keep the creature's exact shape, legs, pose, proportions, camera and white background. Repaint only: the body skin becomes a cool smooth milky pearl-white like polished porcelain with a faint blue-grey sheen, with thin amber filament lines under the skin; no green anywhere and no coral. The legs stay dark glossy brown-black chitin. The core stays a soft glowing amber."
+  },
+  {
+   "id": "repaint-fighter",
+   "kind": "edit",
+   "refs": [
+    "docs/concept/samples/gemini-alien-fighter-a.jpg"
+   ],
+   "seeds": [
+    165,
+    166
+   ],
+   "prompt": "Keep the creature's exact shape, three legs, pose, proportions, camera and white background. Repaint only: the column body becomes a cool smooth milky pearl-white like polished porcelain with a faint blue-grey sheen; the cap on top becomes dark glossy brown-black chitin; the four whip arms become dark glossy chitin tendrils with thin glowing amber lines; no green anywhere and no coral. The core at mid-height stays a glowing amber."
+  },
+  {
+   "id": "title-backdrop",
+   "kind": "poster",
+   "aspect": "16:9",
+   "megapixels": 2,
+   "seeds": [
+    171,
+    172,
+    173,
+    174
+   ],
+   "prompt": "A city of tomorrow at early evening seen from a hill: in front three tall cream rocket-shaped towers with mustard spines and teal collars, a teal middle city of rounded towers with rows of small lit windows, an elevated monorail curving across on slim pylons, a few small rounded flying cars, pale far towers fading into a teal-to-peach sky, a large banded setting sun low on the horizon with soft clouds. No domes on columns, no saucers on towers."
+  },
+  {
+   "id": "title-backdrop-tall",
+   "kind": "poster",
+   "aspect": "9:16",
+   "megapixels": 2,
+   "seeds": [
+    175,
+    176
+   ],
+   "prompt": "A city of tomorrow at early evening, tall composition: three tall cream rocket-shaped towers with mustard spines and teal collars rising in front, a teal middle city of rounded towers with small lit windows, an elevated monorail on slim pylons, a teal-to-peach sky with a large banded setting sun and soft clouds. No domes on columns, no saucers on towers."
+  },
+  {
+   "id": "tex-brick",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    181,
+    182
+   ],
+   "prompt": "Subject: a wall of warm red-brown brick in running bond, even mortar joints, slight colour variation brick to brick."
+  },
+  {
+   "id": "tex-render",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    183,
+    184
+   ],
+   "prompt": "Subject: smooth rendered stucco wall in pale sandstone colour with very faint trowel marks and fine hairline cracks."
+  },
+  {
+   "id": "tex-ashlar",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    185,
+    186
+   ],
+   "prompt": "Subject: dressed limestone ashlar wall of large rectangular blocks in courses, thin joints, pale warm grey-brown."
+  },
+  {
+   "id": "tex-steel",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    187,
+    188
+   ],
+   "prompt": "Subject: vertical ribbed corrugated sheet steel cladding painted blue-grey, faint weathering streaks, regular ribs."
+  },
+  {
+   "id": "tex-enamel",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    189,
+    190
+   ],
+   "prompt": "Subject: a grid of square cream porcelain enamel wall panels with thin recessed seams and tiny round fixings at the corners, soft sheen."
+  },
+  {
+   "id": "tex-plaster",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    191,
+    192
+   ],
+   "prompt": "Subject: smooth pale cream painted interior plaster wall, very subtle roller texture."
+  },
+  {
+   "id": "tex-parquet",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    193,
+    194
+   ],
+   "prompt": "Subject: oak parquet floor in a herringbone pattern, honey colour, light satin finish."
+  },
+  {
+   "id": "tex-linoleum",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    195,
+    196
+   ],
+   "prompt": "Subject: pale grey-green marbled linoleum floor tiles 30 centimetres square with thin seams."
+  },
+  {
+   "id": "tex-marble",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    197,
+    198
+   ],
+   "prompt": "Subject: polished warm beige marble floor slabs with soft veining, thin joints, large square slabs."
+  },
+  {
+   "id": "tex-concrete",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    199,
+    200
+   ],
+   "prompt": "Subject: smooth grey poured concrete floor with faint saw-cut joints and light wear."
+  },
+  {
+   "id": "tex-chequer",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    201,
+    202
+   ],
+   "prompt": "Subject: a chequerboard floor of square cream and teal ceramic tiles, eight tiles across, thin grout lines."
+  },
+  {
+   "id": "tex-paving",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    203,
+    204
+   ],
+   "prompt": "Subject: grey-green square concrete paving slabs, six across, thin joints, light wear."
+  },
+  {
+   "id": "tex-tar",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    205,
+    206
+   ],
+   "prompt": "Subject: a flat roof of dark grey-brown tar felt with overlapping seams and a scattering of fine grit."
+  },
+  {
+   "id": "tex-gravel",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    207,
+    208
+   ],
+   "prompt": "Subject: a flat roof covered in small rounded grey pebbles, evenly spread."
+  },
+  {
+   "id": "tex-lead",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    209,
+    210
+   ],
+   "prompt": "Subject: a roof of dull grey sheet lead in long bays with rolled seams."
+  },
+  {
+   "id": "tex-asphalt",
+   "kind": "texture",
+   "aspect": "1:1",
+   "seeds": [
+    211,
+    212
+   ],
+   "prompt": "Subject: dark grey road asphalt with fine aggregate, no markings."
+  },
+  {
+   "id": "title-sky",
+   "kind": "poster",
+   "aspect": "16:9",
+   "megapixels": 2,
+   "seeds": [
+    177,
+    178
+   ],
+   "note": "backdrop variant with no foreground towers, so the drawn rocket towers, near row and monorail stand in front of it (Poster.tsx)",
+   "prompt": "An early evening sky over a distant city of tomorrow: a teal-to-peach sky with a large banded setting sun low on the right and long soft clouds, and along the bottom third a hazy skyline of distant rounded and rocket-shaped towers in pale teal with tiny lit windows, fading into the haze. Nothing in the foreground; the lowest strip is plain teal haze. No domes on columns, no saucers on towers."
+  },
+  {
+   "id": "title-sky-tall",
+   "kind": "poster",
+   "aspect": "9:16",
+   "megapixels": 2,
+   "seeds": [
+    179,
+    180
+   ],
+   "note": "tall crop of title-sky for portrait screens",
+   "prompt": "A tall early evening sky over a distant city of tomorrow: a deep teal sky fading to peach at the horizon, a large banded setting sun low in the frame and long soft clouds, and along the bottom quarter a hazy skyline of distant rounded and rocket-shaped towers in pale teal with tiny lit windows. Nothing in the foreground; the lowest strip is plain teal haze. No domes on columns, no saucers on towers."
+  },
+  {
+   "id": "alien-seeder-nostem",
+   "kind": "edit",
+   "refs": [
+    "docs/concept/samples/r10/alien-seeder-s144.jpg"
+   ],
+   "seeds": [
+    150
+   ],
+   "note": "the pick alien-seeder-s144 with its small green stem removed (no green on aliens, D25)",
+   "prompt": "Remove the small green stem at the right end of the body and close that end with the same dark glossy brown-black chitin plates. Keep everything else exactly the same: shape, plates, pearl seams, amber pods, camera, lighting and white background."
+  },
+  {
+   "id": "bldg-broadcast-nosign",
+   "kind": "edit",
+   "refs": [
+    "docs/concept/samples/city-r9/bldg-broadcast-s45.jpg"
+   ],
+   "seeds": [
+    213
+   ],
+   "note": "the round 9 pick bldg-broadcast-s45 with its lettered sign painted out (no text on models; the name lives in the UI)",
+   "prompt": "Remove the lettered sign above the entrance and replace it with a plain teal enamel fascia band with no letters. Keep everything else exactly the same: building, tower, colours, camera, lighting, paving base and white background."
+  }
+ ]
+}

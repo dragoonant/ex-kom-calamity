@@ -5,6 +5,7 @@
 import { Canvas } from '@react-three/fiber';
 import { Suspense, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { AssetGallery } from './AssetGallery';
 import { EveningLights, EVENING } from './board/Scene';
 import { CorePulse } from './board/Effects';
 import { FigureModel, GATES, HEAD, NO_RAYCAST, gateOf, humanoidRole, measureFigure, measureParts, type Drawn, type Measure } from './board/placeholders';
@@ -168,6 +169,7 @@ export function Gallery() {
             })}
           </tbody>
         </table>
+        <AssetGallery />
         <div className="switch-row">
           <a className="toggle" href="./" data-testid="gallery-back">
             BACK TO THE CONSOLE

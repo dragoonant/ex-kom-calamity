@@ -4,16 +4,22 @@
 // slips pulse amber in unison by night. Picking is one invisible instanced mesh of lots (KB rule 25): nothing
 // else on the board takes a pointer.
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
-import { CITY } from '../../data/city';
+import { CITY, type BuildingKind } from '../../data/city';
 import { cityQuery, type CityState } from '../../city';
 import { feed, makeAccumulator } from '../loop';
 import { CameraRig } from '../board/CameraRig';
 import { RendererHandle } from '../board/Scene';
 import { bounds, clampRig, rig } from '../board/world';
 import { HorizonFog, SkyDome, skyAt, type SkyTone } from '../board/backdrop';
-import { patchWindows, windowUniforms, type WindowUniforms } from '../board/windows';
+import { patchGlass, patchWindows, windowUniforms, type WindowUniforms } from '../board/windows';
+import { boxOf, fitScene } from '../board/glbFit';
+import { useFittedAsset } from '../board/assetScene';
+import { glowTexture } from '../board/instanced';
+import { ModelBoundary } from '../board/placeholders';
+import { useAssetUrl } from '../models';
 import { CityDressing } from './CityDressing';
 import { CityOverlays } from './CityOverlays';
 import { CityLabels, LabelProjector, lotHeights, useHover } from './labels';
@@ -120,6 +126,7 @@ const MOON = new THREE.Color('#9fb2dc');
 
 interface Lot {
   id: string;
+  kind: BuildingKind | 'hq';
   pos: THREE.Vector3;
   geo: ReturnType<typeof buildingGeometry>;
 }
@@ -130,12 +137,14 @@ function useLots(): { lots: Lot[]; hq: Lot } {
   return useMemo(() => {
     const lots = CITY.buildings.map((b, i) => ({
       id: b.id,
+      kind: b.kind as BuildingKind | 'hq',
       pos: cellCentre(b.x, b.y),
       geo: buildingGeometry(b.kind, b.floors, i),
     }));
     for (const l of lots) lotHeights.set(l.id, Math.max(2, l.geo.height));
     const hq = {
       id: 'hq',
+      kind: 'hq' as const,
       pos: cellCentre(CITY.agency.hq.x, CITY.agency.hq.y),
       geo: buildingGeometry('hq', 3, 0),
     };
@@ -237,23 +246,105 @@ function Buildings({ view, lots, hq, windows }: { view: CityState; lots: Lot[]; 
     humMat.emissiveIntensity = (1 - d) * (0.4 + 1.6 * pulse) + d * 0.05;
     turnedMat.emissiveIntensity = 0.5 + 0.6 * pulse;
   });
+  const mats: BuildingMats = { bodyMat, gleamMat, winMat, humMat, turnedMat };
+  const kinds = useMemo(() => {
+    const m = new Map<BuildingKind | 'hq', Lot[]>();
+    for (const l of [...lots, hq]) m.set(l.kind, [...(m.get(l.kind) ?? []), l]);
+    return [...m.entries()];
+  }, [lots, hq]);
+  const looks: Looks = { hum, perfect, turned, day: d };
   return (
     <group>
+      {kinds.map(([kind, list]) => (
+        <BuildingKindGroup key={kind} kind={kind} lots={list} mats={mats} looks={looks} windows={windows} />
+      ))}
+    </group>
+  );
+}
+
+interface BuildingMats {
+  bodyMat: THREE.Material;
+  gleamMat: THREE.Material;
+  winMat: THREE.Material;
+  humMat: THREE.MeshStandardMaterial;
+  turnedMat: THREE.MeshStandardMaterial;
+}
+interface Looks {
+  hum: Set<string>;
+  perfect: Set<string>;
+  turned: Set<string>;
+  day: number;
+}
+
+function ProceduralBuildings({ lots, mats, looks }: { lots: Lot[]; mats: BuildingMats; looks: Looks }) {
+  return (
+    <>
       {lots.map((l) => {
-        const isHum = hum.has(l.id);
-        const isTurned = turned.has(l.id);
+        const isHum = l.id !== 'hq' && looks.hum.has(l.id);
+        const isTurned = l.id !== 'hq' && looks.turned.has(l.id);
         return (
           <group key={l.id} position={l.pos}>
-            <mesh geometry={l.geo.body} material={perfect.has(l.id) && d > 0.3 ? gleamMat : bodyMat} raycast={() => null} castShadow receiveShadow />
-            <mesh geometry={l.geo.windows} material={isTurned ? turnedMat : isHum ? humMat : winMat} raycast={() => null} />
+            <mesh geometry={l.geo.body} material={looks.perfect.has(l.id) && looks.day > 0.3 ? mats.gleamMat : mats.bodyMat} raycast={() => null} castShadow receiveShadow />
+            <mesh geometry={l.geo.windows} material={isTurned ? mats.turnedMat : isHum ? mats.humMat : mats.winMat} raycast={() => null} />
           </group>
         );
       })}
-      <group position={hq.pos}>
-        <mesh geometry={hq.geo.body} material={bodyMat} raycast={() => null} castShadow receiveShadow />
-        <mesh geometry={hq.geo.windows} material={winMat} raycast={() => null} />
-      </group>
-    </group>
+    </>
+  );
+}
+
+/** Round 10: a kind whose generated model loaded draws it for every lot of that kind; else the procedural buildings. */
+function BuildingKindGroup({ kind, lots, mats, looks, windows }: { kind: BuildingKind | 'hq'; lots: Lot[]; mats: BuildingMats; looks: Looks; windows: WindowUniforms }) {
+  const url = useAssetUrl(`building:${kind}`);
+  const plain = <ProceduralBuildings lots={lots} mats={mats} looks={looks} />;
+  if (!url) return plain;
+  return (
+    <ModelBoundary fallback={plain}>
+      <Suspense fallback={null}>
+        <GlbBuildings url={url} lots={lots} mats={mats} looks={looks} windows={windows} />
+      </Suspense>
+    </ModelBoundary>
+  );
+}
+
+function GlbBuildings({ url, lots, mats, looks, windows }: { url: string; lots: Lot[]; mats: BuildingMats; looks: Looks; windows: WindowUniforms }) {
+  const gltf = useGLTF(url);
+  // One fitted geometry per lot (floors differ), one material set per kind: the map is the model's texture, and the
+  // glass mask lights its own painted windows (windows.ts 'mask'), so the hum and the too-perfect gleam keep their
+  // meaning (CVIEW-1) on a generated building.
+  const fitted = useMemo(
+    () =>
+      lots.map((l) => {
+        const f = fitScene(gltf.scene, { box: boxOf(l.geo.body), mode: 'footprint' });
+        lotHeights.set(l.id, Math.max(2, f.geometry.boundingBox!.max.y));
+        return f;
+      }),
+    [gltf.scene, lots],
+  );
+  const map = fitted[0]?.material.map ?? null;
+  const m = useMemo(() => {
+    const allLit = { ...windows, uLit: { value: 1 } };
+    return {
+      body: patchGlass(new THREE.MeshStandardMaterial({ map, roughness: 0.75, metalness: 0.05, emissive: new THREE.Color('#ffffff') }), windows, 'warm'),
+      gleam: patchGlass(new THREE.MeshStandardMaterial({ map, roughness: 0.18, metalness: 0.25, emissive: new THREE.Color('#ffffff') }), windows, 'warm'),
+      hum: patchGlass(new THREE.MeshStandardMaterial({ map, roughness: 0.6, emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0 }), allLit, 'emissive'),
+      turned: patchGlass(new THREE.MeshStandardMaterial({ map, roughness: 0.4, emissive: new THREE.Color('#e0a030'), emissiveIntensity: 0.9 }), allLit, 'emissive'),
+    };
+  }, [map, windows]);
+  useFrame(() => {
+    // The pulses follow the procedural materials, so a mixed city hums in unison.
+    m.hum.emissiveIntensity = mats.humMat.emissiveIntensity * 1.6;
+    m.turned.emissiveIntensity = mats.turnedMat.emissiveIntensity * 1.6;
+  });
+  return (
+    <>
+      {lots.map((l, i) => {
+        const isHum = l.id !== 'hq' && looks.hum.has(l.id);
+        const isTurned = l.id !== 'hq' && looks.turned.has(l.id);
+        const mat = isTurned ? m.turned : isHum ? m.hum : looks.perfect.has(l.id) && looks.day > 0.3 ? m.gleam : m.body;
+        return <mesh key={l.id} name={`building-glb-${l.kind}`} position={l.pos} geometry={fitted[i]!.geometry} material={mat} raycast={() => null} castShadow receiveShadow />;
+      })}
+    </>
   );
 }
 
@@ -341,6 +432,12 @@ function Sky({ view }: { view: CityState }) {
     return g;
   }, []);
   const seederGeo = useMemo(() => new THREE.SphereGeometry(1.3, 18, 12), []);
+  // Round 10: the generated craft and patrol car when their files loaded, fitted into the stand-ins' boxes.
+  const scoutFit = useFittedAsset('craft:scout', new THREE.Box3(new THREE.Vector3(-0.6, -0.6, -1.6), new THREE.Vector3(0.6, 0.6, 1.6)), { mode: 'uniform' });
+  const seederFit = useFittedAsset('craft:seeder', new THREE.Box3(new THREE.Vector3(-1.7, -1.3, -1.3), new THREE.Vector3(1.7, 1.1, 1.3)), { mode: 'uniform' });
+  const carrierFit = useFittedAsset('craft:carrier', new THREE.Box3(new THREE.Vector3(-2.4, -0.9, -0.8), new THREE.Vector3(2.4, 0.9, 0.8)), { mode: 'uniform' });
+  const patrolFit = useFittedAsset('vehicle:patrol-car', new THREE.Box3(new THREE.Vector3(-0.6, -0.35, -0.85), new THREE.Vector3(0.6, 0.35, 0.85)), { mode: 'uniform' });
+  const coreGlow = useMemo(() => new THREE.SpriteMaterial({ map: glowTexture(), color: '#e0a030', transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }), []);
   const podGeo = useMemo(() => new THREE.SphereGeometry(0.35, 10, 8), []);
   const pearl = useMemo(
     () =>
@@ -399,6 +496,7 @@ function Sky({ view }: { view: CityState }) {
       if (child.userData.bob) child.position.y = want!.y + Math.sin(clock.elapsedTime * 1.3 + child.userData.bob) * 0.3;
     }
     amber.emissiveIntensity = 0.8 + 0.6 * Math.sin(clock.elapsedTime * 2.4);
+    coreGlow.opacity = 0.45 + 0.35 * Math.sin(clock.elapsedTime * 2.4);
   });
   const now = typeof performance !== 'undefined' ? performance.now() : 0;
   return (
@@ -408,23 +506,33 @@ function Sky({ view }: { view: CityState }) {
         const big = c.kind === 'carrier' ? 2.1 : 1;
         return (
           <group key={c.id} position={want.clone()} scale={big} userData={{ want, bob: i + 1 }}>
-            {c.kind === 'scout' ? (
-              <>
-                <mesh geometry={scoutGeo} material={pearl} raycast={() => null} />
-                <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]}>
-                  <torusGeometry args={[0.5, 0.08, 6, 18]} />
-                  <primitive object={amber} attach="material" />
-                </mesh>
-              </>
-            ) : (
-              <>
-                <mesh geometry={seederGeo} material={chitin} scale={[1.3, 0.8, 1]} raycast={() => null} />
-                <mesh geometry={seederGeo} material={pearl} scale={[0.9, 0.5, 0.7]} position={[0, 0.5, 0]} raycast={() => null} />
-                {(c.kind === 'carrier' ? [-1, -0.5, 0, 0.5, 1] : [-0.6, 0, 0.6]).map((dx) => (
-                  <mesh key={dx} geometry={podGeo} material={amber} position={[dx, -0.9, dx === 0 ? 0.4 : -0.2]} raycast={() => null} />
-                ))}
-              </>
-            )}
+            {(() => {
+              const fit = c.kind === 'scout' ? scoutFit : c.kind === 'carrier' ? carrierFit : seederFit;
+              if (fit)
+                return (
+                  <>
+                    <mesh name={`craft-glb-${c.kind}`} geometry={fit.geometry} material={fit.material} raycast={() => null} />
+                    <sprite raycast={() => null} material={coreGlow} scale={[1.6, 1.6, 1]} />
+                  </>
+                );
+              return c.kind === 'scout' ? (
+                <>
+                  <mesh geometry={scoutGeo} material={pearl} raycast={() => null} />
+                  <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]}>
+                    <torusGeometry args={[0.5, 0.08, 6, 18]} />
+                    <primitive object={amber} attach="material" />
+                  </mesh>
+                </>
+              ) : (
+                <>
+                  <mesh geometry={seederGeo} material={chitin} scale={[1.3, 0.8, 1]} raycast={() => null} />
+                  <mesh geometry={seederGeo} material={pearl} scale={[0.9, 0.5, 0.7]} position={[0, 0.5, 0]} raycast={() => null} />
+                  {(c.kind === 'carrier' ? [-1, -0.5, 0, 0.5, 1] : [-0.6, 0, 0.6]).map((dx) => (
+                    <mesh key={dx} geometry={podGeo} material={amber} position={[dx, -0.9, dx === 0 ? 0.4 : -0.2]} raycast={() => null} />
+                  ))}
+                </>
+              );
+            })()}
           </group>
         );
       })}
@@ -434,9 +542,13 @@ function Sky({ view }: { view: CityState }) {
           const want = new THREE.Vector3(car.x * AIR_SCALE, 11, car.y * AIR_SCALE);
           return (
             <group key={car.id} position={want.clone()} userData={{ want }}>
-              <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]} material={carMat}>
-                <capsuleGeometry args={[0.35, 1.0, 6, 12]} />
-              </mesh>
+              {patrolFit ? (
+                <mesh name="car-glb" raycast={() => null} geometry={patrolFit.geometry} material={patrolFit.material} />
+              ) : (
+                <mesh raycast={() => null} rotation={[Math.PI / 2, 0, 0]} material={carMat}>
+                  <capsuleGeometry args={[0.35, 1.0, 6, 12]} />
+                </mesh>
+              )}
             </group>
           );
         })}

@@ -29,12 +29,14 @@ export const COLOURS = {
   citizenDark: '#3b3f44',
   skin: '#d9b08c',
   hair: '#3a2a22',
-  hostSkin: '#7fc8b0',
-  coral: '#c96a5a',
+  // D25 (2026-11-21) and PLAN Q22: no coral and no sea-glass green; a cool pearl skin with amber filament ridges,
+  // dark chitin caps and tendrils. Round 10 repainted the stand-ins with the generated models.
+  hostSkin: '#d4dadb',
+  ridge: '#e0a030',
   amber: '#e0a030',
-  takerBody: '#5aa88f',
-  seaGlassDeep: '#3f8a74',
-  chitin: '#23312c',
+  takerBody: '#d4dadb',
+  pearlDeep: '#9aa4a8',
+  chitin: '#2a2622',
   down: '#6b6b6b',
 };
 
@@ -126,18 +128,18 @@ function humanoid(kind: 'agent-t1' | 'agent-t2' | 'citizen' | 'host-revealed'): 
     );
   } else {
     parts.push(
-      // revealed host: sea-glass skin, the amber core at the throat, branching coral on the crown (D14)
+      // revealed host: pearl skin, the amber core at the throat, three amber filament ridges over the crown (D25, Q22)
       P('core', 'sphere', 0, LEG + TORSO + HEAD * 0.02, HEAD * 0.3, HEAD * 0.3, HEAD * 0.3, HEAD * 0.3, C.amber, { core: true }),
-      P('coral', 'cone', -HEAD * 0.25, LEG + TORSO + HEAD * 1.0, 0, HEAD * 0.16, HEAD * 0.36, HEAD * 0.16, C.coral, { rz: 0.5 }),
-      P('coral', 'cone', HEAD * 0.2, LEG + TORSO + HEAD * 1.02, HEAD * 0.1, HEAD * 0.14, HEAD * 0.4, HEAD * 0.14, C.coral, { rx: 0.2, rz: -0.4 }),
-      P('coral', 'cone', 0, LEG + TORSO + HEAD * 0.98, -HEAD * 0.25, HEAD * 0.12, HEAD * 0.3, HEAD * 0.12, C.coral, { rx: -0.5 }),
-      P('brow', 'box', 0, LEG + TORSO + HEAD * 0.62, HEAD * 0.44, HEAD * 0.5, HEAD * 0.05, HEAD * 0.06, C.seaGlassDeep),
+      P('ridge', 'box', -HEAD * 0.2, LEG + TORSO + HEAD * 0.92, -HEAD * 0.02, HEAD * 0.07, HEAD * 0.12, HEAD * 0.86, C.ridge),
+      P('ridge', 'box', 0, LEG + TORSO + HEAD * 0.98, -HEAD * 0.02, HEAD * 0.08, HEAD * 0.12, HEAD * 0.9, C.ridge),
+      P('ridge', 'box', HEAD * 0.2, LEG + TORSO + HEAD * 0.92, -HEAD * 0.02, HEAD * 0.07, HEAD * 0.12, HEAD * 0.86, C.ridge),
+      P('brow', 'box', 0, LEG + TORSO + HEAD * 0.62, HEAD * 0.44, HEAD * 0.5, HEAD * 0.05, HEAD * 0.06, C.pearlDeep),
     );
   }
   return parts;
 }
 
-/** The taker (D14): a low sea-glass body with an amber core on six dark chitin legs, a biting head low in front. */
+/** The taker (D14, repainted D25): a low pearl body with an amber core on six dark chitin legs, a biting head low in front. */
 function taker(): FigurePart[] {
   const bodyY = LEG * 0.9;
   const parts: FigurePart[] = [];
@@ -156,7 +158,7 @@ function taker(): FigurePart[] {
   return parts;
 }
 
-/** The fighter (gemini-alien-fighter-a, D14): a headless sea-glass column on three long chitin stilt legs, four coral whip arms, the core at mid-height. */
+/** The fighter (gemini-alien-fighter-a, D14, repainted D25): a headless pearl column on three long chitin stilt legs, a chitin cap, four chitin tendril arms, the core at mid-height. */
 function fighter(): FigurePart[] {
   const legH = FIGURE_H * 0.6;
   const colH = FIGURE_H * 0.75;
@@ -168,16 +170,33 @@ function fighter(): FigurePart[] {
   }
   parts.push(
     P('torso', 'cyl', 0, legH + colH / 2, 0, 0.34, colH, 0.34, C.takerBody),
-    P('cap', 'sphere', 0, legH + colH, 0, 0.34, 0.14, 0.34, C.seaGlassDeep),
+    P('cap', 'sphere', 0, legH + colH, 0, 0.34, 0.14, 0.34, C.chitin),
     P('band', 'cyl', 0, legH + colH * 0.3, 0, 0.38, 0.06, 0.38, C.chitin),
   );
   for (const spin of [0.4, Math.PI / 2 + 0.4, Math.PI + 0.4, (Math.PI * 3) / 2 + 0.4]) {
     const y = legH + colH * 0.8;
-    parts.push(P('arm', 'cyl', 0.3, y + 0.1, 0, 0.05, 0.6, 0.05, C.coral, { rz: -1.2, spin }));
-    parts.push(P('arm', 'cyl', 0.62, y - 0.1, 0, 0.035, 0.5, 0.035, C.coral, { rz: -0.5, spin }));
-    parts.push(P('tip', 'cone', 0.74, y - 0.38, 0, 0.05, 0.16, 0.05, C.coral, { rx: Math.PI, spin }));
+    parts.push(P('arm', 'cyl', 0.3, y + 0.1, 0, 0.05, 0.6, 0.05, C.chitin, { rz: -1.2, spin }));
+    parts.push(P('arm', 'cyl', 0.62, y - 0.1, 0, 0.035, 0.5, 0.035, C.chitin, { rz: -0.5, spin }));
+    parts.push(P('tip', 'cone', 0.74, y - 0.38, 0, 0.05, 0.16, 0.05, C.ridge, { rx: Math.PI, spin }));
   }
   parts.push(P('core', 'sphere', 0, legH + colH * 0.5, 0.2, 0.2, 0.2, 0.2, C.amber, { core: true }));
+  return parts;
+}
+
+/** The spitter (D26 slice 3, round 10): a squat pearl pear on four short chitin legs, a glowing amber spore sac at the front under a short chitin tube. */
+function spitter(): FigurePart[] {
+  const bodyY = 0.42;
+  const parts: FigurePart[] = [];
+  for (const spin of [0.7, 2.4, 3.9, 5.6]) {
+    parts.push(P('leg', 'cyl', 0.24, 0.2, 0, 0.08, 0.42, 0.08, C.chitin, { rz: 0.55, spin }));
+    parts.push(P('foot', 'sphere', 0.34, 0.04, 0, 0.1, 0.07, 0.1, C.chitin, { spin }));
+  }
+  parts.push(
+    P('torso', 'sphere', 0, bodyY, -0.06, 0.56, 0.5, 0.66, C.takerBody),
+    P('back', 'sphere', 0, bodyY + 0.2, -0.16, 0.4, 0.34, 0.42, C.takerBody),
+    P('tube', 'cyl', 0, bodyY + 0.24, 0.2, 0.12, 0.3, 0.12, C.chitin, { rx: -0.7 }),
+    P('core', 'sphere', 0, bodyY - 0.04, 0.3, 0.3, 0.28, 0.26, C.amber, { core: true }),
+  );
   return parts;
 }
 
@@ -191,6 +210,7 @@ export const FIGURE_PARTS: Record<FigureRole, FigurePart[]> = {
   'host-revealed': humanoid('host-revealed'),
   taker: taker(),
   fighter: fighter(),
+  spitter: spitter(),
 };
 
 const UNIT = {
@@ -259,7 +279,7 @@ export function Placeholder({ role, down = false }: { role: FigureRole; down?: b
   );
 }
 
-class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+export class ModelBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
   static getDerivedStateFromError(): { failed: boolean } {
     return { failed: true };
@@ -418,7 +438,7 @@ export function measureFigure(root: THREE.Object3D, gate: RenderGate | null = nu
 
 /** Which roles the section 1 table gates; aliens are measured but judged by eye against the D14 references. */
 export function humanoidRole(role: FigureRole): boolean {
-  return role !== 'taker' && role !== 'fighter';
+  return role !== 'taker' && role !== 'fighter' && role !== 'spitter';
 }
 
 export interface Gate {

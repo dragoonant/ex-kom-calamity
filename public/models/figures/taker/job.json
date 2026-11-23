@@ -1,59 +1,40 @@
 {
  "role": "taker",
- "reference": "docs/concept/samples/alien-taker-s51.jpg",
+ "reference": "docs/concept/samples/r10/repaint-taker-s163.jpg",
  "attempt": {
   "role": "taker",
-  "reference": "docs/concept/samples/alien-taker-s51.jpg",
+  "reference": "docs/concept/samples/r10/repaint-taker-s163.jpg",
+  "shapeReference": "docs/concept/samples/alien-taker-s51.jpg",
   "seed": 1234,
-  "preset": "high",
-  "octree": 512,
-  "steps": 50,
-  "guidance": 5.0,
-  "faces": 30000,
+  "preset": "repaint",
+  "shapeFrom": "s1234-high",
   "texture": 2048,
-  "cutBase": false,
   "stages": {
    "cutout": {
-    "seconds": 21,
+    "seconds": 19,
     "ok": true,
     "tail": [
      "cutout (1024, 1024)"
     ]
    },
-   "shape": {
-    "seconds": 196,
-    "ok": true,
-    "tail": [
-     "Diffusion Sampling::   4%|\u258d         | 2/50 [00:05<01:58,  2.48s/it]",
-     "Diffusion Sampling::   6%|\u258c         | 3/50 [00:06<01:13,  1.57s/it]",
-     "Diffusion Sampling::   8%|\u258a         | 4/50 [00:06<00:52,  1.14s/it]",
-     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:29<00:00,  1.98it/s]",
-     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:29<00:00,  1.69it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16804/16876 [01:24<00:00, 196.57it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16826/16876 [01:24<00:00, 199.24it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16847/16876 [01:24<00:00, 197.66it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16869/16876 [01:24<00:00, 200.91it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:24<00:00, 199.01it/s]",
-     "generated in 126s: 1308738 raw faces",
-     "shape: 30000 faces, 193s total"
-    ]
-   },
    "paint": {
-    "seconds": 64,
+    "seconds": 51,
     "ok": true,
     "tail": [
-     "loading Hunyuan3D 2.0 paint model",
-     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.63it/s]",
-     "Loading pipeline components...:  50%|\u2588\u2588\u2588\u2588\u2588     | 3/6 [00:07<00:08,  2.95s/it]",
-     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.25s/it]",
-     "loaded in 25s; painting at 2048",
-     "textured: 3.2 MB, 62s total"
+     "Loading pipeline components...:   0%|          | 0/6 [00:00<?, ?it/s]",
+     "Loading pipeline components...:  17%|\u2588\u258b        | 1/6 [00:00<00:01,  3.40it/s]",
+     "Loading pipeline components...:  50%|\u2588\u2588\u2588\u2588\u2588     | 3/6 [00:01<00:01,  1.63it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:01<00:00,  3.34it/s]",
+     "Loading pipeline components...:   0%|          | 0/6 [00:00<?, ?it/s]",
+     "Loading pipeline components...:  17%|\u2588\u258b        | 1/6 [00:00<00:02,  1.89it/s]",
+     "Loading pipeline components...:  50%|\u2588\u2588\u2588\u2588\u2588     | 3/6 [00:07<00:08,  2.73s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.26s/it]"
     ]
    }
   },
-  "started": "2026-11-18 13:36:23",
-  "finished": "2026-11-18 13:41:05",
-  "gpuSeconds": 260
+  "started": "2026-11-22 15:51:17",
+  "finished": "2026-11-22 15:52:27",
+  "gpuSeconds": 51
  },
  "finalize": {
   "landmarks": {
@@ -62,12 +43,12 @@
   },
   "full": {
    "triangles": 30000,
-   "bytes": 6516228,
+   "bytes": 6380064,
    "texture": "as painted"
   },
   "lod": {
    "triangles": 8000,
-   "bytes": 1824880,
+   "bytes": 1846676,
    "texture": 1024
   },
   "dimensions": {
@@ -90,20 +71,23 @@
    "chin_source": "given"
   },
   "reference": {
-   "head_share": 0.25,
-   "shoulders_in_heads": 1.18,
-   "legs_in_heads": 0.95,
-   "aspect": 0.818,
+   "head_share": 0.141,
+   "shoulders_in_heads": 1.91,
+   "legs_in_heads": 2.95,
+   "aspect": 0.827,
    "chin_source": "shoulder line (lower bound)"
   }
  },
- "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\taker\\s1234-high",
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\taker\\s1234-repaint",
  "files": [
   "cutout.png",
+  "job.json",
+  "rigged.glb",
   "shape.glb",
   "textured-lod.glb",
   "textured.glb",
   "turnaround-lod.jpg",
-  "turnaround.jpg"
+  "turnaround.jpg",
+  "walk.jpg"
  ]
 }

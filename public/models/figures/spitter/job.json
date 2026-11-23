@@ -1,0 +1,110 @@
+{
+ "role": "spitter",
+ "reference": "docs/concept/samples/r10/alien-spitter-s152.jpg",
+ "attempt": {
+  "role": "spitter",
+  "reference": "docs/concept/samples/r10/alien-spitter-s152.jpg",
+  "seed": 1234,
+  "preset": "high",
+  "octree": 512,
+  "steps": 50,
+  "guidance": 5.0,
+  "faces": 30000,
+  "texture": 2048,
+  "cutBase": false,
+  "stages": {
+   "cutout": {
+    "seconds": 19,
+    "ok": true,
+    "tail": [
+     "cutout (1024, 1024)"
+    ]
+   },
+   "shape": {
+    "seconds": 196,
+    "ok": true,
+    "tail": [
+     "PointCrossAttentionEncoder INFO: pc_sharpedge_size is zero",
+     "loaded in 55s; generating (seed 1234, octree 512, 50 steps)",
+     "self.gen = func(*args, **kwds)",
+     "Diffusion Sampling::   2%|\u258f         | 1/50 [00:01<00:55,  1.13s/it]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:24<00:00,  2.06it/s]",
+     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:24<00:00,  2.01it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16811/16876 [01:21<00:00, 207.03it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16833/16876 [01:21<00:00, 206.46it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16856/16876 [01:21<00:00, 205.81it/s]",
+     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:21<00:00, 206.84it/s]",
+     "generated in 115s: 1502996 raw faces",
+     "shape: 30000 faces, 192s total"
+    ]
+   },
+   "paint": {
+    "seconds": 54,
+    "ok": true,
+    "tail": [
+     "loading Hunyuan3D 2.0 paint model",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.54it/s]",
+     "Loading pipeline components...:  50%|\u2588\u2588\u2588\u2588\u2588     | 3/6 [00:06<00:06,  2.17s/it]",
+     "Loading pipeline components...:  67%|\u2588\u2588\u2588\u2588\u2588\u2588\u258b   | 4/6 [00:07<00:03,  1.77s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.25s/it]",
+     "loaded in 28s; painting at 2048",
+     "textured: 3.1 MB, 51s total"
+    ]
+   }
+  },
+  "started": "2026-11-22 15:44:32",
+  "finished": "2026-11-22 15:49:00",
+  "gpuSeconds": 250
+ },
+ "finalize": {
+  "landmarks": {
+   "chin_frac": 0.36,
+   "crotch_frac": 0.875
+  },
+  "full": {
+   "triangles": 30000,
+   "bytes": 6346588,
+   "texture": "as painted"
+  },
+  "lod": {
+   "triangles": 8000,
+   "bytes": 1791716,
+   "texture": 1024
+  },
+  "dimensions": {
+   "width": 0.61,
+   "depth": 0.782,
+   "height": 0.9
+  },
+  "yaw": 0.0,
+  "roughness": 0.9,
+  "regrade": true
+ },
+ "gate": {
+  "verdict": "recorded",
+  "fails": [],
+  "model": {
+   "head_share": 0.359,
+   "shoulders_in_heads": 1.66,
+   "legs_in_heads": 0.38,
+   "aspect": 0.677,
+   "chin_source": "given"
+  },
+  "reference": {
+   "head_share": 0.34,
+   "shoulders_in_heads": 2.17,
+   "legs_in_heads": 0.06,
+   "aspect": 0.666,
+   "chin_source": "shoulder line (lower bound)"
+  }
+ },
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\spitter\\s1234-high",
+ "files": [
+  "cutout.png",
+  "shape.glb",
+  "textured-lod.glb",
+  "textured.glb",
+  "turnaround-lod.jpg",
+  "turnaround.jpg"
+ ]
+}

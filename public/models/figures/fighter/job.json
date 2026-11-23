@@ -1,59 +1,40 @@
 {
  "role": "fighter",
- "reference": "docs/concept/samples/gemini-alien-fighter-a.jpg",
+ "reference": "docs/concept/samples/r10/repaint-fighter-s166.jpg",
  "attempt": {
   "role": "fighter",
-  "reference": "docs/concept/samples/gemini-alien-fighter-a.jpg",
+  "reference": "docs/concept/samples/r10/repaint-fighter-s166.jpg",
+  "shapeReference": "docs/concept/samples/gemini-alien-fighter-a.jpg",
   "seed": 1234,
-  "preset": "high",
-  "octree": 512,
-  "steps": 50,
-  "guidance": 5.0,
-  "faces": 30000,
+  "preset": "repaint",
+  "shapeFrom": "s1234-high",
   "texture": 2048,
-  "cutBase": false,
   "stages": {
    "cutout": {
-    "seconds": 0,
+    "seconds": 19,
     "ok": true,
     "tail": [
-     "cached"
-    ]
-   },
-   "shape": {
-    "seconds": 181,
-    "ok": true,
-    "tail": [
-     "Diffusion Sampling::   6%|\u258c         | 3/50 [00:09<01:48,  2.30s/it]",
-     "Diffusion Sampling::   8%|\u258a         | 4/50 [00:10<01:12,  1.59s/it]",
-     "Diffusion Sampling::  10%|\u2588         | 5/50 [00:10<00:53,  1.19s/it]",
-     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:32<00:00,  2.03it/s]",
-     "Diffusion Sampling:: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 50/50 [00:32<00:00,  1.52it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16797/16876 [01:24<00:00, 197.46it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16818/16876 [01:24<00:00, 195.95it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16840/16876 [01:24<00:00, 197.70it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589| 16861/16876 [01:24<00:00, 196.85it/s]",
-     "Volume Decoding: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 16876/16876 [01:24<00:00, 199.22it/s]",
-     "generated in 127s: 748776 raw faces",
-     "shape: 30000 faces, 178s total"
+     "cutout (1024, 1024)"
     ]
    },
    "paint": {
-    "seconds": 63,
+    "seconds": 59,
     "ok": true,
     "tail": [
-     "loading Hunyuan3D 2.0 paint model",
-     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.82it/s]",
-     "Loading pipeline components...:  67%|\u2588\u2588\u2588\u2588\u2588\u2588\u258b   | 4/6 [00:07<00:04,  2.16s/it]",
-     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.28s/it]",
-     "loaded in 24s; painting at 2048",
-     "textured: 4.2 MB, 60s total"
+     "Loading pipeline components...:   0%|          | 0/6 [00:00<?, ?it/s]",
+     "Loading pipeline components...:  33%|\u2588\u2588\u2588\u258e      | 2/6 [00:00<00:00,  6.75it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.72it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:02<00:00,  2.89it/s]",
+     "Loading pipeline components...:   0%|          | 0/6 [00:00<?, ?it/s]",
+     "Loading pipeline components...:  33%|\u2588\u2588\u2588\u258e      | 2/6 [00:00<00:01,  3.65it/s]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.41s/it]",
+     "Loading pipeline components...: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 6/6 [00:07<00:00,  1.30s/it]"
     ]
    }
   },
-  "started": "2026-11-18 13:43:36",
-  "finished": "2026-11-18 13:47:40",
-  "gpuSeconds": 244
+  "started": "2026-11-22 15:52:57",
+  "finished": "2026-11-22 15:54:15",
+  "gpuSeconds": 59
  },
  "finalize": {
   "landmarks": {
@@ -62,12 +43,12 @@
   },
   "full": {
    "triangles": 30000,
-   "bytes": 7492396,
+   "bytes": 7852688,
    "texture": "as painted"
   },
   "lod": {
    "triangles": 8000,
-   "bytes": 2164676,
+   "bytes": 2293016,
    "texture": 1024
   },
   "dimensions": {
@@ -90,20 +71,23 @@
    "chin_source": "given"
   },
   "reference": {
-   "head_share": 0.173,
-   "shoulders_in_heads": 1.6,
-   "legs_in_heads": 2.69,
+   "head_share": 0.163,
+   "shoulders_in_heads": 1.55,
+   "legs_in_heads": 3.69,
    "aspect": 0.517,
-   "chin_source": "neck minimum"
+   "chin_source": "shoulder line (lower bound)"
   }
  },
- "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\fighter\\s1234-high",
+ "workDir": "%USERPROFILE%\\Hunyuan3D-2\\outputs\\ekc-figures\\fighter\\s1234-repaint",
  "files": [
   "cutout.png",
+  "job.json",
+  "rigged.glb",
   "shape.glb",
   "textured-lod.glb",
   "textured.glb",
   "turnaround-lod.jpg",
-  "turnaround.jpg"
+  "turnaround.jpg",
+  "walk.jpg"
  ]
 }

@@ -134,7 +134,7 @@ export function App() {
       },
     });
     installCityHook();
-    void preloadModels((loaded, total) => s().setModels(loaded, total));
+    void preloadModels((loaded, total) => s().setModels(loaded, total), isGalleryPage((globalThis as { location?: { search?: string } }).location?.search));
     return director.attach();
   }, []);
 

@@ -33,7 +33,7 @@ ap.add_argument('--cut-base', action='store_true')
 ap.add_argument('--no-paint', action='store_true')
 args = ap.parse_args()
 
-figures = json.load(open(os.path.join(P.HERE, 'figures.json')))
+figures = {**json.load(open(os.path.join(P.HERE, 'figures.json'))), **json.load(open(os.path.join(P.HERE, 'objects.json')))}
 fig = figures[args.role]
 octree, steps = PRESETS[args.preset]
 role_dir = os.path.join(P.WORK, args.role)
