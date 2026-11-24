@@ -1,0 +1,83 @@
+{
+  "terrainCost": {
+    "concrete": 1,
+    "ballast": 1,
+    "mud": 1,
+    "water": 2,
+    "rubble": 2
+  },
+  "climbCost": 1,
+  "waterEvade": 10,
+  "coverPenalty": 20,
+  "heightBonus": 10,
+  "hitMin": 5,
+  "hitMax": 95,
+  "overweightMove": 1,
+  "overweightEvade": 10,
+  "spotterBonus": 20,
+  "dmgSpread": [
+    0.9,
+    1.1
+  ],
+  "hitWeights": {
+    "direct": {
+      "body": 50,
+      "armL": 15,
+      "armR": 15,
+      "legs": 20
+    },
+    "melee": {
+      "body": 60,
+      "armL": 10,
+      "armR": 10,
+      "legs": 20
+    },
+    "indirect": {
+      "body": 55,
+      "armL": 10,
+      "armR": 10,
+      "legs": 25
+    }
+  },
+  "objects": {
+    "wagon": {
+      "hp": 60,
+      "blocksSight": false,
+      "cover": true,
+      "breakable": true
+    },
+    "container": {
+      "hp": 80,
+      "blocksSight": true,
+      "cover": true,
+      "breakable": true
+    },
+    "shed": {
+      "hp": 140,
+      "blocksSight": true,
+      "cover": true,
+      "breakable": true
+    },
+    "barrier": {
+      "hp": 45,
+      "blocksSight": false,
+      "cover": true,
+      "breakable": true
+    },
+    "silo": {
+      "hp": 0,
+      "blocksSight": true,
+      "cover": true,
+      "breakable": false
+    },
+    "crane": {
+      "hp": 0,
+      "blocksSight": false,
+      "cover": false,
+      "breakable": false
+    }
+  },
+  "repairCost": 8,
+  "repaintCost": 120,
+  "counterPenalty": 15
+}

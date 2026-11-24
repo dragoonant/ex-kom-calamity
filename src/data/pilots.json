@@ -1,0 +1,72 @@
+{
+  "marlow": {
+    "name": "Capt. Ines Marlow",
+    "call": "LANTERN 1",
+    "skill": 10,
+    "evade": 5,
+    "side": "player"
+  },
+  "okonjo": {
+    "name": "Dace Okonjo",
+    "call": "LANTERN 2",
+    "skill": 5,
+    "evade": 0,
+    "side": "player"
+  },
+  "varga": {
+    "name": "Pell Varga",
+    "call": "LANTERN 3",
+    "skill": 5,
+    "evade": 10,
+    "side": "player"
+  },
+  "haldane": {
+    "name": "Ruth Haldane",
+    "call": "LANTERN 4",
+    "skill": 0,
+    "evade": 0,
+    "side": "player"
+  },
+  "hallen": {
+    "name": "Maj. Teodric Hallen",
+    "call": "DIRECTORATE CMD",
+    "skill": 10,
+    "evade": 5,
+    "side": "hostile"
+  },
+  "dir-1": {
+    "name": "Directorate pilot",
+    "call": "WEDGE 1",
+    "skill": -5,
+    "evade": 0,
+    "side": "hostile"
+  },
+  "dir-2": {
+    "name": "Directorate pilot",
+    "call": "WEDGE 2",
+    "skill": -5,
+    "evade": 0,
+    "side": "hostile"
+  },
+  "dir-3": {
+    "name": "Directorate pilot",
+    "call": "WEDGE 3",
+    "skill": -5,
+    "evade": 0,
+    "side": "hostile"
+  },
+  "dir-4": {
+    "name": "Directorate pilot",
+    "call": "WEDGE 4",
+    "skill": -5,
+    "evade": 0,
+    "side": "hostile"
+  },
+  "dir-5": {
+    "name": "Directorate pilot",
+    "call": "WEDGE 5",
+    "skill": -5,
+    "evade": 0,
+    "side": "hostile"
+  }
+}

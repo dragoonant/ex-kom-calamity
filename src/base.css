@@ -1,0 +1,13 @@
+/* Rule 24 (3d-game-generation rules.md; tabletop-kb rules.md rule 24, owner 2026-11-04).
+   A long press on a phone never selects text, pops a callout or flashes a highlight.
+   Import this first in the game's base stylesheet. Text stays selectable only where someone types. */
+html, body, #root { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+input, textarea, select, [contenteditable='true'] { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+img, canvas { -webkit-user-drag: none; }
+button { touch-action: manipulation; }
+
+/* Also required (JS, not CSS), as a fallback for browsers that ignore the rules above:
+   selectstart and contextmenu listeners on `document` that call preventDefault() unless the
+   target is an input, textarea, select or editable element.
+   Gate (e2e at phone size): getComputedStyle(document.body).userSelect === 'none', and a triple click
+   on HUD text leaves getSelection() empty. */

@@ -1,0 +1,247 @@
+{
+  "bodies": {
+    "body-lantern-m": {
+      "name": "LANTERN M body",
+      "hp": 120,
+      "power": 50,
+      "weight": 12,
+      "kit": "lantern",
+      "size": "m"
+    },
+    "body-lantern-h": {
+      "name": "LANTERN H body",
+      "hp": 165,
+      "power": 68,
+      "weight": 16,
+      "kit": "lantern",
+      "size": "h"
+    },
+    "body-lantern-l": {
+      "name": "LANTERN L body",
+      "hp": 95,
+      "power": 34,
+      "weight": 8,
+      "kit": "lantern",
+      "size": "l"
+    },
+    "body-dir-wedge": {
+      "name": "WEDGE body",
+      "hp": 105,
+      "power": 50,
+      "weight": 13,
+      "kit": "wedge",
+      "size": "m"
+    },
+    "body-dir-cmd": {
+      "name": "WEDGE-C body",
+      "hp": 175,
+      "power": 70,
+      "weight": 18,
+      "kit": "wedge",
+      "size": "h"
+    }
+  },
+  "arms": {
+    "arm-lantern-m": {
+      "name": "LANTERN M arm",
+      "hp": 70,
+      "acc": 0,
+      "weight": 6,
+      "kit": "lantern",
+      "size": "m"
+    },
+    "arm-lantern-h": {
+      "name": "LANTERN H arm",
+      "hp": 92,
+      "acc": -5,
+      "weight": 8,
+      "kit": "lantern",
+      "size": "h"
+    },
+    "arm-lantern-l": {
+      "name": "LANTERN L arm",
+      "hp": 52,
+      "acc": 5,
+      "weight": 4,
+      "kit": "lantern",
+      "size": "l"
+    },
+    "arm-dir": {
+      "name": "WEDGE arm",
+      "hp": 60,
+      "acc": 0,
+      "weight": 7,
+      "kit": "wedge",
+      "size": "m"
+    },
+    "arm-dir-cmd": {
+      "name": "WEDGE-C arm",
+      "hp": 90,
+      "acc": 5,
+      "weight": 8,
+      "kit": "wedge",
+      "size": "h"
+    }
+  },
+  "legs": {
+    "legs-lantern-m": {
+      "name": "LANTERN M legs",
+      "hp": 90,
+      "move": 4,
+      "evade": 10,
+      "weight": 10,
+      "kit": "lantern",
+      "size": "m"
+    },
+    "legs-lantern-h": {
+      "name": "LANTERN H legs",
+      "hp": 120,
+      "move": 3,
+      "evade": 5,
+      "weight": 14,
+      "kit": "lantern",
+      "size": "h"
+    },
+    "legs-lantern-l": {
+      "name": "LANTERN L legs",
+      "hp": 68,
+      "move": 5,
+      "evade": 20,
+      "weight": 7,
+      "kit": "lantern",
+      "size": "l"
+    },
+    "legs-dir": {
+      "name": "WEDGE legs",
+      "hp": 78,
+      "move": 4,
+      "evade": 10,
+      "weight": 11,
+      "kit": "wedge",
+      "size": "m"
+    },
+    "legs-dir-cmd": {
+      "name": "WEDGE-C legs",
+      "hp": 125,
+      "move": 3,
+      "evade": 5,
+      "weight": 15,
+      "kit": "wedge",
+      "size": "h"
+    }
+  },
+  "packs": {
+    "pack-none": {
+      "name": "No pack",
+      "weight": 0,
+      "kind": "none"
+    },
+    "pack-mortar": {
+      "name": "M-80 mortar pack",
+      "weight": 7,
+      "kind": "weapon",
+      "weapon": "w-mortar"
+    },
+    "pack-missile": {
+      "name": "Twin missile box",
+      "weight": 6,
+      "kind": "weapon",
+      "weapon": "w-missile"
+    },
+    "pack-sensor": {
+      "name": "Sensor mast",
+      "weight": 3,
+      "kind": "sensor",
+      "sensorRange": 7
+    },
+    "pack-repair": {
+      "name": "Repair crane",
+      "weight": 5,
+      "kind": "repair",
+      "charges": 3,
+      "heal": 45
+    }
+  },
+  "weapons": {
+    "w-autocannon": {
+      "name": "30 mm autocannon",
+      "class": "direct",
+      "min": 1,
+      "max": 4,
+      "shots": 3,
+      "dmg": 24,
+      "acc": 66,
+      "weight": 6,
+      "sfx": "autocannon"
+    },
+    "w-carbine": {
+      "name": "20 mm carbine",
+      "class": "direct",
+      "min": 1,
+      "max": 5,
+      "shots": 2,
+      "dmg": 20,
+      "acc": 74,
+      "weight": 4,
+      "sfx": "carbine"
+    },
+    "w-rifle": {
+      "name": "Long rifle",
+      "class": "direct",
+      "min": 2,
+      "max": 6,
+      "shots": 1,
+      "dmg": 50,
+      "acc": 78,
+      "weight": 6,
+      "sfx": "rifle"
+    },
+    "w-ramfist": {
+      "name": "Ram fist",
+      "class": "melee",
+      "min": 1,
+      "max": 1,
+      "shots": 1,
+      "dmg": 60,
+      "acc": 82,
+      "weight": 5,
+      "sfx": "ram-hit"
+    },
+    "w-shield": {
+      "name": "Riveted shield",
+      "class": "shield",
+      "min": 0,
+      "max": 0,
+      "shots": 0,
+      "dmg": 0,
+      "acc": 0,
+      "weight": 6,
+      "guard": 35
+    },
+    "w-mortar": {
+      "name": "M-80 mortar",
+      "class": "indirect",
+      "min": 3,
+      "max": 8,
+      "shots": 1,
+      "dmg": 45,
+      "acc": 58,
+      "weight": 0,
+      "ammo": 3,
+      "splash": 15,
+      "sfx": "mortar-launch"
+    },
+    "w-missile": {
+      "name": "Twin missiles",
+      "class": "direct",
+      "min": 2,
+      "max": 7,
+      "shots": 2,
+      "dmg": 32,
+      "acc": 72,
+      "weight": 0,
+      "ammo": 2,
+      "sfx": "missile-launch"
+    }
+  }
+}

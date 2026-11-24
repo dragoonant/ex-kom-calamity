@@ -1,0 +1,90 @@
+{
+ "style": "Realistic painted concept art for a grounded near-future war game, engineered like modern armoured military vehicles. Matte factory paint with light wear: chipped edges, mud on the lower legs, dust, a few oil streaks, no heavy rust. Overcast diffuse light, muted cold palette of slate blue-grey, wet concrete and dark steel with small accents of safety orange. Wordless and untitled, no lettering, no numbers, no logos, no markings with text, full-bleed.",
+ "walker": "The piloted walker machine is about seven metres tall and stands upright like a heavily armoured person: a broad sloped armoured hull for a torso, styled like an armoured personnel carrier, holding the cockpit behind a thick armoured hatch, with no head and no face; its only sensor is a small boxy camera turret with one lens mounted off-centre on the right side of the hull top, beside two whip antennas. Two strong arms hang from large armoured shoulder blocks on either side of the hull, each arm ending in an armoured three-fingered hand that grips a hand-held weapon. Two thick straight legs with armoured skirt plates over the knees and exposed hydraulic rams at the back, broad flat feet. Smoke grenade launchers on the hull sides, cable bundles at the joints, square armour panels bolted on and clearly replaceable.",
+ "items": [
+  {
+   "id": "01-key-art",
+   "w": 1344,
+   "h": 768,
+   "seed": 3101,
+   "prompt": "Wide cinematic key art. Four upright two-armed piloted walker machines, each like this: {walker} They advance in a loose line through a flooded rail yard at dawn in light rain, between rusted freight wagons, a gantry crane and tall concrete grain silos in fog. Slate blue-grey paint with a single safety-orange band on the left shoulder. One carries a long autocannon, one a riveted slab shield, one a box of short missile tubes on its back. Puddles reflect the grey sky."
+  },
+  {
+   "id": "02-line-walker",
+   "w": 896,
+   "h": 1152,
+   "seed": 1202,
+   "prompt": "Single design sheet figure on a plain light grey studio background, three-quarter front view, full body from feet to top. {walker} Slate blue-grey paint, safety-orange band on the left shoulder. It holds a heavy autocannon with a drum magazine in both hands. A human mechanic in overalls stands at its foot for scale, reaching only to its knee."
+  },
+  {
+   "id": "03-damaged-walker",
+   "w": 1344,
+   "h": 768,
+   "seed": 3303,
+   "prompt": "Dramatic battlefield moment in a shattered canal-side street. The machine has only one arm. {walker} Its entire left arm is gone: the left shoulder ends in an empty ragged socket of torn metal with sparking severed hydraulic hoses and dangling cables, and the severed left arm lies wrecked on the cobbles in the foreground. The machine has dropped onto one knee, its right leg armour caved in and blackened, and it still raises a smoking autocannon in its one remaining right hand. Slate blue-grey paint with a safety-orange band on the right shoulder. Broken brick houses, burning debris, smoke, grey afternoon light."
+  },
+  {
+   "id": "04-heavy-walker",
+   "w": 896,
+   "h": 1152,
+   "seed": 1404,
+   "prompt": "Single design sheet figure on a plain light grey studio background, three-quarter front view, full body. A heavier variant: {walker} Thicker layered armour slabs on the chest and shins, a large riveted rectangular shield on the left forearm with deep dents, a short wide-bore mortar tube mounted over the right shoulder, ammunition boxes on the hips. Slate blue-grey paint with a safety-orange shoulder band. A human in overalls at its foot for scale, reaching to its shin."
+  },
+  {
+   "id": "05-scout-walker",
+   "w": 896,
+   "h": 1152,
+   "seed": 1505,
+   "prompt": "Single design sheet figure on a plain light grey studio background, three-quarter front view, full body. A light scout variant: {walker} This one is lighter and leaner, with thinner armour, longer reverse-jointed legs, a tall folding sensor mast with a round radar dish on its back, a compact carbine in its right hand and smoke dischargers on the forearms. Slate blue-grey paint with a safety-orange shoulder band. A human at its foot for scale."
+  },
+  {
+   "id": "06-enemy-walker",
+   "w": 896,
+   "h": 1152,
+   "seed": 1606,
+   "prompt": "Single design sheet figure on a plain light grey studio background, three-quarter front view, full body. An opposing army's piloted walker machine, about seven metres tall, with a different design language: a forward-raked wedge-shaped armoured chest holding the cockpit, no head and no face, a single horizontal slit of dull red sensor glass, angular sloped armour plates like a tank hull, thick legs with armoured skirts over the knees, a long-barrelled rifle and a hydraulic close-combat ram fist on the left arm. Paint of dark sand and drab olive in a hard-edged two-tone camouflage. A human at its foot for scale."
+  },
+  {
+   "id": "07-hangar",
+   "w": 1344,
+   "h": 768,
+   "seed": 1707,
+   "prompt": "Interior of a cold improvised hangar in a converted locomotive shed, sodium work lights and steam. {walker} It stands clamped in a steel maintenance gantry with its chest hatch open. Its right arm has been unbolted and hangs from a chain hoist beside it, and a replacement arm of a different, unpainted grey-primer design sits on a pallet. Racks of spare leg actuators, armour panels and ammunition crates line the walls. Three mechanics in padded overalls work with welding torches and tablets. Warm work light against cold blue shadow."
+  },
+  {
+   "id": "08-tactical-board",
+   "w": 1344,
+   "h": 768,
+   "seed": 1808,
+   "prompt": "High angled isometric view looking down at forty-five degrees on a small winter canal town block, like a tactical game board: brick warehouses, a frozen canal with a concrete bridge, a rail line, low walls, craters and burnt-out trucks, light snow. A faint square grid of thin pale lines is visible on the ground. Six small piloted walker machines stand on the grid: three in slate blue-grey with orange shoulder bands on the south side, three in sand and olive camouflage among the warehouses on the north side. Clean miniature-diorama clarity, soft overcast light."
+  },
+  {
+   "id": "09-firing",
+   "w": 1344,
+   "h": 768,
+   "seed": 1909,
+   "prompt": "Low-angle action shot. {walker} It leans out from behind a cracked concrete flood barrier and fires a heavy autocannon, a bright muzzle flash and a spray of spent brass shell casings in the air, recoil smoke, wet ground. Slate blue-grey paint with a safety-orange shoulder band. In the misty background across a canal, an angular sand-and-olive camouflaged enemy walker takes hits that throw sparks off its sloped armour."
+  },
+  {
+   "id": "10-pilot",
+   "w": 896,
+   "h": 1152,
+   "seed": 2010,
+   "prompt": "Painted head-and-shoulders portrait of a contract pilot inside a cramped cockpit, a woman in her late thirties with short cropped dark hair, a pale scar across the chin, tired steady eyes, wearing a padded slate-grey flight jacket with a safety-orange collar tab and a worn headset with a boom microphone. Amber glow from small analogue gauges and a green monochrome screen below her face, condensation on the steel walls behind. Realistic, serious, grounded."
+  },
+  {
+   "id": "11-basin",
+   "w": 1344,
+   "h": 768,
+   "seed": 2111,
+   "prompt": "Wide environment painting of a contested northern river basin in early winter: a huge concrete hydroelectric dam in the distance, grain silos and a steel rail bridge over a grey river, flooded fields, pylons, a ruined industrial town on the near bank, low clouds and drifting smoke from distant fires. Tiny piloted walker machines cross the bridge in a column for scale. Melancholy and vast."
+  },
+  {
+   "id": "12-lineup",
+   "w": 1536,
+   "h": 768,
+   "seed": 2212,
+   "prompt": "Design lineup on a plain light grey background, four piloted walker machines standing side by side facing the viewer, full bodies, evenly lit: a lean scout with a tall sensor mast and reverse-jointed legs; a standard line machine with an autocannon; a heavy machine with a riveted shield and shoulder mortar; a support machine with a crane arm and a box of missile tubes. All are built like armoured personnel carriers standing on two legs: broad sloped armoured hulls holding the cockpit, no head and no face, a small off-centre camera turret with one lens on the hull top, thick legs with knee skirt plates and hydraulic rams, bolted replaceable armour panels. All in slate blue-grey with safety-orange shoulder bands. A human figure stands at the far left for scale, reaching to the knee."
+  }
+ ]
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound Desk</title>
+<style>
+  :root { color-scheme: dark; --bg:#1c1d1f; --panel:#26282b; --line:#3a3d41; --text:#d9dadc; --dim:#8b8f94; --accent:#ff7a1a; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, sans-serif; }
+  header { position:sticky; top:0; background:var(--panel); border-bottom:2px solid var(--accent); padding:10px 16px; display:flex; flex-wrap:wrap; gap:14px 24px; align-items:center; z-index:2; }
+  h1 { font-size:16px; margin:0; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  label { display:flex; align-items:center; gap:6px; color:var(--dim); }
+  input[type=range] { accent-color:var(--accent); width:110px; }
+  main { padding:8px 16px 40px; max-width:960px; margin:0 auto; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.1em; color:var(--accent); border-bottom:1px solid var(--line); padding-bottom:4px; margin-top:24px; }
+  .row { display:grid; grid-template-columns:auto 1fr auto; gap:4px 12px; align-items:center; padding:6px 0; border-bottom:1px solid #2b2d30; }
+  .row .name { font-weight:600; }
+  .row .meta { color:var(--dim); font-size:12px; text-align:right; white-space:nowrap; }
+  .row .text { grid-column:2 / 4; color:var(--dim); font-style:italic; }
+  button { background:#34373b; color:var(--text); border:1px solid var(--line); border-radius:3px; padding:4px 12px; cursor:pointer; font:inherit; }
+  button:hover { border-color:var(--accent); color:#fff; }
+  button.on { background:var(--accent); color:#111; border-color:var(--accent); }
+  #status { color:var(--dim); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Sound Desk</h1>
+  <span id="status">loading...</span>
+  <span id="sliders"></span>
+</header>
+<main id="main"></main>
+<script type="module" src="/src/sounds.ts"></script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+{
+ "id": "marrow-yard",
+ "name": "Marrow Yard",
+ "brief": "Clear the Directorate recon group from Marrow Yard and reopen the rail link into Kerrow.",
+ "roundLimit": 18,
+ "bonusRound": 10,
+ "fee": 3000,
+ "bonus": 1200,
+ "bounty": 600,
+ "legend": {
+  ".": [
+   "concrete",
+   0
+  ],
+  "=": [
+   "ballast",
+   0
+  ],
+  ",": [
+   "mud",
+   0
+  ],
+  "~": [
+   "water",
+   0
+  ],
+  "%": [
+   "rubble",
+   0
+  ],
+  "^": [
+   "concrete",
+   1
+  ],
+  "W": [
+   "ballast",
+   0,
+   "wagon"
+  ],
+  "C": [
+   "concrete",
+   0,
+   "container"
+  ],
+  "S": [
+   "concrete",
+   0,
+   "silo"
+  ],
+  "B": [
+   "concrete",
+   0,
+   "barrier"
+  ],
+  "K": [
+   "concrete",
+   0,
+   "crane"
+  ],
+  "H": [
+   "concrete",
+   0,
+   "shed"
+  ]
+ },
+ "map": [
+  "SS..=..CC..=HH",
+  "SS..=..CC..=HH",
+  "..B.=......=,,",
+  "....W..^^^.=,~",
+  "..,.W..^^^.W.~",
+  "B...=..^^^.W..",
+  "....=..K..K=..",
+  "..CC=......=..",
+  "..CC=..~~..=.B",
+  ",...=..~~..=..",
+  ",...W...%..W..",
+  "....W.BB...W..",
+  "....=......=.,",
+  ".~~.=..CC..=.,",
+  ".~~.=..CC..=..",
+  "....=......=..",
+  "....=......=..",
+  "....=......=.."
+ ],
+ "units": [
+  {
+   "id": "marlow",
+   "pilot": "marlow",
+   "side": "player",
+   "x": 6,
+   "y": 16,
+   "build": {
+    "body": "body-lantern-m",
+    "armL": "arm-lantern-m",
+    "armR": "arm-lantern-m",
+    "legs": "legs-lantern-m",
+    "pack": "pack-none",
+    "wL": "w-carbine",
+    "wR": "w-autocannon"
+   }
+  },
+  {
+   "id": "okonjo",
+   "pilot": "okonjo",
+   "side": "player",
+   "x": 8,
+   "y": 16,
+   "build": {
+    "body": "body-lantern-h",
+    "armL": "arm-lantern-h",
+    "armR": "arm-lantern-h",
+    "legs": "legs-lantern-h",
+    "pack": "pack-mortar",
+    "wL": "w-shield",
+    "wR": "w-autocannon"
+   }
+  },
+  {
+   "id": "varga",
+   "pilot": "varga",
+   "side": "player",
+   "x": 3,
+   "y": 16,
+   "build": {
+    "body": "body-lantern-l",
+    "armL": "arm-lantern-l",
+    "armR": "arm-lantern-l",
+    "legs": "legs-lantern-l",
+    "pack": "pack-sensor",
+    "wL": null,
+    "wR": "w-carbine"
+   }
+  },
+  {
+   "id": "haldane",
+   "pilot": "haldane",
+   "side": "player",
+   "x": 7,
+   "y": 17,
+   "build": {
+    "body": "body-lantern-m",
+    "armL": "arm-lantern-m",
+    "armR": "arm-lantern-m",
+    "legs": "legs-lantern-m",
+    "pack": "pack-repair",
+    "wL": null,
+    "wR": "w-carbine"
+   }
+  },
+  {
+   "id": "hallen",
+   "pilot": "hallen",
+   "side": "hostile",
+   "x": 2,
+   "y": 3,
+   "role": "commander",
+   "build": {
+    "body": "body-dir-cmd",
+    "armL": "arm-dir-cmd",
+    "armR": "arm-dir-cmd",
+    "legs": "legs-dir-cmd",
+    "pack": "pack-missile",
+    "wL": "w-ramfist",
+    "wR": "w-rifle"
+   }
+  },
+  {
+   "id": "dir-1",
+   "pilot": "dir-1",
+   "side": "hostile",
+   "x": 8,
+   "y": 2,
+   "role": "mortar",
+   "build": {
+    "body": "body-dir-wedge",
+    "armL": "arm-dir",
+    "armR": "arm-dir",
+    "legs": "legs-dir",
+    "pack": "pack-mortar",
+    "wL": null,
+    "wR": "w-carbine"
+   }
+  },
+  {
+   "id": "dir-2",
+   "pilot": "dir-2",
+   "side": "hostile",
+   "x": 8,
+   "y": 4,
+   "role": "rifle",
+   "build": {
+    "body": "body-dir-wedge",
+    "armL": "arm-dir",
+    "armR": "arm-dir",
+    "legs": "legs-dir",
+    "pack": "pack-none",
+    "wL": null,
+    "wR": "w-rifle"
+   }
+  },
+  {
+   "id": "dir-4",
+   "pilot": "dir-4",
+   "side": "hostile",
+   "x": 1,
+   "y": 8,
+   "role": "ram",
+   "build": {
+    "body": "body-dir-wedge",
+    "armL": "arm-dir",
+    "armR": "arm-dir",
+    "legs": "legs-dir",
+    "pack": "pack-none",
+    "wL": "w-ramfist",
+    "wR": "w-carbine"
+   }
+  },
+  {
+   "id": "dir-5",
+   "pilot": "dir-5",
+   "side": "hostile",
+   "x": 9,
+   "y": 9,
+   "role": "ram",
+   "build": {
+    "body": "body-dir-wedge",
+    "armL": "arm-dir",
+    "armR": "arm-dir",
+    "legs": "legs-dir",
+    "pack": "pack-none",
+    "wL": "w-ramfist",
+    "wR": "w-carbine"
+   }
+  }
+ ]
+}
