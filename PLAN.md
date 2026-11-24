@@ -34,7 +34,8 @@ An original turn-based walker-tactics game for the browser by **evilgouki**: a h
 | M | What | State |
 |---|---|---|
 | M0 | Concepts (run 1, 12 images), questions, plan, scaffold | done 2026-11-24 |
-| M1 | Spec `docs/spec/10-rules.md`, data, engine, AI, sim, bench, fuzz | |
-| M2 | Client: board, part-kit walkers, terrain, HUD, close-ups, save | |
-| M3 | Art (portraits, map, sky, textures), audio (music, sounds, voices) | |
-| M4 | Briefing, debrief, hangar; Artifact; KB entry | |
+| M1 | Spec `docs/spec/10-rules.md`, data, engine, AI, sim, bench, fuzz | done 2026-11-24 |
+| M2 | Client: board, part-kit walkers, terrain, HUD, close-ups, save | done 2026-11-24 |
+| M3 | Art (portraits, map, sky, textures), audio (music, sounds, voices) | done 2026-11-24 (audio not verified by ear) |
+| M4 | Briefing, debrief, hangar; Artifact; KB entry | done 2026-11-24 (KB entry drafted in `docs/kb-entry.md`, push to the KB awaits the owner) |
+| M5 | Contract 2, the Kerrow Locks (night, fog, quays, a lock gate to blow); pilot levels; fog of war | next |
